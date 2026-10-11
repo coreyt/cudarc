@@ -129,8 +129,8 @@ conclusion) into a CI receipt under `fathomdb/qualification/`. Its
   no fork-CI file (CF-AC-07a at FC8, CF-AC-07b at FC10). `cargo publish` is
   the owner's action. The first publish of a new crate name needs the
   crates.io token set up for it (FathomDB memory
-  `0.8.27-slice132-rust-sdk-lessons.md`). `cudarc-fathomdb` was unclaimed
-  on 2026-10-11 (crates.io API returned 404).
+  `0.8.27-slice132-rust-sdk-lessons.md`). The crate name is `cudarc-fathomdb` (owner
+  ruling, 2026-10-11; unclaimed that day, crates.io API returned 404).
 
 ### 1.6 Host safety
 
@@ -322,7 +322,7 @@ so G7 must keep that bound.
 | G1 | `windchill3` RTX 3090, driver 580 | `CUDARC_CUDA_VERSION=12060`, `-F cuda-12060` | present | all `driver::` tests incl. T-DEV, T-PROP, T-CONC, T-FAULT, T-CAPTURE, T-TEARDOWN |
 | G2 | same, both 3090s | 12060 | present | T-MULTI |
 | G3 | same | 12060, 13000, 13010, 13020, 13030, 13040 bindings, driver-only feature set (`--no-default-features -F std,driver,dynamic-loading,cuda-<v>`) | nothing installed | T-DEV, T-CONC, T-FAULT, the D-4 driver-version gate, and every other test D-F1 maps to RUN (CF-AC-04b) |
-| G4 | same | 13000, default features | the 13.0 runtime libraries (NVRTC, cuBLAS): the user-local 13.0 toolkit if the owner approves its download (FathomDB W0 step 4), or else the NVIDIA cu13 wheels from PyPI installed into a scratch virtual environment owned by this work (never the FathomDB primary `.venv`) | the toolkit-dependent tests (NVRTC- or cuBLAS-using) that D-F1 identifies; UNMEASURED only if neither source is available |
+| G4 | same | 13000, default features | the 13.0 runtime libraries (NVRTC, cuBLAS): the user-local 13.0 toolkit if the owner approves its download (FathomDB W0 step 4), or else the NVIDIA cu13 wheels from PyPI installed into a scratch virtual environment owned by this work (never the FathomDB primary `.venv`, whose cuBLAS is 13.1.1), pinned to 13.0.x (`nvidia-cuda-runtime==13.0.96`, `nvidia-cuda-nvrtc==13.0.88`, `nvidia-cublas==13.0.2.14`) and reached by `LD_LIBRARY_PATH=<venv>/lib/python3.*/site-packages/nvidia/cu13/lib` for that command only; `libcuda.so.1` stays the system driver's | the toolkit-dependent tests (NVRTC- or cuBLAS-using) that D-F1 identifies; UNMEASURED only if neither source is available |
 | G5 | same | 13010–13040 with default features | R615 driver (never — Q4) | UNMEASURED |
 | G6 | Orin, JetPack 6 | 12060 | present | all `driver::` tests incl. T-PROC and the fallback tests |
 | G7 | Orin, JetPack 7.2.x | 13020 / 13040 | reflash (not in Slice 31 — Q5) | UNMEASURED (known issue 5699079 bounds its exhaustion tests) |
@@ -370,7 +370,7 @@ fresh process (T-PROC) run one per process.
 | cfg or bindings use (D-8) | fork CI, G1, G3, G6 |
 | packaging (`P`), including `FATHOMDB.md` | fork CI; CF-AC-07a; G1 smoke; restarts the chain (§ 1.5) |
 | fork CI workflow (`W`) only | fork CI |
-| FathomDB's `Cargo.lock` changes the resolved dependency set of `cudarc-fathomdb` (FathomDB D-16 detects it) | the hosted test job with FathomDB's lock; G1 and G6 if any dependency of the pool path changed |
+| FathomDB's `Cargo.lock` changes the resolved dependency set of `cudarc-fathomdb` (FathomDB's D-16 guard, owner ruling Q8 option (b), fails until this re-run is recorded) | the hosted test job with FathomDB's lock; G1 and G6 if any dependency of the pool path changed |
 
 ## 9. Work packages and reviews
 
