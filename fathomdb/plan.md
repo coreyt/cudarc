@@ -5,7 +5,9 @@
 - Owner: Corey Thompson. Consumer: FathomDB 0.8.28 Slice 31
   (`fathomadb/fathomdb`, `dev/plans/0.8.28/features/slice-31/plan.md` on
   `release/0.8.28`).
-- Status: plan revision 2 (2026-10-11), with FathomDB Slice 31 plan
+- Status: plan revision 3 (2026-10-11), with FathomDB Slice 31 plan
+  revision 11: item 9 (built-major library loading, CF-REQ-11, D-F4, G8)
+  and the K620 / R580 host constraint. Revision 2 went with plan
   revision 9. Revision 1 was reviewed by R0-rev8 (serving as R-FC-PLAN,
   APPROVE-WITH-FIXES; findings and dispositions in `fathomdb/review.md`).
 
@@ -139,7 +141,9 @@ fork's work.
 
 - **`windchill3` driver and toolkit.** Never install, update or remove an
   NVIDIA driver on `windchill3`; it stays 580.178.04, and R615 would disable
-  the host. Never change `/usr/local/cuda`, which stays 12.6.
+  the host. R580 is also the last branch that supports its Quadro K620
+  (Maxwell), so no later branch is ever installed (FathomDB ruling Q11).
+  CUDA 13.1+ toolkit features and PTX are therefore never measured here. Never change `/usr/local/cuda`, which stays 12.6.
 - **The CUDA 13.0 toolkit,** if the owner approves its download, is
   installed toolkit-only and user-local in `$HOME/opt/cuda-13.0`, and
   selected per command.
@@ -147,7 +151,7 @@ fork's work.
   (`nvidia-smi --query-gpu=driver_version --format=csv,noheader` and
   `readlink -f /usr/local/cuda`). Any change stops the work.
 - **Device selection.** Pin `CUDA_VISIBLE_DEVICES` to one RTX 3090, except
-  for the multi-device tests.
+  for the multi-device tests. The K620 (ordinal 2) is never a test device.
 - **The Jetson AGX Orin** (`10.83.10.13`, ssh/scp approved) stays on
   JetPack 6 / CUDA 12.6. Tegra on CUDA 13 is UNMEASURED (Q5).
 
@@ -179,6 +183,7 @@ the crate so consumers can see what differs from upstream.
 | 5 | Private memory pool: `CudaMemPool`, `CudaContext::new_with_mem_pool`, `AllocMode::Private`, tests | `U` | proposal prepared (FC9), not posted | drop when an upstream release ships an equivalent; FathomDB switches to the upstream names |
 | 6 | Marker feature `fathomdb-private-pool` | `L` | local only | with item 5 |
 | 7 | Fork CI workflow | `W` | not applicable | delete with the branch |
+| 9 | Built-major library loading: load only CUDA libraries (cuBLAS, cuBLASLt, NVRTC, cuRAND, and the rest) of the major the crate was built for, and verify the loaded library's version | `U` | found 2026-10-11; candidate for a second proposal, not posted | drop when upstream ships an equivalent |
 | 8 | Packaging as `cudarc-fathomdb` (`[lib] name = "cudarc"`), `exclude`, README notice | `P` | not applicable | when FathomDB consumes upstream cudarc again |
 
 ## 4. Requirements (draft; finalized in FC1 as `fathomdb/requirements.md`, reviewed by R-FC-REQ)
@@ -198,6 +203,7 @@ host and a receipt (§ 7).
 | **CF-REQ-07 Packaging** [REQ31-06, REQ31-08]. Published as `cudarc-fathomdb` 0.19.10 with `[lib] name = "cudarc"`, upstream licences and attribution, a README fork notice, and no `fathomdb/` or fork-CI files in the package; published from the qualified commit. | **CF-AC-07a (FC8):** `cargo package --list` and `cargo publish --dry-run` receipts at `C`, showing no `fathomdb/` path and no `fathomdb-ci.yaml`. **CF-AC-07b (FC10):** the same receipts at the R-FC-PUB commit, which equals `C` (or a restarted `C`, § 1.5), with a file list identical to 07a's. |
 | **CF-REQ-08 Proposal** [REQ31-09]. Pool primitive only (item 5 without the marker), on `proposal/mem-pool` from `upstream/main`, in upstream style; tests skip cleanly without a device; docs, example and benchmark; coexists with PR #594; issue and PR text drafted. Not posted. | **CF-AC-08:** fork CI green on `ci/proposal-mem-pool` (CI receipt); GPU set passes on RTX 3090 with 12.6; `git diff --stat upstream/main..proposal/mem-pool` lists no `fathomdb/`, `FATHOMDB.md` or `fathomdb-ci.yaml` path; no proposal commit carries a `Fork-Class:` trailer or the marker feature; R-PROP approves. |
 | **CF-REQ-09 Process** [REQ31-11]. TDD, commit classes, reviews and receipts as this plan says. | **CF-AC-09:** `fathomdb/status.md` lists red and green shas per step, each red re-run by the reviewer; `fathomdb/review.md` records every § 9 review with model `opus`; § 1.3 class check passes. |
+| **CF-REQ-11 Built-major library loading** [REQ31-15]. A build for CUDA major M loads only libraries of major M. It never falls back to another major's soname or DLL name, and an unversioned name is accepted only after the loaded library reports major M. When no library of major M is found, the error names the library and the major it needs. | **CF-AC-11:** T-UNIT: for every `cuda-*` feature, the candidate list contains no other major's versioned name. T-DEV (G1): with a decoy wrong-major library first on the search path, it is not used. G8: a 12060 build against PyPI cuBLAS 12.1.x, 12.4.x and 12.9.x, and a 13000 build against cuBLAS 13.0.x, each record the loaded file (from `/proc/self/maps`) and its reported version. |
 | **CF-REQ-10 Scope safety** [REQ31-12]. | **CF-AC-10:** no upstream PR, issue or comment; no PR or issue object on the fork; no push to `upstream`; host guard logs unchanged in every receipt. |
 
 ## 5. Design topics (FC2 writes `fathomdb/design.md`, citing primary NVIDIA documentation; R-FC-DES)
@@ -266,6 +272,20 @@ baseline.
   UNMEASURED per binding version. The design must make driver-dependent
   behaviour depend on `cuDriverGetVersion`, never only on the binding cfg
   (D-4).
+- **D-F4 Built-major library loading (item 9).**
+  - **The defect:** `get_lib_name_candidates` (`src/lib.rs:204-243`) tries
+    the unversioned name first. It then tries `.so.12`, `.so.11`, `.so.10`,
+    `.so.9` and `.so.1`, and the Windows `64_10`/`64_11`/`64_12` names,
+    whatever the built major. So a 13.x build can load cuBLAS 12, and a 12.x
+    build can load cuBLAS 13 through a `libcublas.so` dev symlink. CUDA
+    libraries change ABI with the major.
+  - **Decide:** the candidate order (versioned built-major names first);
+    which upstream issues (#242, #246, #260, #274, #296) the extra names
+    serve, and how to keep those cases working; and the version check
+    after load (`cublasGetProperty`, `nvrtcVersion`, and the equivalents).
+  - **Constraint:** the driver (`libcuda.so.1`) is exempt; it is
+    backward compatible across majors.
+  - **Inputs:** FathomDB REQ31-15 and T-CUDA-COMPAT C2/C3.
 - **D-F2 Fork CI design.** The § 1.4 workflow, the aarch64 runner choice,
   the hosted test job and its FathomDB-lock run, the CI receipt, and why
   it is a fork-only commit.
@@ -323,8 +343,9 @@ so G7 must keep that bound.
 | G2 | same, both 3090s | 12060 | present | T-MULTI |
 | G3 | same | 12060, 13000, 13010, 13020, 13030, 13040 bindings, driver-only feature set (`--no-default-features -F std,driver,dynamic-loading,cuda-<v>`) | nothing installed | T-DEV, T-CONC, T-FAULT, the D-4 driver-version gate, and every other test D-F1 maps to RUN (CF-AC-04b) |
 | G4 | same | 13000, default features | the 13.0 runtime libraries (NVRTC, cuBLAS): the user-local 13.0 toolkit if the owner approves its download (FathomDB W0 step 4), or else the NVIDIA cu13 wheels from PyPI installed into a scratch virtual environment owned by this work (never the FathomDB primary `.venv`, whose cuBLAS is 13.1.1), pinned to 13.0.x (`nvidia-cuda-runtime==13.0.96`, `nvidia-cuda-nvrtc==13.0.88`, `nvidia-cublas==13.0.2.14`) and reached by `LD_LIBRARY_PATH=<venv>/lib/python3.*/site-packages/nvidia/cu13/lib` for that command only; `libcuda.so.1` stays the system driver's | the toolkit-dependent tests (NVRTC- or cuBLAS-using) that D-F1 identifies; UNMEASURED only if neither source is available |
-| G5 | same | 13010–13040 with default features | R615 driver (never — Q4) | UNMEASURED |
+| G5 | same | 13010–13040 with default features | R590–R615 drivers, never on `windchill3` (Q4, Q11) | UNMEASURED |
 | G6 | Orin, JetPack 6 | 12060 | present | all `driver::` tests incl. T-PROC and the fallback tests |
+| G8 | `windchill3` RTX 3090 | 12060 and 13000, default features | scratch venvs with PyPI `nvidia-cublas-cu12` 12.1.x, 12.4.x, 12.9.x and `nvidia-cublas` 13.0.x, reached by `LD_LIBRARY_PATH` | CF-AC-11: the cuBLAS tests, each recording the loaded file and its reported version |
 | G7 | Orin, JetPack 7.2.x | 13020 / 13040 | reflash (not in Slice 31 — Q5) | UNMEASURED (known issue 5699079 bounds its exhaustion tests) |
 
 The exact command for each cell is written in `test-plan.md`. One example,
@@ -391,13 +412,13 @@ disposition, before the blocked step starts.
 | --- | --- | --- | --- | --- |
 | FC0 | Main thread: branch from `ec1cac71`, upstream push disabled, this plan | `fathomdb/plan.md` | R-FC-PLAN (with FathomDB R0-rev8) | FC1 |
 | FC1 | Main thread: final requirements from § 4 | `fathomdb/requirements.md` | R-FC-REQ | FC2 |
-| FC2 | Main thread, with a research subagent for citations: design D-1…D-9, D-12, D-13, D-F1, D-F2 | `fathomdb/design.md` | R-FC-DES | FC3 |
+| FC2 | Main thread, with a research subagent for citations: design D-1…D-9, D-12, D-13, D-F1, D-F2, D-F3, D-F4 | `fathomdb/design.md` | R-FC-DES | FC3 |
 | FC3 | Main thread: test plan, each test traced to a CF-AC with host, command and expected result | `fathomdb/test-plan.md` | R-FC-TEST | FC4 |
 | FC4 | Implementer: commit `W` (fork CI) first, then port the vendored tests (they fail to compile on bare `ec1cac71`: RED), then items 1–4 and 5–6 as small `L`/`U` commits (GREEN); record tree A | commits; CF-AC-01 output | — | FC5 |
 | FC5 | Implementer: RED then GREEN fixes. The `CUmemLocation` constructor, `CUmemPoolProps` from `zeroed()`, the `max_size` cfg rule and the `set_max_size` cfg form. 64-bit attributes, the driver-version check, raw attribute reads and no exhaustive matches. The `upgrade_device_ptr` precondition and doc, and the dead-code warning. | `U` commits | — | FC6 |
-| FC6 | Implementer: new tests from the test plan, RED first, then code | `U`/`L` commits | — | FC7 |
+| FC6 | Implementer: new tests from the test plan, RED first, then code; item 9 (D-F4, CF-REQ-11) as its own `U` commits | `U`/`L` commits | — | FC7 |
 | FC7 | Implementer: packaging commit `P` (`cudarc-fathomdb`, `[lib] name = "cudarc"`, `exclude`, README notice, `FATHOMDB.md`) | `P` commit | R-FC-CODE (whole branch, class check, RED re-runs, fork CI) | FC8 |
-| FC8 | Main thread: push the qualified commit `C` as the tip (§ 1.4); CI receipt; run G1–G4, G6 (optionally a Claude agent on the Orin); CF-AC-07a package receipts; receipts committed after `C` | `fathomdb/qualification/` | R-FC-VERIFY (CF-AC-01…06, 07a, 09, 10 at `C`) | the Candle fork's FK2; FathomDB R-PIN |
+| FC8 | Main thread: push the qualified commit `C` as the tip (§ 1.4); CI receipt; run G1–G4, G6, G8 (optionally a Claude agent on the Orin); CF-AC-07a package receipts; receipts committed after `C` | `fathomdb/qualification/` | R-FC-VERIFY (CF-AC-01…06, 07a, 09, 10 at `C`) | the Candle fork's FK2; FathomDB R-PIN |
 | FC9 | Implementer in `cudarc-proposal`: `proposal/mem-pool` from `upstream/main`, item 5 only, re-authored in upstream style, RED first; example and benchmark (T-PERF); `ci/proposal-mem-pool` run then deleted. Main thread writes `fathomdb/proposal/issue.md` and `pr.md` (motivation, API, #594 coexistence, benchmark) | proposal branch and drafts | R-PROP (CF-AC-08) | owner sign-off, later |
 | FC10 | Main thread: publish preparation from a detached checkout of `C` (§ 1.5); `cargo package --list`, `cargo publish --dry-run` (CF-AC-07b); crates.io token for the new name | dry-run receipt | R-FC-PUB, then owner R-PUB | owner `cargo publish` |
 
