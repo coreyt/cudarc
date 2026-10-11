@@ -6,8 +6,9 @@
   (`fathomadb/fathomdb`, `dev/plans/0.8.28/features/slice-31/plan.md` on
   `release/0.8.28`).
 - Status: plan revision 3 (2026-10-11), with FathomDB Slice 31 plan
-  revision 11: item 9 (built-major library loading, CF-REQ-11, D-F4, G8)
-  and the K620 / R580 host constraint. Revision 2 went with plan
+  revision 11: item 9 (built-major library loading, CF-REQ-11, D-F4, G8,
+  with a loaded-library report), its second upstream proposal (FC9b,
+  CF-REQ-08b, not posted), and the K620 / R580 host constraint. Revision 2 went with plan
   revision 9. Revision 1 was reviewed by R0-rev8 (serving as R-FC-PLAN,
   APPROVE-WITH-FIXES; findings and dispositions in `fathomdb/review.md`).
 
@@ -56,7 +57,7 @@ class; it is reserved for the qualified commit of the pin chain (§ 1.5).
 
 | Class | Content | May touch `fathomdb/` | Proposable upstream |
 | --- | --- | --- | --- |
-| `U` | upstream-shaped code: the pool primitive, its fixes and tests | no | yes, re-authored on `proposal/mem-pool` |
+| `U` | upstream-shaped code: the pool primitive, built-major library loading, their fixes and tests | no | yes, re-authored on `proposal/mem-pool` (item 5) or `proposal/lib-major` (item 9) |
 | `L` | local-only code: the aarch64 allocator fallback (items 1–4), the marker feature (item 6) | no | no |
 | `P` | packaging: crate rename, `exclude`, README fork notice, `FATHOMDB.md` | no | no |
 | `W` | fork CI workflow (`.github/workflows/fathomdb-ci.yaml`) | no | no |
@@ -183,7 +184,7 @@ the crate so consumers can see what differs from upstream.
 | 5 | Private memory pool: `CudaMemPool`, `CudaContext::new_with_mem_pool`, `AllocMode::Private`, tests | `U` | proposal prepared (FC9), not posted | drop when an upstream release ships an equivalent; FathomDB switches to the upstream names |
 | 6 | Marker feature `fathomdb-private-pool` | `L` | local only | with item 5 |
 | 7 | Fork CI workflow | `W` | not applicable | delete with the branch |
-| 9 | Built-major library loading: load only CUDA libraries (cuBLAS, cuBLASLt, NVRTC, cuRAND, and the rest) of the major the crate was built for, and verify the loaded library's version | `U` | found 2026-10-11; candidate for a second proposal, not posted | drop when upstream ships an equivalent |
+| 9 | Built-major library loading: load only CUDA libraries (cuBLAS, cuBLASLt, NVRTC, cuRAND, and the rest) of the major the crate was built for, and verify the loaded library's version | `U` | second proposal prepared (FC9b, `proposal/lib-major`), not posted | drop when upstream ships an equivalent |
 | 8 | Packaging as `cudarc-fathomdb` (`[lib] name = "cudarc"`), `exclude`, README notice | `P` | not applicable | when FathomDB consumes upstream cudarc again |
 
 ## 4. Requirements (draft; finalized in FC1 as `fathomdb/requirements.md`, reviewed by R-FC-REQ)
@@ -204,6 +205,7 @@ host and a receipt (§ 7).
 | **CF-REQ-08 Proposal** [REQ31-09]. Pool primitive only (item 5 without the marker), on `proposal/mem-pool` from `upstream/main`, in upstream style; tests skip cleanly without a device; docs, example and benchmark; coexists with PR #594; issue and PR text drafted. Not posted. | **CF-AC-08:** fork CI green on `ci/proposal-mem-pool` (CI receipt); GPU set passes on RTX 3090 with 12.6; `git diff --stat upstream/main..proposal/mem-pool` lists no `fathomdb/`, `FATHOMDB.md` or `fathomdb-ci.yaml` path; no proposal commit carries a `Fork-Class:` trailer or the marker feature; R-PROP approves. |
 | **CF-REQ-09 Process** [REQ31-11]. TDD, commit classes, reviews and receipts as this plan says. | **CF-AC-09:** `fathomdb/status.md` lists red and green shas per step, each red re-run by the reviewer; `fathomdb/review.md` records every § 9 review with model `opus`; § 1.3 class check passes. |
 | **CF-REQ-11 Built-major library loading** [REQ31-15]. A build for CUDA major M loads only libraries of major M. It never falls back to another major's soname or DLL name, and an unversioned name is accepted only after the loaded library reports major M. When no library of major M is found, the error names the library and the major it needs. | **CF-AC-11:** T-UNIT: for every `cuda-*` feature, the candidate list contains no other major's versioned name. T-DEV (G1): with a decoy wrong-major library first on the search path, it is not used. G8: a 12060 build against PyPI cuBLAS 12.1.x, 12.4.x and 12.9.x, and a 13000 build against cuBLAS 13.0.x, each record the loaded file (from `/proc/self/maps`) and its reported version. |
+| **CF-REQ-08b Second proposal: built-major library loading** [REQ31-09]. Item 9 only (D-F4, including the loaded-library report), on `proposal/lib-major` from `upstream/main`, in upstream style, independent of `proposal/mem-pool`; tests run without a device where possible; issue and PR text drafted, citing the cross-major hazard and the upstream issues the old names served (#242, #246, #260, #274, #296). Not posted. | **CF-AC-08b:** fork CI green on `ci/proposal-lib-major` (CI receipt), including Windows; G8 re-run against the proposal build; `git diff --stat upstream/main..proposal/lib-major` lists no `fathomdb/`, `FATHOMDB.md` or `fathomdb-ci.yaml` path; no `Fork-Class:` trailer; R-PROP2 approves. |
 | **CF-REQ-10 Scope safety** [REQ31-12]. | **CF-AC-10:** no upstream PR, issue or comment; no PR or issue object on the fork; no push to `upstream`; host guard logs unchanged in every receipt. |
 
 ## 5. Design topics (FC2 writes `fathomdb/design.md`, citing primary NVIDIA documentation; R-FC-DES)
@@ -285,6 +287,11 @@ baseline.
     after load (`cublasGetProperty`, `nvrtcVersion`, and the equivalents).
   - **Constraint:** the driver (`libcuda.so.1`) is exempt; it is
     backward compatible across majors.
+  - **Loaded-library report:** expose, per loaded library, the file that
+    was actually loaded (resolved path) and its reported version, so
+    consumers can log and check it (FathomDB D-18). Decide the API shape
+    (a small public function per library module, or one report type) and
+    keep it upstream-shaped, since the second proposal carries it.
   - **Inputs:** FathomDB REQ31-15 and T-CUDA-COMPAT C2/C3.
 - **D-F2 Fork CI design.** The § 1.4 workflow, the aarch64 runner choice,
   the hosted test job and its FathomDB-lock run, the CI receipt, and why
@@ -420,9 +427,10 @@ disposition, before the blocked step starts.
 | FC7 | Implementer: packaging commit `P` (`cudarc-fathomdb`, `[lib] name = "cudarc"`, `exclude`, README notice, `FATHOMDB.md`) | `P` commit | R-FC-CODE (whole branch, class check, RED re-runs, fork CI) | FC8 |
 | FC8 | Main thread: push the qualified commit `C` as the tip (§ 1.4); CI receipt; run G1–G4, G6, G8 (optionally a Claude agent on the Orin); CF-AC-07a package receipts; receipts committed after `C` | `fathomdb/qualification/` | R-FC-VERIFY (CF-AC-01…06, 07a, 09, 10 at `C`) | the Candle fork's FK2; FathomDB R-PIN |
 | FC9 | Implementer in `cudarc-proposal`: `proposal/mem-pool` from `upstream/main`, item 5 only, re-authored in upstream style, RED first; example and benchmark (T-PERF); `ci/proposal-mem-pool` run then deleted. Main thread writes `fathomdb/proposal/issue.md` and `pr.md` (motivation, API, #594 coexistence, benchmark) | proposal branch and drafts | R-PROP (CF-AC-08) | owner sign-off, later |
+| FC9b | Implementer in `cudarc-proposal` (after FC9, never concurrently): `proposal/lib-major` from `upstream/main`, item 9 only, re-authored in upstream style, RED first; `ci/proposal-lib-major` run then deleted. Main thread writes `fathomdb/proposal-lib-major/issue.md` and `pr.md` | proposal branch and drafts | R-PROP2 (CF-AC-08b) | owner sign-off, later |
 | FC10 | Main thread: publish preparation from a detached checkout of `C` (§ 1.5); `cargo package --list`, `cargo publish --dry-run` (CF-AC-07b); crates.io token for the new name | dry-run receipt | R-FC-PUB, then owner R-PUB | owner `cargo publish` |
 
-FC9 may start once R-FC-CODE approves. FC10 waits for FathomDB's R-VERIFY,
+FC9 and then FC9b may start once R-FC-CODE approves. FC10 waits for FathomDB's R-VERIFY,
 so the published crate is the one FathomDB qualified.
 
 ## 10. What FathomDB consumes from this fork
@@ -432,8 +440,9 @@ R-VERIFY checks them:
 
 - the qualified code commit and the pin-chain check;
 - R-FC-CODE and R-FC-VERIFY verdicts with no open finding;
-- the receipt list (G1–G4, G6), with G5 and G7 UNMEASURED by owner rulings
-  Q4 and Q5;
+- the receipt list (G1–G4, G6, G8), with G5 and G7 UNMEASURED by owner
+  rulings Q4 and Q5 unless a cloud venue is approved for them;
+- the loaded-library report API (D-F4) that FathomDB D-18 consumes;
 - after publication, the published version and its `.cargo_vcs_info.json`
   sha, equal to `C`.
 
