@@ -138,6 +138,59 @@ fn driver_version() -> Result<i32, DriverError> {
     Ok(version)
 }
 
+/// `CU_MEMPOOL_ATTR_MAX_POOL_SIZE` (a `cuuint64_t`, from the 13.2 header).
+#[cfg(not(any(
+    feature = "cuda-11040",
+    feature = "cuda-11050",
+    feature = "cuda-11060",
+    feature = "cuda-11070",
+    feature = "cuda-11080",
+    feature = "cuda-12000",
+    feature = "cuda-12010",
+    feature = "cuda-12020",
+    feature = "cuda-12030",
+    feature = "cuda-12040",
+    feature = "cuda-12050",
+    feature = "cuda-12060",
+    feature = "cuda-12080",
+    feature = "cuda-12090",
+    feature = "cuda-13000",
+    feature = "cuda-13010"
+)))]
+fn read_max_pool_size(pool: sys::CUmemoryPool) -> Result<Option<u64>, DriverError> {
+    let mut value: u64 = 0;
+    unsafe {
+        result::mem_pool::get_attribute(
+            pool,
+            sys::CUmemPool_attribute::CU_MEMPOOL_ATTR_MAX_POOL_SIZE,
+            (&mut value as *mut u64).cast(),
+        )
+    }?;
+    Ok(Some(value))
+}
+
+#[cfg(any(
+    feature = "cuda-11040",
+    feature = "cuda-11050",
+    feature = "cuda-11060",
+    feature = "cuda-11070",
+    feature = "cuda-11080",
+    feature = "cuda-12000",
+    feature = "cuda-12010",
+    feature = "cuda-12020",
+    feature = "cuda-12030",
+    feature = "cuda-12040",
+    feature = "cuda-12050",
+    feature = "cuda-12060",
+    feature = "cuda-12080",
+    feature = "cuda-12090",
+    feature = "cuda-13000",
+    feature = "cuda-13010"
+))]
+fn read_max_pool_size(_pool: sys::CUmemoryPool) -> Result<Option<u64>, DriverError> {
+    Ok(None)
+}
+
 /// A memory pool for one device (`cuMemPoolCreate`), created and owned by the
 /// caller.
 ///
@@ -153,6 +206,8 @@ fn driver_version() -> Result<i32, DriverError> {
 pub struct CudaMemPool {
     pub(crate) cu_device: sys::CUdevice,
     pub(crate) pool: sys::CUmemoryPool,
+    /// `CU_MEMPOOL_ATTR_MAX_POOL_SIZE` as read back at creation.
+    pub(crate) max_size: Option<u64>,
 }
 
 unsafe impl Send for CudaMemPool {}
@@ -191,7 +246,11 @@ impl CudaMemPool {
         seams::POOL_CREATES.set(seams::POOL_CREATES.get() + 1);
         let pool = unsafe { result::mem_pool::create(&raw) }?;
         // Owned from here, so an error below destroys the pool.
-        let created = Self { cu_device, pool };
+        let mut created = Self {
+            cu_device,
+            pool,
+            max_size: None,
+        };
         let mut threshold = props.release_threshold;
         unsafe {
             result::mem_pool::set_attribute(
@@ -200,7 +259,15 @@ impl CudaMemPool {
                 (&mut threshold as *mut u64).cast(),
             )
         }?;
+        created.max_size = read_max_pool_size(pool)?;
         Ok(created)
+    }
+
+    /// The pool's maximum size as the driver reports it
+    /// (`CU_MEMPOOL_ATTR_MAX_POOL_SIZE`, read once at creation), or `None`
+    /// when the bindings predate `cuda-13020`.
+    pub fn max_size(&self) -> Option<u64> {
+        self.max_size
     }
 
     /// Reads a 64-bit pool attribute: the release threshold or one of the

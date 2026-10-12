@@ -4140,6 +4140,7 @@ mod fathomdb_private_pool {
         let foreign = Arc::new(CudaMemPool {
             cu_device: other_device,
             pool: std::ptr::null_mut(),
+            max_size: None,
         });
         assert_eq!(
             CudaContext::new_with_mem_pool(0, foreign.clone()).map(|_| ()),
