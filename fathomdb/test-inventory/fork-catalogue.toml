@@ -786,7 +786,7 @@ binary = "unittests:cudarc"
 kind = "D"
 cells = ["G1", "G5b", "G6"]
 ignored = true
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.1"
 serves = "M-1"
@@ -800,7 +800,7 @@ binary = "unittests:cudarc"
 kind = "D"
 cells = ["G1"]
 ignored = true
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.1"
 serves = "M-2"
@@ -812,14 +812,15 @@ name = "observe_new_attributes_on_driver_580"
 module = "driver::safe::core::fathomdb_private_pool"
 binary = "unittests:cudarc"
 kind = "D"
-cells = ["G1"]
+cells = ["G3"]
 ignored = true
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.1"
 serves = "M-3"
 red = "observation"
-cfg = { features = ["driver"] }
+cfg = { features = ["driver"], min_version = 13020 }
+note = "cells: G3 13020-13040 builds (test plan G1 builds cuda-12060, whose bindings have no attributes 9-15); attribute 15 only from cuda-13040"
 
 [[test]]
 name = "a_private_pointer_upgraded_onto_a_default_context_returns_to_its_pool"
