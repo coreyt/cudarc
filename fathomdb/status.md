@@ -5,45 +5,45 @@ reviewer re-runs each RED; the last column holds that result.
 
 | Date | Step | RED sha | RED failure | GREEN sha | Reviewer RED re-run |
 | --- | --- | --- | --- | --- | --- |
-| 2026-10-12 | FC4-0 `count-tests.py` | `86b8487` | 35 of 35 fixture tests error with `NotImplementedError` (stub script) | `5fc550e` (35 pass) | pending (R-FC-CODE) |
-| 2026-10-12 | FC4-0 `names --with-binary` | `9f2bd1c` | 1 of 36 errors: `python3 -m unittest: error: unrecognized arguments: --with-binary` | `cafb294` (36 pass) | pending (R-FC-CODE) |
+| 2026-10-12 | FC4-0 `count-tests.py` | `86b8487` | 35 of 35 fixture tests error with `NotImplementedError` (stub script) | `5fc550e` (35 pass) | not re-run by a reviewer |
+| 2026-10-12 | FC4-0 `names --with-binary` | `9f2bd1c` | 1 of 36 errors: `python3 -m unittest: error: unrecognized arguments: --with-binary` | `cafb294` (36 pass) | not re-run by a reviewer |
 | 2026-10-12 | FC4-W fork CI | — (test plan § 10: no RED) | — | `4869fab` | — |
-| 2026-10-12 | FC4-port items 1–6 | not committed (plan § 9 FC4 exception; see below) | vendored tests on bare `ec1cac71`: 37 compile errors | `9f02c3a`, `ce0b56e`, `3fbccda` (19 of 19 on RTX 3090) | pending (R-FC-CODE) |
-| 2026-10-12 | FC5-a `device_location_is_the_ordinal_on_every_binding` | `dfff1a1` | cuda-13020+: crate does not build, `error[E0560]` no field `id` (the D-8 defect) | `6f4c67a` | pending (R-FC-CODE) |
-| 2026-10-12 | FC5-a `pool_props_are_zeroed_then_written` | `49ef889` | cuda-13030/13040: `maxSize` left 0, right 4096 | `e37097d` | pending (R-FC-CODE) |
+| 2026-10-12 | FC4-port items 1–6 | not committed (plan § 9 FC4 exception; see below) | vendored tests on bare `ec1cac71`: 37 compile errors | `9f02c3a`, `ce0b56e`, `3fbccda` (19 of 19 on RTX 3090) | not re-run by a reviewer |
+| 2026-10-12 | FC5-a `device_location_is_the_ordinal_on_every_binding` | `dfff1a1` | cuda-13020+: crate does not build, `error[E0560]` no field `id` (the D-8 defect) | `6f4c67a` | R-FC-CODE: fails at `dfff1a1` for the stated reason, passes at `6f4c67a` (review.md, R-FC-CODE: "two FC5-a REDs") |
+| 2026-10-12 | FC5-a `pool_props_are_zeroed_then_written` | `49ef889` | cuda-13030/13040: `maxSize` left 0, right 4096 | `e37097d` | R-FC-CODE: fails at `49ef889` for the stated reason, passes at `e37097d` (review.md, R-FC-CODE: "two FC5-a REDs") |
 | 2026-10-12 | FC5-a `in_fresh_process` dead code | — (warning fix; no behaviour) | — | `cf5d145` | — |
-| 2026-10-12 | FC5-b `max_size_without_binding_support_is_not_supported` | `536ec11` | cuda-12010: left `Err(CUDA_ERROR_UNKNOWN)`, right `Err(CUDA_ERROR_NOT_SUPPORTED)` | `4dc1ec7` | pending (R-FC-CODE) |
-| 2026-10-12 | FC5-b `max_size_on_a_driver_older_than_12020_is_not_supported` | `536ec11` | cuda-12060, RTX 3090: left `Ok(())`, right `Err(CUDA_ERROR_NOT_SUPPORTED)` | `4dc1ec7` | pending (R-FC-CODE) |
-| 2026-10-12 | FC5-b `attributes_newer_than_the_driver_are_never_requested` | `5a342fe` (after the ungated read-back `7889643`) | G3 cuda-13020, driver 580: attribute requests above 8, left 1, right 0 | `2f936a5` | pending (R-FC-CODE) |
-| 2026-10-12 | FC5-b `max_pool_size_read_back_uses_the_driver_value` | `0314e34` | cuda-13020: left `Ok(())`, right `Err(CUDA_ERROR_INVALID_VALUE)` | `f0e72b3` | pending (R-FC-CODE) |
-| 2026-10-12 | FC5-b `a_failed_max_pool_size_read_leaves_create_successful` | `0314e34` | cuda-13020: `unwrap()` on `Err(CUDA_ERROR_INVALID_VALUE)` | `f0e72b3` | pending (R-FC-CODE) |
+| 2026-10-12 | FC5-b `max_size_without_binding_support_is_not_supported` | `536ec11` | cuda-12010: left `Err(CUDA_ERROR_UNKNOWN)`, right `Err(CUDA_ERROR_NOT_SUPPORTED)` | `4dc1ec7` | not listed separately: review.md (R-FC-CODE) names "the D-4 gate" only, without its commits |
+| 2026-10-12 | FC5-b `max_size_on_a_driver_older_than_12020_is_not_supported` | `536ec11` | cuda-12060, RTX 3090: left `Ok(())`, right `Err(CUDA_ERROR_NOT_SUPPORTED)` | `4dc1ec7` | not listed separately: review.md (R-FC-CODE) names "the D-4 gate" only, without its commits |
+| 2026-10-12 | FC5-b `attributes_newer_than_the_driver_are_never_requested` | `5a342fe` (after the ungated read-back `7889643`) | G3 cuda-13020, driver 580: attribute requests above 8, left 1, right 0 | `2f936a5` | R-FC-CODE: "the D-4 gate" fails at RED and passes at GREEN (review.md); this counter test is the gate's G3 proof (design D-4). review.md does not give the commits |
+| 2026-10-12 | FC5-b `max_pool_size_read_back_uses_the_driver_value` | `0314e34` | cuda-13020: left `Ok(())`, right `Err(CUDA_ERROR_INVALID_VALUE)` | `f0e72b3` | not listed separately: review.md (R-FC-CODE) names "the D-4 gate" only, without its commits |
+| 2026-10-12 | FC5-b `a_failed_max_pool_size_read_leaves_create_successful` | `0314e34` | cuda-13020: `unwrap()` on `Err(CUDA_ERROR_INVALID_VALUE)` | `f0e72b3` | not listed separately: review.md (R-FC-CODE) names "the D-4 gate" only, without its commits |
 | 2026-10-12 | FC5-b `max_pool_size_reads_back_at_least_the_request` | — (no RED at FC5: needs a driver ≥ 13020; ignored, G5b) | — | `c44d3b7` | — |
 | 2026-10-12 | FC5-c typed reads; 3 characterization tests | — (no RED: the vendored code already behaves) | — | `75f13fa`, `a11a045` | — |
 | 2026-10-12 | FC5-d `# Safety` text; 2 of 3 § 3.2 tests | — (no RED: doc and characterization) | — | `9602202` | — |
 | 2026-10-12 | FC6-a measurements M-1, M-2, M-3 | — (measurement) | — | `6c37447` | — |
-| 2026-10-12 | FC6-a § 3.1, 16 tests | — (no RED: characterization; none failed) | — | `32f49c7`, `51a2073` | — |
+| 2026-10-12 | FC6-a § 3.1, 16 tests | — (no RED: characterization; none failed) | — | `32f49c7`, `51a2073` | no RED; R-FC-CODE re-ran "the FC6-a mutation" (review.md), without saying which of the FC6-a mutation checks (§ 3.1 stream order, § 3.3 off-target query) |
 | 2026-10-12 | FC6-a § 3.2 revised test; `# Safety` caveat | — (no RED: characterization and doc) | — | `6db7d69` | — |
-| 2026-10-12 | FC6-a § 3.3, 3 tests | — (no RED: characterization; base comparison) | — | `bfdff00` | — |
-| 2026-10-12 | FC6-b T-UNIT, 8 tests of `fathomdb_lib_major` | `17f3fa0` | 8 of 9 fail behaviourally against base-equivalent stubs (verbatim below) | `8470cc2` (9 of 9) | pending (R-FC-CODE) |
+| 2026-10-12 | FC6-a § 3.3, 3 tests | — (no RED: characterization; base comparison) | — | `bfdff00` | no RED; R-FC-CODE re-ran "the FC6-a mutation" (review.md), without saying which of the FC6-a mutation checks (§ 3.1 stream order, § 3.3 off-target query) |
+| 2026-10-12 | FC6-b T-UNIT, 8 tests of `fathomdb_lib_major` | `17f3fa0` | 8 of 9 fail behaviourally against base-equivalent stubs (verbatim below) | `8470cc2` (9 of 9) | R-FC-CODE: fails at `17f3fa0`, passes at `8470cc2`, at 12060 and 13000 (review.md) |
 | 2026-10-12 | FC6-b `out_of_scope_and_cuda11_candidates_equal_the_base` | — (no RED: regression guard; passes at `17f3fa0` and `8470cc2`) | — | `17f3fa0` | — |
-| 2026-10-12 | FC6-b T-DEV (a)–(d) | `8aa03b5` (run on a `git archive` of `068779b`, pre-item-9) | (a) maps cu13 `libcublas.so.13`; (b) maps 12.6 `libcublas.so.12`; (c) `culib()` panics; (d) `culib()` binds the cu13 cuFile (1150) | `8470cc2` (run at `7a84fce`) | pending (R-FC-CODE) |
+| 2026-10-12 | FC6-b T-DEV (a)–(d) | `8aa03b5` (run on a `git archive` of `068779b`, pre-item-9) | (a) maps cu13 `libcublas.so.13`; (b) maps 12.6 `libcublas.so.12`; (c) `culib()` panics; (d) `culib()` binds the cu13 cuFile (1150) | `8470cc2` (run at `7a84fce`) | R-FC-CODE: (a), (b) and (d) on the GPU, each failing at `068779b` for the stated reason and passing at `56bb4b7` (review.md); (c) not re-run by a reviewer |
 | 2026-10-12 | FC6-b T-DEV (f) | — (no RED: loads at base and at `C`) | — | `8aa03b5` | — |
-| 2026-10-12 | FC6-b T-DEV (e) | — (no RED; G5b only) | — | pending (G5b) | — |
-| 2026-10-12 | FC6-b `template_loader_tail_matches_the_checked_in_cublas_loader` | `91b1317` | the template renders the base tail, not in `src/cublas/sys/mod.rs` | `160a0c4` | pending (R-FC-CODE) |
-| 2026-10-12 | FC6-b count-tests: other binaries, `--binary` | `43bff6d` | 2 of 38 fail: unexpected sections `test:fathomdb_lib_major`, `unittests:bindings_generator` | `8889071` (38 pass) | pending (R-FC-CODE) |
-| 2026-10-12 | FC6-b count-tests: `- should panic` lines | `2e5de53` | 1 of 39 fails: `{} != {'…test_alloc_pinned_panics_on_size_overflow': 'ok'}` | `5e28fa7` (39 pass) | pending (R-FC-CODE) |
+| 2026-10-12 | FC6-b T-DEV (e) | — (no RED; G5b only) | — | pending (G5b) when written; done: G5b at `b777f8d`, 3 of 3 pass (`qualification/2026-10-12-G5b-TDEV-b777f8d.md`) | — |
+| 2026-10-12 | FC6-b `template_loader_tail_matches_the_checked_in_cublas_loader` | `91b1317` | the template renders the base tail, not in `src/cublas/sys/mod.rs` | `160a0c4` | R-FC-CODE: fails at `91b1317`, passes at `160a0c4` (review.md) |
+| 2026-10-12 | FC6-b count-tests: other binaries, `--binary` | `43bff6d` | 2 of 38 fail: unexpected sections `test:fathomdb_lib_major`, `unittests:bindings_generator` | `8889071` (38 pass) | not re-run by a reviewer |
+| 2026-10-12 | FC6-b count-tests: `- should panic` lines | `2e5de53` | 1 of 39 fails: `{} != {'…test_alloc_pinned_panics_on_size_overflow': 'ok'}` | `5e28fa7` (39 pass) | not re-run by a reviewer |
 | 2026-10-12 | FC6-b pool doc (D-2, D-9) | — (doc) | — | `e6e5e0f` | — |
 | 2026-10-12 | FC7 packaging (item 8) | — (packaging; test plan § 10: no RED) | — | `d04ea18` | — |
-| 2026-10-12 | FC7 `use-baseline-lock.py`, 9 fixture tests | `ace64e1` | 7 of 9 fail against a stub (`NotImplementedError`) | `9aef7c0` (9 pass) | pending (R-FC-CODE) |
-| 2026-10-12 | FC7 `test_crlf_line_endings_are_kept` | `0c66c4d` | 1 of 10 fails: `expected exactly one root entry (name = "cudarc", no source), found 0` | `27fa9c5` (10 pass) | pending (R-FC-CODE) |
-| 2026-10-12 | R-FC-CODE L3 `report_address_symbols_are_bound_wherever_the_library_is` | `480db3f` | 9 passed, 1 failed at 12060, 11040 and 13000: `cufile: cuFileGetVersion not bound for [cuda-11040 … cuda-12020]` | `3647a60` (10 of 10) | pending |
+| 2026-10-12 | FC7 `use-baseline-lock.py`, 9 fixture tests | `ace64e1` | 7 of 9 fail against a stub (`NotImplementedError`) | `9aef7c0` (9 pass) | R-FC-CODE: fails at `ace64e1`, passes at `9aef7c0` (review.md) |
+| 2026-10-12 | FC7 `test_crlf_line_endings_are_kept` | `0c66c4d` | 1 of 10 fails: `expected exactly one root entry (name = "cudarc", no source), found 0` | `27fa9c5` (10 pass) | R-FC-CODE: fails at `0c66c4d`, passes at `27fa9c5` (review.md, "its CRLF case") |
+| 2026-10-12 | R-FC-CODE L3 `report_address_symbols_are_bound_wherever_the_library_is` | `480db3f` | 9 passed, 1 failed at 12060, 11040 and 13000: `cufile: cuFileGetVersion not bound for [cuda-11040 … cuda-12020]` | `3647a60` (10 of 10) | R-FC-VERIFY: `480db3f` 9 passed, 1 failed; `3647a60` 10 passed |
 | 2026-10-12 | FC8-G6 spec: test plan rev 4, requirements rev 6, design rev 3 (F-G6-1, F-G6-2, F-G5a-1) | — (documents) | — | `fe8e1b4` | — |
-| 2026-10-12 | FC8-G6 Tegra release oracle and cap bound: `a_private_pointer_freed_synchronously_releases_its_memory`, `destroy_with_outstanding_allocations_is_deferred`, `requests_within_the_cap_succeed` | `fe8e1b4` (code of `b29c41c`; Orin) | `precondition: reserved 100663296, free 53138673664 -> 53138673664, chunk 33554432`; `the outstanding allocation was released with the pool: free 53139124224 -> 53139124224`; `limit 33554432 leaves more than a chunk (33554432) of the cap 67108864 unusable` | `ba537a2` (Orin: 3 of 3 alone, k = 3; RTX 3090: discrete path unchanged, pass) | pending (R-FC-CODE-2) |
-| 2026-10-12 | FC8-G6 leaked-pointer guard | `fe8e1b4` (Orin, fork modules in sequence) | 50 passed, 6 failed: the 3 above plus 3 out-of-memory cascade failures | `ba537a2` (56 passed; with mutations M1/M3, only the 2 mutated tests fail) | pending (R-FC-CODE-2) |
+| 2026-10-12 | FC8-G6 Tegra release oracle and cap bound: `a_private_pointer_freed_synchronously_releases_its_memory`, `destroy_with_outstanding_allocations_is_deferred`, `requests_within_the_cap_succeed` | `fe8e1b4` (code of `b29c41c`; Orin) | `precondition: reserved 100663296, free 53138673664 -> 53138673664, chunk 33554432`; `the outstanding allocation was released with the pool: free 53139124224 -> 53139124224`; `limit 33554432 leaves more than a chunk (33554432) of the cap 67108864 unusable` | `ba537a2` (Orin: 3 of 3 alone, k = 3; RTX 3090: discrete path unchanged, pass) | RED at `fe8e1b4` not re-run by a reviewer. R-FC-CODE-2 ran its own Orin mutations of the release oracle (free and `free_async` removed); both fail (review.md) |
+| 2026-10-12 | FC8-G6 leaked-pointer guard | `fe8e1b4` (Orin, fork modules in sequence) | 50 passed, 6 failed: the 3 above plus 3 out-of-memory cascade failures | `ba537a2` (56 passed; with mutations M1/M3, only the 2 mutated tests fail) | not re-run by a reviewer; R-FC-CODE-2 judged the guard sound from the code (inferred, review.md) |
 | 2026-10-12 | FC8-G6 FATHOMDB.md Tegra notes | — (packaging doc) | — | `8528fc2` | — |
-| 2026-10-12 | FC8-G6 catalogue: `ignored` restored on 3 rows | `fe8e1b4` (catalogue edit wrote the new `red` text over `ignored = false`) | G1 at `8528fc2`: `count-tests: FAIL`, `expected ignored, got ok` for 2 tests | `9702b51` (`count-tests: PASS`) | pending (R-FC-CODE-2) |
-| 2026-10-12 | R-FC-CODE-2 M1 Tegra upper bound in `requests_within_the_cap_succeed` | mutation `raw.maxSize = max_size * 2` on `5fce665`'s test (Orin) | `limit 67108864 is within one chunk (33554432) of the cap 67108864: the measured Tegra limit (design D-4) no longer holds` (the `8528fc2` test passes the same mutation) | `5fce665` (Orin k = 3: `limit=33554432 chunk=33554432`, pass; RTX 3090 k = 3 pass) | pending |
-| 2026-10-12 | R-FC-CODE-2 M2 discrete post-free bound in `destroy_with_outstanding_allocations_is_deferred` | leak mutation (`free_async` removed) on `84ede22`'s test (RTX 3090), k = 3 | `free 25017122816 -> 24748687360: half the allocation (134217728) or more is still taken` (the `8528fc2` test passes the same mutation) | `84ede22` (RTX 3090 k = 3: free `25017122816 -> 24748687360 -> 25017122816`, pass) | pending |
+| 2026-10-12 | FC8-G6 catalogue: `ignored` restored on 3 rows | `fe8e1b4` (catalogue edit wrote the new `red` text over `ignored = false`) | G1 at `8528fc2`: `count-tests: FAIL`, `expected ignored, got ok` for 2 tests | `9702b51` (`count-tests: PASS`) | not re-run by a reviewer |
+| 2026-10-12 | R-FC-CODE-2 M1 Tegra upper bound in `requests_within_the_cap_succeed` | mutation `raw.maxSize = max_size * 2` on `5fce665`'s test (Orin) | `limit 67108864 is within one chunk (33554432) of the cap 67108864: the measured Tegra limit (design D-4) no longer holds` (the `8528fc2` test passes the same mutation) | `5fce665` (Orin k = 3: `limit=33554432 chunk=33554432`, pass; RTX 3090 k = 3 pass) | R-FC-VERIFY (Orin): the mutation fails, the unmutated test passes |
+| 2026-10-12 | R-FC-CODE-2 M2 discrete post-free bound in `destroy_with_outstanding_allocations_is_deferred` | leak mutation (`free_async` removed) on `84ede22`'s test (RTX 3090), k = 3 | `free 25017122816 -> 24748687360: half the allocation (134217728) or more is still taken` (the `8528fc2` test passes the same mutation) | `84ede22` (RTX 3090 k = 3: free `25017122816 -> 24748687360 -> 25017122816`, pass) | R-FC-VERIFY (RTX 3090): the mutation fails, the unmutated test passes |
 | 2026-10-12 | R-FC-CODE-2 L1/L2 uncapped-pool probe; L3 FATHOMDB.md | — (measurement and docs) | — | `393f165` (probe), `b777f8d` (FATHOMDB.md) | — |
 
 ## FC4-0 (class D)
@@ -1312,7 +1312,7 @@ receipt (`*-b29c41c.md`; G6: `2026-10-12-G6-8528fc2.md`).
 | G6 (Orin, 12060) | PASS: fork modules in sequence 56 passed ×3 (count-tests PASS); six F-G6-1 tests alone 18 of 18; one process per test ×3: only the § 9 G6 platform list (10), the two T-MULTI tests and the host-dependent `test_pinned_copy_is_faster` fail, identically in all runs | `2026-10-12-G6-b777f8d.md` | none |
 | CF-AC-07a | PASS: 135 files, list byte-identical to `package-list-b29c41c.txt` (SHA-256 `83db814a…f6ddac7`); dry run ok; `.cargo_vcs_info.json` names `b777f8d` | `2026-10-12-CF-AC-07a-b777f8d.md`, `package-list-b777f8d.txt` | — |
 | CI run 38281195051 (`head_sha` `863ee48`, code tree `8528fc2`) | success, 139 of 139 jobs; **superseded** by `C'` | `2026-10-12-CI-863ee48.md` | — |
-| CI at `C'` | **pending**: made after the main thread pushes the new tip | — | — |
+| CI at `C'` | **pending** when written: made after the main thread pushes the new tip. **Done:** run 38286272393 at `35d3fec` (code tree `C'`) | `2026-10-12-CI-35d3fec.md` | — |
 
 In every G3/G4 cell, the host-dependent `test_pinned_copy_is_faster`
 failed in the three main runs and passed in the three `timing-*` runs
@@ -1322,7 +1322,8 @@ non-host-dependent problem. On the Orin it failed in all three per-test
 runs (it passed in all three at `8528fc2`, failed once at `b29c41c`).
 
 Not run in this round (unchanged areas): G2, G5a, G8, G1 T-DEV. G5b is
-pending owner approval (list above names `C'`).
+pending owner approval (list above names `C'`). **Done since:** G5b ran
+at `C'` with the owner's approval; see "FC8 G5b at `C' = b777f8d`" below.
 
 ### Checks at `b777f8d`
 
@@ -1350,9 +1351,12 @@ pending owner approval (list above names `C'`).
 ### Open after this round
 
 - R-FC-CODE-2 re-review of `393f165..` this commit (the reviewer records
-  it in `review.md`).
-- CI receipt at `C'` after the push (main thread).
+  it in `review.md`). **Done:** `review.md`, R-FC-CODE-2.
+- CI receipt at `C'` after the push (main thread). **Done:**
+  `qualification/2026-10-12-CI-35d3fec.md`.
 - G5b at `C'` (pending owner approval), then R-FC-VERIFY at `C'`.
+  **Done:** G5b, see "FC8 G5b at `C' = b777f8d`" below; R-FC-VERIFY
+  returned APPROVE-WITH-NOTES with no code defect.
 
 ## FC8 G5b at `C' = b777f8d` (GCP T4; class D)
 
