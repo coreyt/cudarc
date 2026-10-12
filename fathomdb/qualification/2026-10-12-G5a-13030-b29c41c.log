@@ -1,0 +1,2108 @@
+
+===== baseline/env.txt =====
+host windchill3 Linux 7.0.0-38-generic x86_64
+src /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-base
+features -F cuda-13030
+V 13030 CVD 0 LLP /home/coreyt/fathomdb-forks/venvs/cu13-133/lib/python3.12/site-packages/nvidia/cu13/lib
+lock-sha256 3d399b4e43bfa2c4078f2ff607145b6a35216041054225905a74fc1094747923
+rustc 1.95.0 (59807616e 2026-04-14)
+cargo 1.95.0 (f2d3ce0bd 2026-03-21)
+
+===== baseline/guard.log =====
+2026-10-12T11:00:02-05:00 GUARD-FIRST driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:06-05:00 GUARD before main-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:09-05:00 GUARD after main-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:09-05:00 GUARD before ign-test_post_alloc_memory-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:09-05:00 GUARD after ign-test_post_alloc_memory-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:09-05:00 GUARD before ign-test_device_side_assert-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:10-05:00 GUARD after ign-test_device_side_assert-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:10-05:00 GUARD before timing-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:12-05:00 GUARD after timing-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:12-05:00 GUARD before main-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:14-05:00 GUARD after main-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:14-05:00 GUARD before ign-test_post_alloc_memory-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:15-05:00 GUARD after ign-test_post_alloc_memory-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:15-05:00 GUARD before ign-test_device_side_assert-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:16-05:00 GUARD after ign-test_device_side_assert-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:16-05:00 GUARD before timing-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:17-05:00 GUARD after timing-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:17-05:00 GUARD before main-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:20-05:00 GUARD after main-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:20-05:00 GUARD before ign-test_post_alloc_memory-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:20-05:00 GUARD after ign-test_post_alloc_memory-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:20-05:00 GUARD before ign-test_device_side_assert-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:22-05:00 GUARD after ign-test_device_side_assert-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:22-05:00 GUARD before timing-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:23-05:00 GUARD after timing-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:23-05:00 GUARD-LAST driver=580.178.04 cuda=/usr/local/cuda-12.6
+
+===== baseline/runs.tsv =====
+main-1	101	2026-10-12T11:00:06-05:00	2026-10-12T11:00:08-05:00	cargo test --locked --lib -F cuda-13030 -- --test-threads=1
+ign-test_post_alloc_memory-1	0	2026-10-12T11:00:09-05:00	2026-10-12T11:00:09-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::core::tests::test_post_alloc_memory --nocapture --test-threads=1
+ign-test_device_side_assert-1	0	2026-10-12T11:00:09-05:00	2026-10-12T11:00:10-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::launch::tests::test_device_side_assert --nocapture --test-threads=1
+timing-1	0	2026-10-12T11:00:10-05:00	2026-10-12T11:00:12-05:00	cargo test --locked --lib -F cuda-13030 -- --exact driver::safe::core::tests::test_pinned_copy_is_faster driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined --nocapture --test-threads=1
+main-2	101	2026-10-12T11:00:12-05:00	2026-10-12T11:00:14-05:00	cargo test --locked --lib -F cuda-13030 -- --test-threads=1
+ign-test_post_alloc_memory-2	0	2026-10-12T11:00:14-05:00	2026-10-12T11:00:15-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::core::tests::test_post_alloc_memory --nocapture --test-threads=1
+ign-test_device_side_assert-2	0	2026-10-12T11:00:15-05:00	2026-10-12T11:00:16-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::launch::tests::test_device_side_assert --nocapture --test-threads=1
+timing-2	0	2026-10-12T11:00:16-05:00	2026-10-12T11:00:17-05:00	cargo test --locked --lib -F cuda-13030 -- --exact driver::safe::core::tests::test_pinned_copy_is_faster driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined --nocapture --test-threads=1
+main-3	101	2026-10-12T11:00:17-05:00	2026-10-12T11:00:20-05:00	cargo test --locked --lib -F cuda-13030 -- --test-threads=1
+ign-test_post_alloc_memory-3	0	2026-10-12T11:00:20-05:00	2026-10-12T11:00:20-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::core::tests::test_post_alloc_memory --nocapture --test-threads=1
+ign-test_device_side_assert-3	0	2026-10-12T11:00:20-05:00	2026-10-12T11:00:22-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::launch::tests::test_device_side_assert --nocapture --test-threads=1
+timing-3	0	2026-10-12T11:00:22-05:00	2026-10-12T11:00:23-05:00	cargo test --locked --lib -F cuda-13030 -- --exact driver::safe::core::tests::test_pinned_copy_is_faster driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined --nocapture --test-threads=1
+
+===== baseline/cargo-tree.txt =====
+cudarc v0.19.10 (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-base)
+└── libloading v0.9.0
+    └── cfg-if v1.0.5
+
+===== baseline/build.log =====
+   Compiling cudarc v0.19.10 (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-base)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.72s
+  Executable unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-82e6d1b449220c97)
+
+===== baseline/main-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-82e6d1b449220c97)
+
+running 69 tests
+test cublas::safe::asum::tests::test_dasum ... ok
+test cublas::safe::asum::tests::test_sasum ... ok
+test cublas::safe::gemm::tests::test_dgemm ... ok
+test cublas::safe::gemm::tests::test_sgemm ... ok
+test cublas::safe::gemv::tests::test_dgemv ... ok
+test cublas::safe::gemv::tests::test_sgemv ... ok
+test cublas::safe::tests::cublas_pointer_mode ... ok
+test cublaslt::safe::tests::test_matmul_f32 ... ok
+test curand::safe::tests::test_different_seeds_neq ... ok
+test curand::safe::tests::test_log_normal_f32 ... ok
+test curand::safe::tests::test_log_normal_f64 ... ok
+test curand::safe::tests::test_normal_f32 ... ok
+test curand::safe::tests::test_normal_f64 ... ok
+test curand::safe::tests::test_seed_reproducible ... ok
+test curand::safe::tests::test_set_offset ... ok
+test curand::safe::tests::test_uniform_f32 ... ok
+test curand::safe::tests::test_uniform_f64 ... ok
+test curand::safe::tests::test_uniform_u32 ... ok
+test driver::result::tests::peer_transfer_contexts ... ignored, must be executed with multiple gpus
+test driver::result::tests::peer_transfer_self ... ok
+test driver::result::tests::re_associate_context_for_memory_op ... ignored, must be executed with multiple gpus
+test driver::safe::core::tests::test_alloc_pinned_panics_on_size_overflow - should panic ... ok
+test driver::safe::core::tests::test_borrowed_stream_is_not_destroyed_on_drop ... ok
+test driver::safe::core::tests::test_copy_uses_correct_context ... ok
+test driver::safe::core::tests::test_ctx_copy_to_views ... ok
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... ok
+test driver::safe::core::tests::test_event_try_is_complete ... ok
+test driver::safe::core::tests::test_event_try_is_complete_preserves_capture_error ... ok
+test driver::safe::core::tests::test_htod_copy_pinned ... ok
+test driver::safe::core::tests::test_htod_copy_pinned_with_default_flags ... ok
+test driver::safe::core::tests::test_leak_and_upgrade ... ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... FAILED
+test driver::safe::core::tests::test_post_alloc_arc_counts ... ok
+test driver::safe::core::tests::test_post_alloc_memory ... ignored, must be executed by itself
+test driver::safe::core::tests::test_post_build_arc_count ... ok
+test driver::safe::core::tests::test_primary_context_is_primary ... ok
+test driver::safe::core::tests::test_slice_is_freed_with_correct_context ... ok
+test driver::safe::core::tests::test_threading ... ok
+test driver::safe::core::tests::test_transmutes ... ok
+test driver::safe::graph::tests::test_end_capture_flags ... ok
+test driver::safe::graph::tests::test_end_capture_invalid_flags ... ok
+test driver::safe::launch::tests::test_device_side_assert ... ignored, must be executed by itself
+test driver::safe::launch::tests::test_large_launches ... ok
+test driver::safe::launch::tests::test_launch_arrays ... ok
+test driver::safe::launch::tests::test_launch_with_16bit ... ok
+test driver::safe::launch::tests::test_launch_with_32bit ... ok
+test driver::safe::launch::tests::test_launch_with_64bit ... ok
+test driver::safe::launch::tests::test_launch_with_8bit ... ok
+test driver::safe::launch::tests::test_launch_with_floats ... ok
+test driver::safe::launch::tests::test_launch_with_mut_and_ref_cudarc ... ok
+test driver::safe::launch::tests::test_launch_with_views ... ok
+test driver::safe::launch::tests::test_multi_stream_concurrent_reads ... ok
+test driver::safe::launch::tests::test_multi_stream_writes_block ... ok
+test driver::safe::launch::tests::test_par_launch ... ok
+test driver::safe::unified_memory::tests::test_unified_memory_global ... ok
+test driver::safe::unified_memory::tests::test_unified_memory_host ... ok
+test driver::safe::unified_memory::tests::test_unified_memory_single_stream ... ok
+test driver::safe::unified_memory::tests::test_unified_slice_copy_to_views ... ok
+test driver::safe::unified_memory::tests::test_unified_slice_split_at ... ok
+test driver::safe::unified_memory::tests::test_unified_slice_views_respect_stream_attachment ... ok
+test nvrtc::result::tests::test_compile_bad_program ... ok
+test nvrtc::result::tests::test_compile_program_1_opt ... ok
+test nvrtc::result::tests::test_compile_program_2_opt ... ok
+test nvrtc::result::tests::test_compile_program_no_opts ... ok
+test nvrtc::result::tests::test_get_ptx ... ok
+test nvrtc::safe::tests::test_compile_no_opts ... ok
+test nvrtc::safe::tests::test_compile_options_build_ftz ... ok
+test nvrtc::safe::tests::test_compile_options_build_multi ... ok
+test nvrtc::safe::tests::test_compile_options_build_none ... ok
+
+failures:
+
+---- driver::safe::core::tests::test_pinned_copy_is_faster stdout ----
+
+thread 'driver::safe::core::tests::test_pinned_copy_is_faster' (2024233) panicked at src/driver/safe/core.rs:2964:9:
+994.128µs vs 803.371µs
+
+
+failures:
+    driver::safe::core::tests::test_pinned_copy_is_faster
+
+test result: FAILED. 64 passed; 1 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.48s
+
+error: test failed, to rerun pass `--lib`
+
+===== baseline/ign-test_post_alloc_memory-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-82e6d1b449220c97)
+
+running 1 test
+test driver::safe::core::tests::test_post_alloc_memory ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.26s
+
+
+===== baseline/ign-test_device_side_assert-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-82e6d1b449220c97)
+
+running 1 test
+test driver::safe::launch::tests::test_device_side_assert ... default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [928,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [929,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [930,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [931,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [932,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [933,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [934,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [935,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [936,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [937,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [938,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [939,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [940,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [941,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [942,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [943,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [944,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [945,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [946,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [947,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [948,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [949,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [950,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [951,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [952,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [953,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [954,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [955,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [956,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [957,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [958,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [959,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [896,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [897,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [898,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [899,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [900,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [901,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [902,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [903,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [904,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [905,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [906,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [907,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [908,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [909,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [910,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [911,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [912,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [913,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [914,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [915,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [916,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [917,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [918,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [919,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [920,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [921,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [922,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [923,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [924,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [925,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [926,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [927,0,0] Assertion `0` failed.
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.30s
+
+
+===== baseline/timing-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-82e6d1b449220c97)
+
+running 2 tests
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... default pinned host reads: 20.296918ms; write-combined host reads: 633.437159ms
+ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 67 filtered out; finished in 1.13s
+
+
+===== baseline/main-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-82e6d1b449220c97)
+
+running 69 tests
+test cublas::safe::asum::tests::test_dasum ... ok
+test cublas::safe::asum::tests::test_sasum ... ok
+test cublas::safe::gemm::tests::test_dgemm ... ok
+test cublas::safe::gemm::tests::test_sgemm ... ok
+test cublas::safe::gemv::tests::test_dgemv ... ok
+test cublas::safe::gemv::tests::test_sgemv ... ok
+test cublas::safe::tests::cublas_pointer_mode ... ok
+test cublaslt::safe::tests::test_matmul_f32 ... ok
+test curand::safe::tests::test_different_seeds_neq ... ok
+test curand::safe::tests::test_log_normal_f32 ... ok
+test curand::safe::tests::test_log_normal_f64 ... ok
+test curand::safe::tests::test_normal_f32 ... ok
+test curand::safe::tests::test_normal_f64 ... ok
+test curand::safe::tests::test_seed_reproducible ... ok
+test curand::safe::tests::test_set_offset ... ok
+test curand::safe::tests::test_uniform_f32 ... ok
+test curand::safe::tests::test_uniform_f64 ... ok
+test curand::safe::tests::test_uniform_u32 ... ok
+test driver::result::tests::peer_transfer_contexts ... ignored, must be executed with multiple gpus
+test driver::result::tests::peer_transfer_self ... ok
+test driver::result::tests::re_associate_context_for_memory_op ... ignored, must be executed with multiple gpus
+test driver::safe::core::tests::test_alloc_pinned_panics_on_size_overflow - should panic ... ok
+test driver::safe::core::tests::test_borrowed_stream_is_not_destroyed_on_drop ... ok
+test driver::safe::core::tests::test_copy_uses_correct_context ... ok
+test driver::safe::core::tests::test_ctx_copy_to_views ... ok
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... ok
+test driver::safe::core::tests::test_event_try_is_complete ... ok
+test driver::safe::core::tests::test_event_try_is_complete_preserves_capture_error ... ok
+test driver::safe::core::tests::test_htod_copy_pinned ... ok
+test driver::safe::core::tests::test_htod_copy_pinned_with_default_flags ... ok
+test driver::safe::core::tests::test_leak_and_upgrade ... ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... FAILED
+test driver::safe::core::tests::test_post_alloc_arc_counts ... ok
+test driver::safe::core::tests::test_post_alloc_memory ... ignored, must be executed by itself
+test driver::safe::core::tests::test_post_build_arc_count ... ok
+test driver::safe::core::tests::test_primary_context_is_primary ... ok
+test driver::safe::core::tests::test_slice_is_freed_with_correct_context ... ok
+test driver::safe::core::tests::test_threading ... ok
+test driver::safe::core::tests::test_transmutes ... ok
+test driver::safe::graph::tests::test_end_capture_flags ... ok
+test driver::safe::graph::tests::test_end_capture_invalid_flags ... ok
+test driver::safe::launch::tests::test_device_side_assert ... ignored, must be executed by itself
+test driver::safe::launch::tests::test_large_launches ... ok
+test driver::safe::launch::tests::test_launch_arrays ... ok
+test driver::safe::launch::tests::test_launch_with_16bit ... ok
+test driver::safe::launch::tests::test_launch_with_32bit ... ok
+test driver::safe::launch::tests::test_launch_with_64bit ... ok
+test driver::safe::launch::tests::test_launch_with_8bit ... ok
+test driver::safe::launch::tests::test_launch_with_floats ... ok
+test driver::safe::launch::tests::test_launch_with_mut_and_ref_cudarc ... ok
+test driver::safe::launch::tests::test_launch_with_views ... ok
+test driver::safe::launch::tests::test_multi_stream_concurrent_reads ... ok
+test driver::safe::launch::tests::test_multi_stream_writes_block ... ok
+test driver::safe::launch::tests::test_par_launch ... ok
+test driver::safe::unified_memory::tests::test_unified_memory_global ... ok
+test driver::safe::unified_memory::tests::test_unified_memory_host ... ok
+test driver::safe::unified_memory::tests::test_unified_memory_single_stream ... ok
+test driver::safe::unified_memory::tests::test_unified_slice_copy_to_views ... ok
+test driver::safe::unified_memory::tests::test_unified_slice_split_at ... ok
+test driver::safe::unified_memory::tests::test_unified_slice_views_respect_stream_attachment ... ok
+test nvrtc::result::tests::test_compile_bad_program ... ok
+test nvrtc::result::tests::test_compile_program_1_opt ... ok
+test nvrtc::result::tests::test_compile_program_2_opt ... ok
+test nvrtc::result::tests::test_compile_program_no_opts ... ok
+test nvrtc::result::tests::test_get_ptx ... ok
+test nvrtc::safe::tests::test_compile_no_opts ... ok
+test nvrtc::safe::tests::test_compile_options_build_ftz ... ok
+test nvrtc::safe::tests::test_compile_options_build_multi ... ok
+test nvrtc::safe::tests::test_compile_options_build_none ... ok
+
+failures:
+
+---- driver::safe::core::tests::test_pinned_copy_is_faster stdout ----
+
+thread 'driver::safe::core::tests::test_pinned_copy_is_faster' (2024480) panicked at src/driver/safe/core.rs:2964:9:
+986.305µs vs 803.493µs
+
+
+failures:
+    driver::safe::core::tests::test_pinned_copy_is_faster
+
+test result: FAILED. 64 passed; 1 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.40s
+
+error: test failed, to rerun pass `--lib`
+
+===== baseline/ign-test_post_alloc_memory-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-82e6d1b449220c97)
+
+running 1 test
+test driver::safe::core::tests::test_post_alloc_memory ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.26s
+
+
+===== baseline/ign-test_device_side_assert-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-82e6d1b449220c97)
+
+running 1 test
+test driver::safe::launch::tests::test_device_side_assert ... default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [736,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [737,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [738,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [739,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [740,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [741,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [742,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [743,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [744,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [745,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [746,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [747,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [748,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [749,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [750,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [751,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [752,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [753,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [754,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [755,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [756,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [757,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [758,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [759,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [760,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [761,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [762,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [763,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [764,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [765,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [766,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [767,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [608,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [609,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [610,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [611,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [612,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [613,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [614,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [615,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [616,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [617,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [618,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [619,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [620,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [621,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [622,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [623,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [624,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [625,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [626,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [627,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [628,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [629,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [630,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [631,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [632,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [633,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [634,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [635,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [636,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [637,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [638,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [639,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [224,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [225,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [226,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [227,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [228,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [229,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [230,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [231,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [232,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [233,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [234,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [235,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [236,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [237,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [238,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [239,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [240,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [241,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [242,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [243,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [244,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [245,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [246,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [247,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [248,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [249,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [250,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [251,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [252,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [253,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [254,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [255,0,0] Assertion `0` failed.
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.29s
+
+
+===== baseline/timing-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-82e6d1b449220c97)
+
+running 2 tests
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... default pinned host reads: 20.25063ms; write-combined host reads: 633.376191ms
+ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 67 filtered out; finished in 1.13s
+
+
+===== baseline/main-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-82e6d1b449220c97)
+
+running 69 tests
+test cublas::safe::asum::tests::test_dasum ... ok
+test cublas::safe::asum::tests::test_sasum ... ok
+test cublas::safe::gemm::tests::test_dgemm ... ok
+test cublas::safe::gemm::tests::test_sgemm ... ok
+test cublas::safe::gemv::tests::test_dgemv ... ok
+test cublas::safe::gemv::tests::test_sgemv ... ok
+test cublas::safe::tests::cublas_pointer_mode ... ok
+test cublaslt::safe::tests::test_matmul_f32 ... ok
+test curand::safe::tests::test_different_seeds_neq ... ok
+test curand::safe::tests::test_log_normal_f32 ... ok
+test curand::safe::tests::test_log_normal_f64 ... ok
+test curand::safe::tests::test_normal_f32 ... ok
+test curand::safe::tests::test_normal_f64 ... ok
+test curand::safe::tests::test_seed_reproducible ... ok
+test curand::safe::tests::test_set_offset ... ok
+test curand::safe::tests::test_uniform_f32 ... ok
+test curand::safe::tests::test_uniform_f64 ... ok
+test curand::safe::tests::test_uniform_u32 ... ok
+test driver::result::tests::peer_transfer_contexts ... ignored, must be executed with multiple gpus
+test driver::result::tests::peer_transfer_self ... ok
+test driver::result::tests::re_associate_context_for_memory_op ... ignored, must be executed with multiple gpus
+test driver::safe::core::tests::test_alloc_pinned_panics_on_size_overflow - should panic ... ok
+test driver::safe::core::tests::test_borrowed_stream_is_not_destroyed_on_drop ... ok
+test driver::safe::core::tests::test_copy_uses_correct_context ... ok
+test driver::safe::core::tests::test_ctx_copy_to_views ... ok
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... ok
+test driver::safe::core::tests::test_event_try_is_complete ... ok
+test driver::safe::core::tests::test_event_try_is_complete_preserves_capture_error ... ok
+test driver::safe::core::tests::test_htod_copy_pinned ... ok
+test driver::safe::core::tests::test_htod_copy_pinned_with_default_flags ... ok
+test driver::safe::core::tests::test_leak_and_upgrade ... ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... FAILED
+test driver::safe::core::tests::test_post_alloc_arc_counts ... ok
+test driver::safe::core::tests::test_post_alloc_memory ... ignored, must be executed by itself
+test driver::safe::core::tests::test_post_build_arc_count ... ok
+test driver::safe::core::tests::test_primary_context_is_primary ... ok
+test driver::safe::core::tests::test_slice_is_freed_with_correct_context ... ok
+test driver::safe::core::tests::test_threading ... ok
+test driver::safe::core::tests::test_transmutes ... ok
+test driver::safe::graph::tests::test_end_capture_flags ... ok
+test driver::safe::graph::tests::test_end_capture_invalid_flags ... ok
+test driver::safe::launch::tests::test_device_side_assert ... ignored, must be executed by itself
+test driver::safe::launch::tests::test_large_launches ... ok
+test driver::safe::launch::tests::test_launch_arrays ... ok
+test driver::safe::launch::tests::test_launch_with_16bit ... ok
+test driver::safe::launch::tests::test_launch_with_32bit ... ok
+test driver::safe::launch::tests::test_launch_with_64bit ... ok
+test driver::safe::launch::tests::test_launch_with_8bit ... ok
+test driver::safe::launch::tests::test_launch_with_floats ... ok
+test driver::safe::launch::tests::test_launch_with_mut_and_ref_cudarc ... ok
+test driver::safe::launch::tests::test_launch_with_views ... ok
+test driver::safe::launch::tests::test_multi_stream_concurrent_reads ... ok
+test driver::safe::launch::tests::test_multi_stream_writes_block ... ok
+test driver::safe::launch::tests::test_par_launch ... ok
+test driver::safe::unified_memory::tests::test_unified_memory_global ... ok
+test driver::safe::unified_memory::tests::test_unified_memory_host ... ok
+test driver::safe::unified_memory::tests::test_unified_memory_single_stream ... ok
+test driver::safe::unified_memory::tests::test_unified_slice_copy_to_views ... ok
+test driver::safe::unified_memory::tests::test_unified_slice_split_at ... ok
+test driver::safe::unified_memory::tests::test_unified_slice_views_respect_stream_attachment ... ok
+test nvrtc::result::tests::test_compile_bad_program ... ok
+test nvrtc::result::tests::test_compile_program_1_opt ... ok
+test nvrtc::result::tests::test_compile_program_2_opt ... ok
+test nvrtc::result::tests::test_compile_program_no_opts ... ok
+test nvrtc::result::tests::test_get_ptx ... ok
+test nvrtc::safe::tests::test_compile_no_opts ... ok
+test nvrtc::safe::tests::test_compile_options_build_ftz ... ok
+test nvrtc::safe::tests::test_compile_options_build_multi ... ok
+test nvrtc::safe::tests::test_compile_options_build_none ... ok
+
+failures:
+
+---- driver::safe::core::tests::test_pinned_copy_is_faster stdout ----
+
+thread 'driver::safe::core::tests::test_pinned_copy_is_faster' (2024724) panicked at src/driver/safe/core.rs:2964:9:
+990.719µs vs 799.373µs
+
+
+failures:
+    driver::safe::core::tests::test_pinned_copy_is_faster
+
+test result: FAILED. 64 passed; 1 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.41s
+
+error: test failed, to rerun pass `--lib`
+
+===== baseline/ign-test_post_alloc_memory-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-82e6d1b449220c97)
+
+running 1 test
+test driver::safe::core::tests::test_post_alloc_memory ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.26s
+
+
+===== baseline/ign-test_device_side_assert-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-82e6d1b449220c97)
+
+running 1 test
+test driver::safe::launch::tests::test_device_side_assert ... default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [832,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [833,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [834,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [835,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [836,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [837,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [838,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [839,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [840,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [841,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [842,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [843,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [844,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [845,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [846,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [847,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [848,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [849,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [850,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [851,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [852,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [853,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [854,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [855,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [856,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [857,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [858,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [859,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [860,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [861,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [862,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [863,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [896,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [897,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [898,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [899,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [900,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [901,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [902,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [903,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [904,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [905,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [906,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [907,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [908,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [909,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [910,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [911,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [912,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [913,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [914,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [915,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [916,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [917,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [918,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [919,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [920,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [921,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [922,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [923,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [924,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [925,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [926,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [927,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [704,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [705,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [706,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [707,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [708,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [709,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [710,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [711,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [712,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [713,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [714,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [715,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [716,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [717,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [718,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [719,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [720,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [721,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [722,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [723,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [724,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [725,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [726,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [727,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [728,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [729,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [730,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [731,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [732,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [733,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [734,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [735,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [448,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [449,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [450,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [451,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [452,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [453,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [454,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [455,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [456,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [457,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [458,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [459,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [460,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [461,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [462,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [463,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [464,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [465,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [466,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [467,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [468,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [469,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [470,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [471,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [472,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [473,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [474,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [475,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [476,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [477,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [478,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [479,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [736,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [737,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [738,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [739,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [740,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [741,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [742,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [743,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [744,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [745,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [746,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [747,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [748,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [749,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [750,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [751,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [752,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [753,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [754,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [755,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [756,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [757,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [758,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [759,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [760,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [761,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [762,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [763,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [764,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [765,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [766,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [767,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [288,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [289,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [290,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [291,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [292,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [293,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [294,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [295,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [296,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [297,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [298,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [299,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [300,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [301,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [302,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [303,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [304,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [305,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [306,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [307,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [308,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [309,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [310,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [311,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [312,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [313,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [314,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [315,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [316,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [317,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [318,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [319,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [800,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [801,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [802,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [803,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [804,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [805,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [806,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [807,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [808,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [809,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [810,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [811,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [812,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [813,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [814,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [815,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [816,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [817,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [818,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [819,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [820,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [821,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [822,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [823,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [824,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [825,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [826,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [827,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [828,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [829,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [830,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [831,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [608,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [609,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [610,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [611,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [612,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [613,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [614,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [615,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [616,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [617,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [618,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [619,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [620,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [621,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [622,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [623,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [624,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [625,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [626,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [627,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [628,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [629,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [630,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [631,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [632,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [633,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [634,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [635,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [636,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [637,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [638,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [639,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [352,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [353,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [354,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [355,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [356,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [357,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [358,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [359,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [360,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [361,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [362,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [363,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [364,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [365,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [366,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [367,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [368,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [369,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [370,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [371,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [372,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [373,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [374,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [375,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [376,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [377,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [378,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [379,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [380,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [381,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [382,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [383,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [224,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [225,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [226,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [227,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [228,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [229,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [230,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [231,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [232,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [233,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [234,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [235,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [236,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [237,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [238,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [239,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [240,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [241,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [242,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [243,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [244,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [245,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [246,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [247,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [248,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [249,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [250,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [251,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [252,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [253,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [254,0,0] Assertion `0` failed.
+default_program:3: void foo(float *, const float *, unsigned long): block: [0,0,0], thread: [255,0,0] Assertion `0` failed.
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.29s
+
+
+===== baseline/timing-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-82e6d1b449220c97)
+
+running 2 tests
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... default pinned host reads: 20.247565ms; write-combined host reads: 633.599031ms
+ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 67 filtered out; finished in 1.13s
+
+
+===== C/env.txt =====
+host windchill3 Linux 7.0.0-38-generic x86_64
+src /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C
+features -F cuda-13030
+V 13030 CVD 0 LLP /home/coreyt/fathomdb-forks/venvs/cu13-133/lib/python3.12/site-packages/nvidia/cu13/lib
+lock-sha256 d20e4d909773e7a9a42e97a4a7e7029006da73e42124d3f1f01b61654fe404ca
+rustc 1.95.0 (59807616e 2026-04-14)
+cargo 1.95.0 (f2d3ce0bd 2026-03-21)
+
+===== C/guard.log =====
+2026-10-12T11:00:23-05:00 GUARD-FIRST driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:28-05:00 GUARD before main-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:31-05:00 GUARD after main-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:31-05:00 GUARD before ign-test_post_alloc_memory-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:32-05:00 GUARD after ign-test_post_alloc_memory-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:32-05:00 GUARD before ign-test_device_side_assert-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:32-05:00 GUARD after ign-test_device_side_assert-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:32-05:00 GUARD before ign-drops_after_a_sticky_error_neither_panic_nor_abort-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:33-05:00 GUARD after ign-drops_after_a_sticky_error_neither_panic_nor_abort-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:33-05:00 GUARD before ign-measure_max_size_semantics-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:33-05:00 GUARD after ign-measure_max_size_semantics-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:33-05:00 GUARD before ign-measure_reservation_steps-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:34-05:00 GUARD after ign-measure_reservation_steps-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:34-05:00 GUARD before ign-observe_new_attributes_on_driver_580-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:34-05:00 GUARD after ign-observe_new_attributes_on_driver_580-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:34-05:00 GUARD before timing-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:36-05:00 GUARD after timing-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:36-05:00 GUARD before main-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:39-05:00 GUARD after main-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:39-05:00 GUARD before ign-test_post_alloc_memory-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:39-05:00 GUARD after ign-test_post_alloc_memory-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:40-05:00 GUARD before ign-test_device_side_assert-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:40-05:00 GUARD after ign-test_device_side_assert-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:40-05:00 GUARD before ign-drops_after_a_sticky_error_neither_panic_nor_abort-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:40-05:00 GUARD after ign-drops_after_a_sticky_error_neither_panic_nor_abort-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:40-05:00 GUARD before ign-measure_max_size_semantics-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:41-05:00 GUARD after ign-measure_max_size_semantics-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:41-05:00 GUARD before ign-measure_reservation_steps-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:42-05:00 GUARD after ign-measure_reservation_steps-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:42-05:00 GUARD before ign-observe_new_attributes_on_driver_580-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:42-05:00 GUARD after ign-observe_new_attributes_on_driver_580-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:42-05:00 GUARD before timing-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:43-05:00 GUARD after timing-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:43-05:00 GUARD before main-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:47-05:00 GUARD after main-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:47-05:00 GUARD before ign-test_post_alloc_memory-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:47-05:00 GUARD after ign-test_post_alloc_memory-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:47-05:00 GUARD before ign-test_device_side_assert-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:48-05:00 GUARD after ign-test_device_side_assert-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:48-05:00 GUARD before ign-drops_after_a_sticky_error_neither_panic_nor_abort-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:48-05:00 GUARD after ign-drops_after_a_sticky_error_neither_panic_nor_abort-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:48-05:00 GUARD before ign-measure_max_size_semantics-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:49-05:00 GUARD after ign-measure_max_size_semantics-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:49-05:00 GUARD before ign-measure_reservation_steps-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:50-05:00 GUARD after ign-measure_reservation_steps-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:50-05:00 GUARD before ign-observe_new_attributes_on_driver_580-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:50-05:00 GUARD after ign-observe_new_attributes_on_driver_580-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:50-05:00 GUARD before timing-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:51-05:00 GUARD after timing-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T11:00:51-05:00 GUARD-LAST driver=580.178.04 cuda=/usr/local/cuda-12.6
+
+===== C/runs.tsv =====
+main-1	101	2026-10-12T11:00:28-05:00	2026-10-12T11:00:31-05:00	cargo test --locked --lib -F cuda-13030 -- --test-threads=1
+ign-test_post_alloc_memory-1	0	2026-10-12T11:00:31-05:00	2026-10-12T11:00:32-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::core::tests::test_post_alloc_memory --nocapture --test-threads=1
+ign-test_device_side_assert-1	101	2026-10-12T11:00:32-05:00	2026-10-12T11:00:32-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::launch::tests::test_device_side_assert --nocapture --test-threads=1
+ign-drops_after_a_sticky_error_neither_panic_nor_abort-1	101	2026-10-12T11:00:32-05:00	2026-10-12T11:00:33-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort --nocapture --test-threads=1
+ign-measure_max_size_semantics-1	0	2026-10-12T11:00:33-05:00	2026-10-12T11:00:33-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::measure_max_size_semantics --nocapture --test-threads=1
+ign-measure_reservation_steps-1	0	2026-10-12T11:00:33-05:00	2026-10-12T11:00:34-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::measure_reservation_steps --nocapture --test-threads=1
+ign-observe_new_attributes_on_driver_580-1	0	2026-10-12T11:00:34-05:00	2026-10-12T11:00:34-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::observe_new_attributes_on_driver_580 --nocapture --test-threads=1
+timing-1	0	2026-10-12T11:00:34-05:00	2026-10-12T11:00:36-05:00	cargo test --locked --lib -F cuda-13030 -- --exact driver::safe::core::tests::test_pinned_copy_is_faster driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined --nocapture --test-threads=1
+main-2	101	2026-10-12T11:00:36-05:00	2026-10-12T11:00:39-05:00	cargo test --locked --lib -F cuda-13030 -- --test-threads=1
+ign-test_post_alloc_memory-2	0	2026-10-12T11:00:39-05:00	2026-10-12T11:00:39-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::core::tests::test_post_alloc_memory --nocapture --test-threads=1
+ign-test_device_side_assert-2	101	2026-10-12T11:00:40-05:00	2026-10-12T11:00:40-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::launch::tests::test_device_side_assert --nocapture --test-threads=1
+ign-drops_after_a_sticky_error_neither_panic_nor_abort-2	101	2026-10-12T11:00:40-05:00	2026-10-12T11:00:40-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort --nocapture --test-threads=1
+ign-measure_max_size_semantics-2	0	2026-10-12T11:00:40-05:00	2026-10-12T11:00:41-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::measure_max_size_semantics --nocapture --test-threads=1
+ign-measure_reservation_steps-2	0	2026-10-12T11:00:41-05:00	2026-10-12T11:00:42-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::measure_reservation_steps --nocapture --test-threads=1
+ign-observe_new_attributes_on_driver_580-2	0	2026-10-12T11:00:42-05:00	2026-10-12T11:00:42-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::observe_new_attributes_on_driver_580 --nocapture --test-threads=1
+timing-2	0	2026-10-12T11:00:42-05:00	2026-10-12T11:00:43-05:00	cargo test --locked --lib -F cuda-13030 -- --exact driver::safe::core::tests::test_pinned_copy_is_faster driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined --nocapture --test-threads=1
+main-3	101	2026-10-12T11:00:43-05:00	2026-10-12T11:00:47-05:00	cargo test --locked --lib -F cuda-13030 -- --test-threads=1
+ign-test_post_alloc_memory-3	0	2026-10-12T11:00:47-05:00	2026-10-12T11:00:47-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::core::tests::test_post_alloc_memory --nocapture --test-threads=1
+ign-test_device_side_assert-3	101	2026-10-12T11:00:47-05:00	2026-10-12T11:00:48-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::launch::tests::test_device_side_assert --nocapture --test-threads=1
+ign-drops_after_a_sticky_error_neither_panic_nor_abort-3	101	2026-10-12T11:00:48-05:00	2026-10-12T11:00:48-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort --nocapture --test-threads=1
+ign-measure_max_size_semantics-3	0	2026-10-12T11:00:48-05:00	2026-10-12T11:00:49-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::measure_max_size_semantics --nocapture --test-threads=1
+ign-measure_reservation_steps-3	0	2026-10-12T11:00:49-05:00	2026-10-12T11:00:50-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::measure_reservation_steps --nocapture --test-threads=1
+ign-observe_new_attributes_on_driver_580-3	0	2026-10-12T11:00:50-05:00	2026-10-12T11:00:50-05:00	cargo test --locked --lib -F cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::observe_new_attributes_on_driver_580 --nocapture --test-threads=1
+timing-3	0	2026-10-12T11:00:50-05:00	2026-10-12T11:00:51-05:00	cargo test --locked --lib -F cuda-13030 -- --exact driver::safe::core::tests::test_pinned_copy_is_faster driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined --nocapture --test-threads=1
+
+===== C/cargo-tree.txt =====
+cudarc-fathomdb v0.19.10 (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C)
+└── libloading v0.9.0
+    └── cfg-if v1.0.5
+
+===== C/build.log =====
+   Compiling cudarc-fathomdb v0.19.10 (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.46s
+  Executable unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+===== C/main-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 134 tests
+test cublas::safe::asum::tests::test_dasum ... ok
+test cublas::safe::asum::tests::test_sasum ... ok
+test cublas::safe::gemm::tests::test_dgemm ... ok
+test cublas::safe::gemm::tests::test_sgemm ... ok
+test cublas::safe::gemv::tests::test_dgemv ... ok
+test cublas::safe::gemv::tests::test_sgemv ... ok
+test cublas::safe::tests::cublas_pointer_mode ... ok
+test cublaslt::safe::tests::test_matmul_f32 ... ok
+test curand::safe::tests::test_different_seeds_neq ... ok
+test curand::safe::tests::test_log_normal_f32 ... ok
+test curand::safe::tests::test_log_normal_f64 ... ok
+test curand::safe::tests::test_normal_f32 ... ok
+test curand::safe::tests::test_normal_f64 ... ok
+test curand::safe::tests::test_seed_reproducible ... ok
+test curand::safe::tests::test_set_offset ... ok
+test curand::safe::tests::test_uniform_f32 ... ok
+test curand::safe::tests::test_uniform_f64 ... ok
+test curand::safe::tests::test_uniform_u32 ... ok
+test driver::result::tests::peer_transfer_contexts ... ignored, must be executed with multiple gpus
+test driver::result::tests::peer_transfer_self ... ok
+test driver::result::tests::re_associate_context_for_memory_op ... ignored, must be executed with multiple gpus
+test driver::safe::core::fathomdb_alloc_fallback::a_failed_decision_is_not_remembered ... ok
+test driver::safe::core::fathomdb_alloc_fallback::async_alloc_requires_pool_support_and_an_obtainable_default_pool ... ok
+test driver::safe::core::fathomdb_alloc_fallback::concurrent_wrappers_of_a_device_agree ... ok
+test driver::safe::core::fathomdb_alloc_fallback::every_wrapper_of_a_device_reuses_the_first_decision ... ok
+test driver::safe::core::fathomdb_alloc_fallback::new_context_selection_matches_default_pool_availability ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_choice_equals_the_upstream_inline_rule ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_constructors_never_query_the_default_pool ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_selection_is_the_upstream_rule_whatever_the_pool_would_say ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_zero_length_sync_behaviour_matches_the_base ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_zero_length_sync_handling_is_upstream ... ok
+test driver::safe::core::fathomdb_alloc_fallback::on_target_zero_length_sync_buffers_are_null_and_never_freed ... ok
+test driver::safe::core::fathomdb_alloc_fallback::only_pool_unavailable_errors_select_the_synchronous_allocator ... ok
+test driver::safe::core::fathomdb_alloc_fallback::sync_context_round_trips_data ... ok
+test driver::safe::core::fathomdb_alloc_fallback::unrelated_pool_query_errors_are_propagated_not_downgraded ... ok
+test driver::safe::core::fathomdb_private_pool::a_buffer_freed_on_one_stream_is_not_reused_before_its_reader_finishes ... ok
+test driver::safe::core::fathomdb_private_pool::a_context_with_its_own_pool_is_private_whatever_the_device_decided ... ok
+test driver::safe::core::fathomdb_private_pool::a_created_pool_carries_its_release_threshold ... ok
+test driver::safe::core::fathomdb_private_pool::a_failed_max_pool_size_read_leaves_create_successful ... ok
+test driver::safe::core::fathomdb_private_pool::a_pool_create_out_of_memory_returns_the_error_and_no_pool ... ok
+test driver::safe::core::fathomdb_private_pool::a_pool_of_another_device_is_rejected ... ok
+test driver::safe::core::fathomdb_private_pool::a_pool_of_device_1_is_rejected_for_device_0 ... ignored, must be executed with multiple gpus
+test driver::safe::core::fathomdb_private_pool::a_private_context_allocates_from_its_pool_and_leaves_the_current_pool_alone ... ok
+test driver::safe::core::fathomdb_private_pool::a_private_pointer_freed_synchronously_releases_its_memory ... ok
+test driver::safe::core::fathomdb_private_pool::a_private_pointer_upgraded_onto_a_default_context_returns_to_its_pool ... ok
+test driver::safe::core::fathomdb_private_pool::a_request_over_the_cap_is_out_of_memory ... ok
+test driver::safe::core::fathomdb_private_pool::a_synchronous_pointer_upgraded_onto_a_private_context_frees_cleanly ... ok
+test driver::safe::core::fathomdb_private_pool::accounting_returns_to_zero_after_drop_and_sync ... ok
+test driver::safe::core::fathomdb_private_pool::attributes_newer_than_the_driver_are_never_requested ... ok
+test driver::safe::core::fathomdb_private_pool::capture_on_a_private_context_uses_graph_memory ... ok
+test driver::safe::core::fathomdb_private_pool::create_destroys_the_pool_when_setting_the_threshold_fails ... ok
+test driver::safe::core::fathomdb_private_pool::default_and_current_pool_are_untouched_while_live ... ok
+test driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred ... ok
+test driver::safe::core::fathomdb_private_pool::device_location_is_the_ordinal_on_every_binding ... ok
+test driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort ... ignored, must be executed by itself
+test driver::safe::core::fathomdb_private_pool::exhaustion_under_two_threads_and_four_streams_fails_only_the_excess ... ok
+test driver::safe::core::fathomdb_private_pool::exit_with_a_live_pool_is_clean ... ok
+test driver::safe::core::fathomdb_private_pool::max_pool_size_read_back_uses_the_driver_value ... ok
+test driver::safe::core::fathomdb_private_pool::max_pool_size_reads_back_at_least_the_request ... ignored, needs a driver of 13020 or later (test plan G5b)
+test driver::safe::core::fathomdb_private_pool::max_size_on_a_driver_older_than_12020_is_not_supported ... ok
+test driver::safe::core::fathomdb_private_pool::measure_max_size_semantics ... ignored, measurement M-2 (test plan § 8); run alone with --nocapture
+test driver::safe::core::fathomdb_private_pool::measure_reservation_steps ... ignored, measurement M-1 (test plan § 8); run alone with --nocapture
+test driver::safe::core::fathomdb_private_pool::mem_pool_and_private_context_are_send_and_sync ... ok
+test driver::safe::core::fathomdb_private_pool::observe_new_attributes_on_driver_580 ... ignored, observation M-3 (test plan § 8); run alone with --nocapture
+test driver::safe::core::fathomdb_private_pool::ordinary_contexts_report_default_or_synchronous ... ok
+test driver::safe::core::fathomdb_private_pool::pool_model_property ... ok
+test driver::safe::core::fathomdb_private_pool::pool_props_are_pinned_device_memory_on_the_ordinal ... ok
+test driver::safe::core::fathomdb_private_pool::pool_props_are_zeroed_then_written ... ok
+test driver::safe::core::fathomdb_private_pool::release_threshold_bounds_reserved_after_sync ... ok
+test driver::safe::core::fathomdb_private_pool::requests_within_the_cap_succeed ... ok
+test driver::safe::core::fathomdb_private_pool::the_pool_is_destroyed_last_and_cleanly ... ok
+test driver::safe::core::fathomdb_private_pool::the_pool_outlives_its_context_while_slices_live ... ok
+test driver::safe::core::fathomdb_private_pool::trim_to_keeps_the_floor_and_releases_above_it ... ok
+test driver::safe::core::fathomdb_private_pool::two_pools_on_two_devices_are_independent ... ignored, must be executed with multiple gpus
+test driver::safe::core::fathomdb_private_pool::typed_reads_return_64_bit_values ... ok
+test driver::safe::core::fathomdb_private_pool::zero_length_private_allocations_are_null_and_free_cleanly ... ok
+test driver::safe::core::tests::test_alloc_pinned_panics_on_size_overflow - should panic ... ok
+test driver::safe::core::tests::test_borrowed_stream_is_not_destroyed_on_drop ... ok
+test driver::safe::core::tests::test_copy_uses_correct_context ... ok
+test driver::safe::core::tests::test_ctx_copy_to_views ... ok
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... ok
+test driver::safe::core::tests::test_event_try_is_complete ... ok
+test driver::safe::core::tests::test_event_try_is_complete_preserves_capture_error ... ok
+test driver::safe::core::tests::test_htod_copy_pinned ... ok
+test driver::safe::core::tests::test_htod_copy_pinned_with_default_flags ... ok
+test driver::safe::core::tests::test_leak_and_upgrade ... ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... FAILED
+test driver::safe::core::tests::test_post_alloc_arc_counts ... ok
+test driver::safe::core::tests::test_post_alloc_memory ... ignored, must be executed by itself
+test driver::safe::core::tests::test_post_build_arc_count ... ok
+test driver::safe::core::tests::test_primary_context_is_primary ... ok
+test driver::safe::core::tests::test_slice_is_freed_with_correct_context ... ok
+test driver::safe::core::tests::test_threading ... ok
+test driver::safe::core::tests::test_transmutes ... ok
+test driver::safe::graph::tests::test_end_capture_flags ... ok
+test driver::safe::graph::tests::test_end_capture_invalid_flags ... ok
+test driver::safe::launch::tests::test_device_side_assert ... ignored, must be executed by itself
+test driver::safe::launch::tests::test_large_launches ... FAILED
+test driver::safe::launch::tests::test_launch_arrays ... FAILED
+test driver::safe::launch::tests::test_launch_with_16bit ... FAILED
+test driver::safe::launch::tests::test_launch_with_32bit ... FAILED
+test driver::safe::launch::tests::test_launch_with_64bit ... FAILED
+test driver::safe::launch::tests::test_launch_with_8bit ... FAILED
+test driver::safe::launch::tests::test_launch_with_floats ... FAILED
+test driver::safe::launch::tests::test_launch_with_mut_and_ref_cudarc ... FAILED
+test driver::safe::launch::tests::test_launch_with_views ... FAILED
+test driver::safe::launch::tests::test_multi_stream_concurrent_reads ... FAILED
+test driver::safe::launch::tests::test_multi_stream_writes_block ... FAILED
+test driver::safe::launch::tests::test_par_launch ... FAILED
+test driver::safe::unified_memory::tests::test_unified_memory_global ... FAILED
+test driver::safe::unified_memory::tests::test_unified_memory_host ... FAILED
+test driver::safe::unified_memory::tests::test_unified_memory_single_stream ... FAILED
+test driver::safe::unified_memory::tests::test_unified_slice_copy_to_views ... ok
+test driver::safe::unified_memory::tests::test_unified_slice_split_at ... ok
+test driver::safe::unified_memory::tests::test_unified_slice_views_respect_stream_attachment ... ok
+test fathomdb_lib_major::a_failed_load_is_memoized ... ok
+test fathomdb_lib_major::in_scope_candidates_never_name_another_major ... ok
+test fathomdb_lib_major::is_culib_present_agrees_with_try_culib ... ok
+test fathomdb_lib_major::load_error_names_library_major_and_tried_names ... ok
+test fathomdb_lib_major::out_of_scope_and_cuda11_candidates_equal_the_base ... ok
+test fathomdb_lib_major::report_address_symbols_are_bound_wherever_the_library_is ... ok
+test fathomdb_lib_major::the_report_says_linked_at_build_time_when_linked ... ok
+test fathomdb_lib_major::version_lines_accept_their_major_and_reject_neighbours ... ok
+test fathomdb_lib_major::versioned_names_come_before_unversioned_names ... ok
+test fathomdb_lib_major::windows_dll_names_match_nvidia_wheels ... ok
+test nvrtc::result::tests::test_compile_bad_program ... ok
+test nvrtc::result::tests::test_compile_program_1_opt ... ok
+test nvrtc::result::tests::test_compile_program_2_opt ... ok
+test nvrtc::result::tests::test_compile_program_no_opts ... ok
+test nvrtc::result::tests::test_get_ptx ... ok
+test nvrtc::safe::tests::test_compile_no_opts ... ok
+test nvrtc::safe::tests::test_compile_options_build_ftz ... ok
+test nvrtc::safe::tests::test_compile_options_build_multi ... ok
+test nvrtc::safe::tests::test_compile_options_build_none ... ok
+
+failures:
+
+---- driver::safe::core::tests::test_pinned_copy_is_faster stdout ----
+
+thread 'driver::safe::core::tests::test_pinned_copy_is_faster' (2025460) panicked at src/driver/safe/core.rs:3300:9:
+850.564µs vs 710.229µs
+
+---- driver::safe::launch::tests::test_large_launches stdout ----
+
+thread 'driver::safe::launch::tests::test_large_launches' (2025471) panicked at src/driver/safe/launch.rs:386:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_arrays stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_arrays' (2025472) panicked at src/driver/safe/launch.rs:315:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_16bit stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_16bit' (2025473) panicked at src/driver/safe/launch.rs:514:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_32bit stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_32bit' (2025474) panicked at src/driver/safe/launch.rs:535:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_64bit stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_64bit' (2025475) panicked at src/driver/safe/launch.rs:556:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_8bit stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_8bit' (2025476) panicked at src/driver/safe/launch.rs:493:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_floats stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_floats' (2025477) panicked at src/driver/safe/launch.rs:577:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_mut_and_ref_cudarc stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_mut_and_ref_cudarc' (2025478) panicked at src/driver/safe/launch.rs:351:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_views stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_views' (2025479) panicked at src/driver/safe/launch.rs:419:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_multi_stream_concurrent_reads stdout ----
+Error: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_multi_stream_writes_block stdout ----
+Error: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_par_launch stdout ----
+
+thread 'driver::safe::launch::tests::test_par_launch' (2025482) panicked at src/driver/safe/launch.rs:642:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::unified_memory::tests::test_unified_memory_global stdout ----
+Error: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::unified_memory::tests::test_unified_memory_host stdout ----
+Error: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::unified_memory::tests::test_unified_memory_single_stream stdout ----
+Error: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+
+failures:
+    driver::safe::core::tests::test_pinned_copy_is_faster
+    driver::safe::launch::tests::test_large_launches
+    driver::safe::launch::tests::test_launch_arrays
+    driver::safe::launch::tests::test_launch_with_16bit
+    driver::safe::launch::tests::test_launch_with_32bit
+    driver::safe::launch::tests::test_launch_with_64bit
+    driver::safe::launch::tests::test_launch_with_8bit
+    driver::safe::launch::tests::test_launch_with_floats
+    driver::safe::launch::tests::test_launch_with_mut_and_ref_cudarc
+    driver::safe::launch::tests::test_launch_with_views
+    driver::safe::launch::tests::test_multi_stream_concurrent_reads
+    driver::safe::launch::tests::test_multi_stream_writes_block
+    driver::safe::launch::tests::test_par_launch
+    driver::safe::unified_memory::tests::test_unified_memory_global
+    driver::safe::unified_memory::tests::test_unified_memory_host
+    driver::safe::unified_memory::tests::test_unified_memory_single_stream
+
+test result: FAILED. 107 passed; 16 failed; 11 ignored; 0 measured; 0 filtered out; finished in 3.35s
+
+error: test failed, to rerun pass `--lib`
+
+===== C/ign-test_post_alloc_memory-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 1 test
+test driver::safe::core::tests::test_post_alloc_memory ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.26s
+
+
+===== C/ign-test_device_side_assert-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 1 test
+test driver::safe::launch::tests::test_device_side_assert ... Error: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+FAILED
+
+failures:
+
+failures:
+    driver::safe::launch::tests::test_device_side_assert
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.31s
+
+error: test failed, to rerun pass `--lib`
+
+===== C/ign-drops_after_a_sticky_error_neither_panic_nor_abort-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort ... child exited with exit status: 101; 0 device-side assert lines; the rest:
+child| 
+child| running 1 test
+child| test driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort ... FAILED
+child| 
+child| failures:
+child| 
+child| failures:
+child|     driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort
+child| 
+child| test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.30s
+child| 
+child| 
+child| thread 'driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort' (2025638) panicked at src/driver/safe/core.rs:5773:47:
+child| called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+child| note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort' (2025636) panicked at src/driver/safe/core.rs:5804:9:
+child exited with exit status: 101:
+child| 
+child| running 1 test
+child| test driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort ... FAILED
+child| 
+child| failures:
+child| 
+child| failures:
+child|     driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort
+child| 
+child| test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.30s
+child| 
+child| 
+child| thread 'driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort' (2025638) panicked at src/driver/safe/core.rs:5773:47:
+child| called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+child| note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.35s
+
+error: test failed, to rerun pass `--lib`
+
+===== C/ign-measure_max_size_semantics-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::measure_max_size_semantics ... M-2 cap=67108864 size=1048576 threshold=0 successes=64 limit=67108864 error=Some(DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")) reserved_at_failure=67108864 used_at_failure=67108864 max_size()=None
+M-2 cap=67108864 size=1048576 threshold=67108864 successes=64 limit=67108864 error=Some(DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")) reserved_at_failure=67108864 used_at_failure=67108864 max_size()=None
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.44s
+
+
+===== C/ign-measure_reservation_steps-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::measure_reservation_steps ... M-1 size=1 empty=0 first_step=33554432 second_step=0 used_after_two=2 device_free=24983568384 device_total=25296044032
+M-1 size=1048576 empty=0 first_step=33554432 second_step=0 used_after_two=2097152 device_free=24983568384 device_total=25296044032
+M-1 size=33554432 empty=0 first_step=33554432 second_step=33554432 used_after_two=67108864 device_free=24950013952 device_total=25296044032
+M-1 size=268435456 empty=0 first_step=268435456 second_step=268435456 used_after_two=536870912 device_free=24480251904 device_total=25296044032
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.75s
+
+
+===== C/ign-observe_new_attributes_on_driver_580-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::observe_new_attributes_on_driver_580 ... M-3 driver=13000 attribute=9 (CU_MEMPOOL_ATTR_ALLOCATION_TYPE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=10 (CU_MEMPOOL_ATTR_EXPORT_HANDLE_TYPES) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=11 (CU_MEMPOOL_ATTR_LOCATION_ID) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=12 (CU_MEMPOOL_ATTR_LOCATION_TYPE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=13 (CU_MEMPOOL_ATTR_MAX_POOL_SIZE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=14 (CU_MEMPOOL_ATTR_HW_DECOMPRESS_ENABLED) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.08s
+
+
+===== C/timing-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 2 tests
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... default pinned host reads: 20.343185ms; write-combined host reads: 633.092198ms
+ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.08s
+
+
+===== C/main-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 134 tests
+test cublas::safe::asum::tests::test_dasum ... ok
+test cublas::safe::asum::tests::test_sasum ... ok
+test cublas::safe::gemm::tests::test_dgemm ... ok
+test cublas::safe::gemm::tests::test_sgemm ... ok
+test cublas::safe::gemv::tests::test_dgemv ... ok
+test cublas::safe::gemv::tests::test_sgemv ... ok
+test cublas::safe::tests::cublas_pointer_mode ... ok
+test cublaslt::safe::tests::test_matmul_f32 ... ok
+test curand::safe::tests::test_different_seeds_neq ... ok
+test curand::safe::tests::test_log_normal_f32 ... ok
+test curand::safe::tests::test_log_normal_f64 ... ok
+test curand::safe::tests::test_normal_f32 ... ok
+test curand::safe::tests::test_normal_f64 ... ok
+test curand::safe::tests::test_seed_reproducible ... ok
+test curand::safe::tests::test_set_offset ... ok
+test curand::safe::tests::test_uniform_f32 ... ok
+test curand::safe::tests::test_uniform_f64 ... ok
+test curand::safe::tests::test_uniform_u32 ... ok
+test driver::result::tests::peer_transfer_contexts ... ignored, must be executed with multiple gpus
+test driver::result::tests::peer_transfer_self ... ok
+test driver::result::tests::re_associate_context_for_memory_op ... ignored, must be executed with multiple gpus
+test driver::safe::core::fathomdb_alloc_fallback::a_failed_decision_is_not_remembered ... ok
+test driver::safe::core::fathomdb_alloc_fallback::async_alloc_requires_pool_support_and_an_obtainable_default_pool ... ok
+test driver::safe::core::fathomdb_alloc_fallback::concurrent_wrappers_of_a_device_agree ... ok
+test driver::safe::core::fathomdb_alloc_fallback::every_wrapper_of_a_device_reuses_the_first_decision ... ok
+test driver::safe::core::fathomdb_alloc_fallback::new_context_selection_matches_default_pool_availability ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_choice_equals_the_upstream_inline_rule ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_constructors_never_query_the_default_pool ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_selection_is_the_upstream_rule_whatever_the_pool_would_say ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_zero_length_sync_behaviour_matches_the_base ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_zero_length_sync_handling_is_upstream ... ok
+test driver::safe::core::fathomdb_alloc_fallback::on_target_zero_length_sync_buffers_are_null_and_never_freed ... ok
+test driver::safe::core::fathomdb_alloc_fallback::only_pool_unavailable_errors_select_the_synchronous_allocator ... ok
+test driver::safe::core::fathomdb_alloc_fallback::sync_context_round_trips_data ... ok
+test driver::safe::core::fathomdb_alloc_fallback::unrelated_pool_query_errors_are_propagated_not_downgraded ... ok
+test driver::safe::core::fathomdb_private_pool::a_buffer_freed_on_one_stream_is_not_reused_before_its_reader_finishes ... ok
+test driver::safe::core::fathomdb_private_pool::a_context_with_its_own_pool_is_private_whatever_the_device_decided ... ok
+test driver::safe::core::fathomdb_private_pool::a_created_pool_carries_its_release_threshold ... ok
+test driver::safe::core::fathomdb_private_pool::a_failed_max_pool_size_read_leaves_create_successful ... ok
+test driver::safe::core::fathomdb_private_pool::a_pool_create_out_of_memory_returns_the_error_and_no_pool ... ok
+test driver::safe::core::fathomdb_private_pool::a_pool_of_another_device_is_rejected ... ok
+test driver::safe::core::fathomdb_private_pool::a_pool_of_device_1_is_rejected_for_device_0 ... ignored, must be executed with multiple gpus
+test driver::safe::core::fathomdb_private_pool::a_private_context_allocates_from_its_pool_and_leaves_the_current_pool_alone ... ok
+test driver::safe::core::fathomdb_private_pool::a_private_pointer_freed_synchronously_releases_its_memory ... ok
+test driver::safe::core::fathomdb_private_pool::a_private_pointer_upgraded_onto_a_default_context_returns_to_its_pool ... ok
+test driver::safe::core::fathomdb_private_pool::a_request_over_the_cap_is_out_of_memory ... ok
+test driver::safe::core::fathomdb_private_pool::a_synchronous_pointer_upgraded_onto_a_private_context_frees_cleanly ... ok
+test driver::safe::core::fathomdb_private_pool::accounting_returns_to_zero_after_drop_and_sync ... ok
+test driver::safe::core::fathomdb_private_pool::attributes_newer_than_the_driver_are_never_requested ... ok
+test driver::safe::core::fathomdb_private_pool::capture_on_a_private_context_uses_graph_memory ... ok
+test driver::safe::core::fathomdb_private_pool::create_destroys_the_pool_when_setting_the_threshold_fails ... ok
+test driver::safe::core::fathomdb_private_pool::default_and_current_pool_are_untouched_while_live ... ok
+test driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred ... ok
+test driver::safe::core::fathomdb_private_pool::device_location_is_the_ordinal_on_every_binding ... ok
+test driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort ... ignored, must be executed by itself
+test driver::safe::core::fathomdb_private_pool::exhaustion_under_two_threads_and_four_streams_fails_only_the_excess ... ok
+test driver::safe::core::fathomdb_private_pool::exit_with_a_live_pool_is_clean ... ok
+test driver::safe::core::fathomdb_private_pool::max_pool_size_read_back_uses_the_driver_value ... ok
+test driver::safe::core::fathomdb_private_pool::max_pool_size_reads_back_at_least_the_request ... ignored, needs a driver of 13020 or later (test plan G5b)
+test driver::safe::core::fathomdb_private_pool::max_size_on_a_driver_older_than_12020_is_not_supported ... ok
+test driver::safe::core::fathomdb_private_pool::measure_max_size_semantics ... ignored, measurement M-2 (test plan § 8); run alone with --nocapture
+test driver::safe::core::fathomdb_private_pool::measure_reservation_steps ... ignored, measurement M-1 (test plan § 8); run alone with --nocapture
+test driver::safe::core::fathomdb_private_pool::mem_pool_and_private_context_are_send_and_sync ... ok
+test driver::safe::core::fathomdb_private_pool::observe_new_attributes_on_driver_580 ... ignored, observation M-3 (test plan § 8); run alone with --nocapture
+test driver::safe::core::fathomdb_private_pool::ordinary_contexts_report_default_or_synchronous ... ok
+test driver::safe::core::fathomdb_private_pool::pool_model_property ... ok
+test driver::safe::core::fathomdb_private_pool::pool_props_are_pinned_device_memory_on_the_ordinal ... ok
+test driver::safe::core::fathomdb_private_pool::pool_props_are_zeroed_then_written ... ok
+test driver::safe::core::fathomdb_private_pool::release_threshold_bounds_reserved_after_sync ... ok
+test driver::safe::core::fathomdb_private_pool::requests_within_the_cap_succeed ... ok
+test driver::safe::core::fathomdb_private_pool::the_pool_is_destroyed_last_and_cleanly ... ok
+test driver::safe::core::fathomdb_private_pool::the_pool_outlives_its_context_while_slices_live ... ok
+test driver::safe::core::fathomdb_private_pool::trim_to_keeps_the_floor_and_releases_above_it ... ok
+test driver::safe::core::fathomdb_private_pool::two_pools_on_two_devices_are_independent ... ignored, must be executed with multiple gpus
+test driver::safe::core::fathomdb_private_pool::typed_reads_return_64_bit_values ... ok
+test driver::safe::core::fathomdb_private_pool::zero_length_private_allocations_are_null_and_free_cleanly ... ok
+test driver::safe::core::tests::test_alloc_pinned_panics_on_size_overflow - should panic ... ok
+test driver::safe::core::tests::test_borrowed_stream_is_not_destroyed_on_drop ... ok
+test driver::safe::core::tests::test_copy_uses_correct_context ... ok
+test driver::safe::core::tests::test_ctx_copy_to_views ... ok
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... ok
+test driver::safe::core::tests::test_event_try_is_complete ... ok
+test driver::safe::core::tests::test_event_try_is_complete_preserves_capture_error ... ok
+test driver::safe::core::tests::test_htod_copy_pinned ... ok
+test driver::safe::core::tests::test_htod_copy_pinned_with_default_flags ... ok
+test driver::safe::core::tests::test_leak_and_upgrade ... ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... FAILED
+test driver::safe::core::tests::test_post_alloc_arc_counts ... ok
+test driver::safe::core::tests::test_post_alloc_memory ... ignored, must be executed by itself
+test driver::safe::core::tests::test_post_build_arc_count ... ok
+test driver::safe::core::tests::test_primary_context_is_primary ... ok
+test driver::safe::core::tests::test_slice_is_freed_with_correct_context ... ok
+test driver::safe::core::tests::test_threading ... ok
+test driver::safe::core::tests::test_transmutes ... ok
+test driver::safe::graph::tests::test_end_capture_flags ... ok
+test driver::safe::graph::tests::test_end_capture_invalid_flags ... ok
+test driver::safe::launch::tests::test_device_side_assert ... ignored, must be executed by itself
+test driver::safe::launch::tests::test_large_launches ... FAILED
+test driver::safe::launch::tests::test_launch_arrays ... FAILED
+test driver::safe::launch::tests::test_launch_with_16bit ... FAILED
+test driver::safe::launch::tests::test_launch_with_32bit ... FAILED
+test driver::safe::launch::tests::test_launch_with_64bit ... FAILED
+test driver::safe::launch::tests::test_launch_with_8bit ... FAILED
+test driver::safe::launch::tests::test_launch_with_floats ... FAILED
+test driver::safe::launch::tests::test_launch_with_mut_and_ref_cudarc ... FAILED
+test driver::safe::launch::tests::test_launch_with_views ... FAILED
+test driver::safe::launch::tests::test_multi_stream_concurrent_reads ... FAILED
+test driver::safe::launch::tests::test_multi_stream_writes_block ... FAILED
+test driver::safe::launch::tests::test_par_launch ... FAILED
+test driver::safe::unified_memory::tests::test_unified_memory_global ... FAILED
+test driver::safe::unified_memory::tests::test_unified_memory_host ... FAILED
+test driver::safe::unified_memory::tests::test_unified_memory_single_stream ... FAILED
+test driver::safe::unified_memory::tests::test_unified_slice_copy_to_views ... ok
+test driver::safe::unified_memory::tests::test_unified_slice_split_at ... ok
+test driver::safe::unified_memory::tests::test_unified_slice_views_respect_stream_attachment ... ok
+test fathomdb_lib_major::a_failed_load_is_memoized ... ok
+test fathomdb_lib_major::in_scope_candidates_never_name_another_major ... ok
+test fathomdb_lib_major::is_culib_present_agrees_with_try_culib ... ok
+test fathomdb_lib_major::load_error_names_library_major_and_tried_names ... ok
+test fathomdb_lib_major::out_of_scope_and_cuda11_candidates_equal_the_base ... ok
+test fathomdb_lib_major::report_address_symbols_are_bound_wherever_the_library_is ... ok
+test fathomdb_lib_major::the_report_says_linked_at_build_time_when_linked ... ok
+test fathomdb_lib_major::version_lines_accept_their_major_and_reject_neighbours ... ok
+test fathomdb_lib_major::versioned_names_come_before_unversioned_names ... ok
+test fathomdb_lib_major::windows_dll_names_match_nvidia_wheels ... ok
+test nvrtc::result::tests::test_compile_bad_program ... ok
+test nvrtc::result::tests::test_compile_program_1_opt ... ok
+test nvrtc::result::tests::test_compile_program_2_opt ... ok
+test nvrtc::result::tests::test_compile_program_no_opts ... ok
+test nvrtc::result::tests::test_get_ptx ... ok
+test nvrtc::safe::tests::test_compile_no_opts ... ok
+test nvrtc::safe::tests::test_compile_options_build_ftz ... ok
+test nvrtc::safe::tests::test_compile_options_build_multi ... ok
+test nvrtc::safe::tests::test_compile_options_build_none ... ok
+
+failures:
+
+---- driver::safe::core::tests::test_pinned_copy_is_faster stdout ----
+
+thread 'driver::safe::core::tests::test_pinned_copy_is_faster' (2025981) panicked at src/driver/safe/core.rs:3300:9:
+849.955µs vs 709.135µs
+
+---- driver::safe::launch::tests::test_large_launches stdout ----
+
+thread 'driver::safe::launch::tests::test_large_launches' (2025992) panicked at src/driver/safe/launch.rs:386:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_arrays stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_arrays' (2025993) panicked at src/driver/safe/launch.rs:315:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_16bit stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_16bit' (2025994) panicked at src/driver/safe/launch.rs:514:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_32bit stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_32bit' (2025995) panicked at src/driver/safe/launch.rs:535:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_64bit stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_64bit' (2025996) panicked at src/driver/safe/launch.rs:556:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_8bit stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_8bit' (2025997) panicked at src/driver/safe/launch.rs:493:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_floats stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_floats' (2025998) panicked at src/driver/safe/launch.rs:577:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_mut_and_ref_cudarc stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_mut_and_ref_cudarc' (2025999) panicked at src/driver/safe/launch.rs:351:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_views stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_views' (2026000) panicked at src/driver/safe/launch.rs:419:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_multi_stream_concurrent_reads stdout ----
+Error: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_multi_stream_writes_block stdout ----
+Error: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_par_launch stdout ----
+
+thread 'driver::safe::launch::tests::test_par_launch' (2026003) panicked at src/driver/safe/launch.rs:642:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::unified_memory::tests::test_unified_memory_global stdout ----
+Error: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::unified_memory::tests::test_unified_memory_host stdout ----
+Error: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::unified_memory::tests::test_unified_memory_single_stream stdout ----
+Error: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+
+failures:
+    driver::safe::core::tests::test_pinned_copy_is_faster
+    driver::safe::launch::tests::test_large_launches
+    driver::safe::launch::tests::test_launch_arrays
+    driver::safe::launch::tests::test_launch_with_16bit
+    driver::safe::launch::tests::test_launch_with_32bit
+    driver::safe::launch::tests::test_launch_with_64bit
+    driver::safe::launch::tests::test_launch_with_8bit
+    driver::safe::launch::tests::test_launch_with_floats
+    driver::safe::launch::tests::test_launch_with_mut_and_ref_cudarc
+    driver::safe::launch::tests::test_launch_with_views
+    driver::safe::launch::tests::test_multi_stream_concurrent_reads
+    driver::safe::launch::tests::test_multi_stream_writes_block
+    driver::safe::launch::tests::test_par_launch
+    driver::safe::unified_memory::tests::test_unified_memory_global
+    driver::safe::unified_memory::tests::test_unified_memory_host
+    driver::safe::unified_memory::tests::test_unified_memory_single_stream
+
+test result: FAILED. 107 passed; 16 failed; 11 ignored; 0 measured; 0 filtered out; finished in 3.17s
+
+error: test failed, to rerun pass `--lib`
+
+===== C/ign-test_post_alloc_memory-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 1 test
+test driver::safe::core::tests::test_post_alloc_memory ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.26s
+
+
+===== C/ign-test_device_side_assert-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 1 test
+test driver::safe::launch::tests::test_device_side_assert ... Error: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+FAILED
+
+failures:
+
+failures:
+    driver::safe::launch::tests::test_device_side_assert
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.29s
+
+error: test failed, to rerun pass `--lib`
+
+===== C/ign-drops_after_a_sticky_error_neither_panic_nor_abort-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort ... child exited with exit status: 101; 0 device-side assert lines; the rest:
+child| 
+child| running 1 test
+child| test driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort ... FAILED
+child| 
+child| failures:
+child| 
+child| failures:
+child|     driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort
+child| 
+child| test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.30s
+child| 
+child| 
+child| thread 'driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort' (2026159) panicked at src/driver/safe/core.rs:5773:47:
+child| called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+child| note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort' (2026157) panicked at src/driver/safe/core.rs:5804:9:
+child exited with exit status: 101:
+child| 
+child| running 1 test
+child| test driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort ... FAILED
+child| 
+child| failures:
+child| 
+child| failures:
+child|     driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort
+child| 
+child| test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.30s
+child| 
+child| 
+child| thread 'driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort' (2026159) panicked at src/driver/safe/core.rs:5773:47:
+child| called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+child| note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.35s
+
+error: test failed, to rerun pass `--lib`
+
+===== C/ign-measure_max_size_semantics-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::measure_max_size_semantics ... M-2 cap=67108864 size=1048576 threshold=0 successes=64 limit=67108864 error=Some(DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")) reserved_at_failure=67108864 used_at_failure=67108864 max_size()=None
+M-2 cap=67108864 size=1048576 threshold=67108864 successes=64 limit=67108864 error=Some(DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")) reserved_at_failure=67108864 used_at_failure=67108864 max_size()=None
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.45s
+
+
+===== C/ign-measure_reservation_steps-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::measure_reservation_steps ... M-1 size=1 empty=0 first_step=33554432 second_step=0 used_after_two=2 device_free=24983568384 device_total=25296044032
+M-1 size=1048576 empty=0 first_step=33554432 second_step=0 used_after_two=2097152 device_free=24983568384 device_total=25296044032
+M-1 size=33554432 empty=0 first_step=33554432 second_step=33554432 used_after_two=67108864 device_free=24950013952 device_total=25296044032
+M-1 size=268435456 empty=0 first_step=268435456 second_step=268435456 used_after_two=536870912 device_free=24480251904 device_total=25296044032
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.79s
+
+
+===== C/ign-observe_new_attributes_on_driver_580-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::observe_new_attributes_on_driver_580 ... M-3 driver=13000 attribute=9 (CU_MEMPOOL_ATTR_ALLOCATION_TYPE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=10 (CU_MEMPOOL_ATTR_EXPORT_HANDLE_TYPES) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=11 (CU_MEMPOOL_ATTR_LOCATION_ID) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=12 (CU_MEMPOOL_ATTR_LOCATION_TYPE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=13 (CU_MEMPOOL_ATTR_MAX_POOL_SIZE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=14 (CU_MEMPOOL_ATTR_HW_DECOMPRESS_ENABLED) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.08s
+
+
+===== C/timing-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 2 tests
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... default pinned host reads: 20.357983ms; write-combined host reads: 640.630172ms
+ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.10s
+
+
+===== C/main-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 134 tests
+test cublas::safe::asum::tests::test_dasum ... ok
+test cublas::safe::asum::tests::test_sasum ... ok
+test cublas::safe::gemm::tests::test_dgemm ... ok
+test cublas::safe::gemm::tests::test_sgemm ... ok
+test cublas::safe::gemv::tests::test_dgemv ... ok
+test cublas::safe::gemv::tests::test_sgemv ... ok
+test cublas::safe::tests::cublas_pointer_mode ... ok
+test cublaslt::safe::tests::test_matmul_f32 ... ok
+test curand::safe::tests::test_different_seeds_neq ... ok
+test curand::safe::tests::test_log_normal_f32 ... ok
+test curand::safe::tests::test_log_normal_f64 ... ok
+test curand::safe::tests::test_normal_f32 ... ok
+test curand::safe::tests::test_normal_f64 ... ok
+test curand::safe::tests::test_seed_reproducible ... ok
+test curand::safe::tests::test_set_offset ... ok
+test curand::safe::tests::test_uniform_f32 ... ok
+test curand::safe::tests::test_uniform_f64 ... ok
+test curand::safe::tests::test_uniform_u32 ... ok
+test driver::result::tests::peer_transfer_contexts ... ignored, must be executed with multiple gpus
+test driver::result::tests::peer_transfer_self ... ok
+test driver::result::tests::re_associate_context_for_memory_op ... ignored, must be executed with multiple gpus
+test driver::safe::core::fathomdb_alloc_fallback::a_failed_decision_is_not_remembered ... ok
+test driver::safe::core::fathomdb_alloc_fallback::async_alloc_requires_pool_support_and_an_obtainable_default_pool ... ok
+test driver::safe::core::fathomdb_alloc_fallback::concurrent_wrappers_of_a_device_agree ... ok
+test driver::safe::core::fathomdb_alloc_fallback::every_wrapper_of_a_device_reuses_the_first_decision ... ok
+test driver::safe::core::fathomdb_alloc_fallback::new_context_selection_matches_default_pool_availability ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_choice_equals_the_upstream_inline_rule ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_constructors_never_query_the_default_pool ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_selection_is_the_upstream_rule_whatever_the_pool_would_say ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_zero_length_sync_behaviour_matches_the_base ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_zero_length_sync_handling_is_upstream ... ok
+test driver::safe::core::fathomdb_alloc_fallback::on_target_zero_length_sync_buffers_are_null_and_never_freed ... ok
+test driver::safe::core::fathomdb_alloc_fallback::only_pool_unavailable_errors_select_the_synchronous_allocator ... ok
+test driver::safe::core::fathomdb_alloc_fallback::sync_context_round_trips_data ... ok
+test driver::safe::core::fathomdb_alloc_fallback::unrelated_pool_query_errors_are_propagated_not_downgraded ... ok
+test driver::safe::core::fathomdb_private_pool::a_buffer_freed_on_one_stream_is_not_reused_before_its_reader_finishes ... ok
+test driver::safe::core::fathomdb_private_pool::a_context_with_its_own_pool_is_private_whatever_the_device_decided ... ok
+test driver::safe::core::fathomdb_private_pool::a_created_pool_carries_its_release_threshold ... ok
+test driver::safe::core::fathomdb_private_pool::a_failed_max_pool_size_read_leaves_create_successful ... ok
+test driver::safe::core::fathomdb_private_pool::a_pool_create_out_of_memory_returns_the_error_and_no_pool ... ok
+test driver::safe::core::fathomdb_private_pool::a_pool_of_another_device_is_rejected ... ok
+test driver::safe::core::fathomdb_private_pool::a_pool_of_device_1_is_rejected_for_device_0 ... ignored, must be executed with multiple gpus
+test driver::safe::core::fathomdb_private_pool::a_private_context_allocates_from_its_pool_and_leaves_the_current_pool_alone ... ok
+test driver::safe::core::fathomdb_private_pool::a_private_pointer_freed_synchronously_releases_its_memory ... ok
+test driver::safe::core::fathomdb_private_pool::a_private_pointer_upgraded_onto_a_default_context_returns_to_its_pool ... ok
+test driver::safe::core::fathomdb_private_pool::a_request_over_the_cap_is_out_of_memory ... ok
+test driver::safe::core::fathomdb_private_pool::a_synchronous_pointer_upgraded_onto_a_private_context_frees_cleanly ... ok
+test driver::safe::core::fathomdb_private_pool::accounting_returns_to_zero_after_drop_and_sync ... ok
+test driver::safe::core::fathomdb_private_pool::attributes_newer_than_the_driver_are_never_requested ... ok
+test driver::safe::core::fathomdb_private_pool::capture_on_a_private_context_uses_graph_memory ... ok
+test driver::safe::core::fathomdb_private_pool::create_destroys_the_pool_when_setting_the_threshold_fails ... ok
+test driver::safe::core::fathomdb_private_pool::default_and_current_pool_are_untouched_while_live ... ok
+test driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred ... ok
+test driver::safe::core::fathomdb_private_pool::device_location_is_the_ordinal_on_every_binding ... ok
+test driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort ... ignored, must be executed by itself
+test driver::safe::core::fathomdb_private_pool::exhaustion_under_two_threads_and_four_streams_fails_only_the_excess ... ok
+test driver::safe::core::fathomdb_private_pool::exit_with_a_live_pool_is_clean ... ok
+test driver::safe::core::fathomdb_private_pool::max_pool_size_read_back_uses_the_driver_value ... ok
+test driver::safe::core::fathomdb_private_pool::max_pool_size_reads_back_at_least_the_request ... ignored, needs a driver of 13020 or later (test plan G5b)
+test driver::safe::core::fathomdb_private_pool::max_size_on_a_driver_older_than_12020_is_not_supported ... ok
+test driver::safe::core::fathomdb_private_pool::measure_max_size_semantics ... ignored, measurement M-2 (test plan § 8); run alone with --nocapture
+test driver::safe::core::fathomdb_private_pool::measure_reservation_steps ... ignored, measurement M-1 (test plan § 8); run alone with --nocapture
+test driver::safe::core::fathomdb_private_pool::mem_pool_and_private_context_are_send_and_sync ... ok
+test driver::safe::core::fathomdb_private_pool::observe_new_attributes_on_driver_580 ... ignored, observation M-3 (test plan § 8); run alone with --nocapture
+test driver::safe::core::fathomdb_private_pool::ordinary_contexts_report_default_or_synchronous ... ok
+test driver::safe::core::fathomdb_private_pool::pool_model_property ... ok
+test driver::safe::core::fathomdb_private_pool::pool_props_are_pinned_device_memory_on_the_ordinal ... ok
+test driver::safe::core::fathomdb_private_pool::pool_props_are_zeroed_then_written ... ok
+test driver::safe::core::fathomdb_private_pool::release_threshold_bounds_reserved_after_sync ... ok
+test driver::safe::core::fathomdb_private_pool::requests_within_the_cap_succeed ... ok
+test driver::safe::core::fathomdb_private_pool::the_pool_is_destroyed_last_and_cleanly ... ok
+test driver::safe::core::fathomdb_private_pool::the_pool_outlives_its_context_while_slices_live ... ok
+test driver::safe::core::fathomdb_private_pool::trim_to_keeps_the_floor_and_releases_above_it ... ok
+test driver::safe::core::fathomdb_private_pool::two_pools_on_two_devices_are_independent ... ignored, must be executed with multiple gpus
+test driver::safe::core::fathomdb_private_pool::typed_reads_return_64_bit_values ... ok
+test driver::safe::core::fathomdb_private_pool::zero_length_private_allocations_are_null_and_free_cleanly ... ok
+test driver::safe::core::tests::test_alloc_pinned_panics_on_size_overflow - should panic ... ok
+test driver::safe::core::tests::test_borrowed_stream_is_not_destroyed_on_drop ... ok
+test driver::safe::core::tests::test_copy_uses_correct_context ... ok
+test driver::safe::core::tests::test_ctx_copy_to_views ... ok
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... ok
+test driver::safe::core::tests::test_event_try_is_complete ... ok
+test driver::safe::core::tests::test_event_try_is_complete_preserves_capture_error ... ok
+test driver::safe::core::tests::test_htod_copy_pinned ... ok
+test driver::safe::core::tests::test_htod_copy_pinned_with_default_flags ... ok
+test driver::safe::core::tests::test_leak_and_upgrade ... ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... FAILED
+test driver::safe::core::tests::test_post_alloc_arc_counts ... ok
+test driver::safe::core::tests::test_post_alloc_memory ... ignored, must be executed by itself
+test driver::safe::core::tests::test_post_build_arc_count ... ok
+test driver::safe::core::tests::test_primary_context_is_primary ... ok
+test driver::safe::core::tests::test_slice_is_freed_with_correct_context ... ok
+test driver::safe::core::tests::test_threading ... ok
+test driver::safe::core::tests::test_transmutes ... ok
+test driver::safe::graph::tests::test_end_capture_flags ... ok
+test driver::safe::graph::tests::test_end_capture_invalid_flags ... ok
+test driver::safe::launch::tests::test_device_side_assert ... ignored, must be executed by itself
+test driver::safe::launch::tests::test_large_launches ... FAILED
+test driver::safe::launch::tests::test_launch_arrays ... FAILED
+test driver::safe::launch::tests::test_launch_with_16bit ... FAILED
+test driver::safe::launch::tests::test_launch_with_32bit ... FAILED
+test driver::safe::launch::tests::test_launch_with_64bit ... FAILED
+test driver::safe::launch::tests::test_launch_with_8bit ... FAILED
+test driver::safe::launch::tests::test_launch_with_floats ... FAILED
+test driver::safe::launch::tests::test_launch_with_mut_and_ref_cudarc ... FAILED
+test driver::safe::launch::tests::test_launch_with_views ... FAILED
+test driver::safe::launch::tests::test_multi_stream_concurrent_reads ... FAILED
+test driver::safe::launch::tests::test_multi_stream_writes_block ... FAILED
+test driver::safe::launch::tests::test_par_launch ... FAILED
+test driver::safe::unified_memory::tests::test_unified_memory_global ... FAILED
+test driver::safe::unified_memory::tests::test_unified_memory_host ... FAILED
+test driver::safe::unified_memory::tests::test_unified_memory_single_stream ... FAILED
+test driver::safe::unified_memory::tests::test_unified_slice_copy_to_views ... ok
+test driver::safe::unified_memory::tests::test_unified_slice_split_at ... ok
+test driver::safe::unified_memory::tests::test_unified_slice_views_respect_stream_attachment ... ok
+test fathomdb_lib_major::a_failed_load_is_memoized ... ok
+test fathomdb_lib_major::in_scope_candidates_never_name_another_major ... ok
+test fathomdb_lib_major::is_culib_present_agrees_with_try_culib ... ok
+test fathomdb_lib_major::load_error_names_library_major_and_tried_names ... ok
+test fathomdb_lib_major::out_of_scope_and_cuda11_candidates_equal_the_base ... ok
+test fathomdb_lib_major::report_address_symbols_are_bound_wherever_the_library_is ... ok
+test fathomdb_lib_major::the_report_says_linked_at_build_time_when_linked ... ok
+test fathomdb_lib_major::version_lines_accept_their_major_and_reject_neighbours ... ok
+test fathomdb_lib_major::versioned_names_come_before_unversioned_names ... ok
+test fathomdb_lib_major::windows_dll_names_match_nvidia_wheels ... ok
+test nvrtc::result::tests::test_compile_bad_program ... ok
+test nvrtc::result::tests::test_compile_program_1_opt ... ok
+test nvrtc::result::tests::test_compile_program_2_opt ... ok
+test nvrtc::result::tests::test_compile_program_no_opts ... ok
+test nvrtc::result::tests::test_get_ptx ... ok
+test nvrtc::safe::tests::test_compile_no_opts ... ok
+test nvrtc::safe::tests::test_compile_options_build_ftz ... ok
+test nvrtc::safe::tests::test_compile_options_build_multi ... ok
+test nvrtc::safe::tests::test_compile_options_build_none ... ok
+
+failures:
+
+---- driver::safe::core::tests::test_pinned_copy_is_faster stdout ----
+
+thread 'driver::safe::core::tests::test_pinned_copy_is_faster' (2026502) panicked at src/driver/safe/core.rs:3300:9:
+844.266µs vs 706.979µs
+
+---- driver::safe::launch::tests::test_large_launches stdout ----
+
+thread 'driver::safe::launch::tests::test_large_launches' (2026513) panicked at src/driver/safe/launch.rs:386:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_arrays stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_arrays' (2026514) panicked at src/driver/safe/launch.rs:315:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_16bit stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_16bit' (2026515) panicked at src/driver/safe/launch.rs:514:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_32bit stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_32bit' (2026516) panicked at src/driver/safe/launch.rs:535:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_64bit stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_64bit' (2026517) panicked at src/driver/safe/launch.rs:556:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_8bit stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_8bit' (2026518) panicked at src/driver/safe/launch.rs:493:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_floats stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_floats' (2026519) panicked at src/driver/safe/launch.rs:577:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_mut_and_ref_cudarc stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_mut_and_ref_cudarc' (2026520) panicked at src/driver/safe/launch.rs:351:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_launch_with_views stdout ----
+
+thread 'driver::safe::launch::tests::test_launch_with_views' (2026521) panicked at src/driver/safe/launch.rs:419:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_multi_stream_concurrent_reads stdout ----
+Error: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_multi_stream_writes_block stdout ----
+Error: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::launch::tests::test_par_launch stdout ----
+
+thread 'driver::safe::launch::tests::test_par_launch' (2026524) panicked at src/driver/safe/launch.rs:642:43:
+called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::unified_memory::tests::test_unified_memory_global stdout ----
+Error: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::unified_memory::tests::test_unified_memory_host stdout ----
+Error: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+---- driver::safe::unified_memory::tests::test_unified_memory_single_stream stdout ----
+Error: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+
+
+failures:
+    driver::safe::core::tests::test_pinned_copy_is_faster
+    driver::safe::launch::tests::test_large_launches
+    driver::safe::launch::tests::test_launch_arrays
+    driver::safe::launch::tests::test_launch_with_16bit
+    driver::safe::launch::tests::test_launch_with_32bit
+    driver::safe::launch::tests::test_launch_with_64bit
+    driver::safe::launch::tests::test_launch_with_8bit
+    driver::safe::launch::tests::test_launch_with_floats
+    driver::safe::launch::tests::test_launch_with_mut_and_ref_cudarc
+    driver::safe::launch::tests::test_launch_with_views
+    driver::safe::launch::tests::test_multi_stream_concurrent_reads
+    driver::safe::launch::tests::test_multi_stream_writes_block
+    driver::safe::launch::tests::test_par_launch
+    driver::safe::unified_memory::tests::test_unified_memory_global
+    driver::safe::unified_memory::tests::test_unified_memory_host
+    driver::safe::unified_memory::tests::test_unified_memory_single_stream
+
+test result: FAILED. 107 passed; 16 failed; 11 ignored; 0 measured; 0 filtered out; finished in 3.17s
+
+error: test failed, to rerun pass `--lib`
+
+===== C/ign-test_post_alloc_memory-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 1 test
+test driver::safe::core::tests::test_post_alloc_memory ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.27s
+
+
+===== C/ign-test_device_side_assert-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 1 test
+test driver::safe::launch::tests::test_device_side_assert ... Error: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+FAILED
+
+failures:
+
+failures:
+    driver::safe::launch::tests::test_device_side_assert
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.30s
+
+error: test failed, to rerun pass `--lib`
+
+===== C/ign-drops_after_a_sticky_error_neither_panic_nor_abort-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort ... child exited with exit status: 101; 0 device-side assert lines; the rest:
+child| 
+child| running 1 test
+child| test driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort ... FAILED
+child| 
+child| failures:
+child| 
+child| failures:
+child|     driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort
+child| 
+child| test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.30s
+child| 
+child| 
+child| thread 'driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort' (2026680) panicked at src/driver/safe/core.rs:5773:47:
+child| called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+child| note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort' (2026678) panicked at src/driver/safe/core.rs:5804:9:
+child exited with exit status: 101:
+child| 
+child| running 1 test
+child| test driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort ... FAILED
+child| 
+child| failures:
+child| 
+child| failures:
+child|     driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort
+child| 
+child| test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.30s
+child| 
+child| 
+child| thread 'driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort' (2026680) panicked at src/driver/safe/core.rs:5773:47:
+child| called `Result::unwrap()` on an `Err` value: DriverError(CUDA_ERROR_UNSUPPORTED_PTX_VERSION, "the provided PTX was compiled with an unsupported toolchain.")
+child| note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    driver::safe::core::fathomdb_private_pool::drops_after_a_sticky_error_neither_panic_nor_abort
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.34s
+
+error: test failed, to rerun pass `--lib`
+
+===== C/ign-measure_max_size_semantics-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::measure_max_size_semantics ... M-2 cap=67108864 size=1048576 threshold=0 successes=64 limit=67108864 error=Some(DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")) reserved_at_failure=67108864 used_at_failure=67108864 max_size()=None
+M-2 cap=67108864 size=1048576 threshold=67108864 successes=64 limit=67108864 error=Some(DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")) reserved_at_failure=67108864 used_at_failure=67108864 max_size()=None
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.44s
+
+
+===== C/ign-measure_reservation_steps-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::measure_reservation_steps ... M-1 size=1 empty=0 first_step=33554432 second_step=0 used_after_two=2 device_free=24983568384 device_total=25296044032
+M-1 size=1048576 empty=0 first_step=33554432 second_step=0 used_after_two=2097152 device_free=24983568384 device_total=25296044032
+M-1 size=33554432 empty=0 first_step=33554432 second_step=33554432 used_after_two=67108864 device_free=24950013952 device_total=25296044032
+M-1 size=268435456 empty=0 first_step=268435456 second_step=268435456 used_after_two=536870912 device_free=24480251904 device_total=25296044032
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.76s
+
+
+===== C/ign-observe_new_attributes_on_driver_580-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::observe_new_attributes_on_driver_580 ... M-3 driver=13000 attribute=9 (CU_MEMPOOL_ATTR_ALLOCATION_TYPE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=10 (CU_MEMPOOL_ATTR_EXPORT_HANDLE_TYPES) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=11 (CU_MEMPOOL_ATTR_LOCATION_ID) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=12 (CU_MEMPOOL_ATTR_LOCATION_TYPE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=13 (CU_MEMPOOL_ATTR_MAX_POOL_SIZE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=14 (CU_MEMPOOL_ATTR_HW_DECOMPRESS_ENABLED) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.08s
+
+
+===== C/timing-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-6fa9e57741f1605c)
+
+running 2 tests
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... default pinned host reads: 20.228588ms; write-combined host reads: 639.492869ms
+ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.10s
+
