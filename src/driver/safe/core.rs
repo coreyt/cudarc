@@ -2889,17 +2889,32 @@ impl CudaStream {
     /// Creates a [CudaSlice] from a [sys::CUdeviceptr]. Useful in conjunction with
     /// [`CudaSlice::leak()`].
     ///
+    /// The slice owns the memory: dropping it frees the memory with
+    /// `cuMemFreeAsync` on this stream if [CudaContext::has_async_alloc] is
+    /// `true` for this stream's context, and otherwise with `cuMemFree` after
+    /// synchronizing this stream.
+    ///
     /// # Safety
-    /// - `cu_device_ptr` must be a valid allocation
-    /// - `cu_device_ptr` must space for `len * std::mem::size_of<T>()` bytes
-    /// - The memory may not be valid for type `T`, so some sort of memset operation
-    ///   should be called on the memory.
-    /// - The slice frees the pointer with `cuMemFreeAsync` if
-    ///   [CudaContext::has_async_alloc] is `true` for this stream's context and with
-    ///   `cuMemFree` otherwise, so the pointer must come from the matching allocator.
-    ///   On aarch64 Linux a pointer from [`CudaSlice::leak()`] on any context of the
-    ///   same device satisfies this, because every context of a device shares one
-    ///   decision (FathomDB patch).
+    /// - `cu_device_ptr` must be memory of this stream's device.
+    /// - It must be the base of a live allocation of at least
+    ///   `len * std::mem::size_of::<T>()` bytes, or 0 with `len == 0`.
+    /// - Every access to the memory by other streams or by host code must be
+    ///   ordered before the slice's free, for example by synchronizing them
+    ///   before the drop.
+    /// - The memory may come from either allocator family: `cuMemAlloc`, or
+    ///   `cuMemAllocAsync` / `cuMemAllocFromPoolAsync` from any pool of the
+    ///   device, including the [crate::driver::CudaMemPool] of another context
+    ///   ([`CudaSlice::leak()`]). NVIDIA allows freeing across the families:
+    ///   `cuMemFree` accepts `cuMemAllocAsync` and `cuMemAllocFromPoolAsync`
+    ///   pointers, without implicit synchronization, and "Callers must ensure
+    ///   that all accesses to these pointer have completed before invoking
+    ///   ::cuMemFree" (CUDA 12.6 `cuda.h`, `cuMemFree`); memory from
+    ///   `cudaMalloc()` may be freed with `cudaFreeAsync()` and memory from
+    ///   `cudaMallocAsync()` with `cudaFree()` (CUDA Programming Guide,
+    ///   stream-ordered memory allocation). `cuMemFreeAsync` returns pool
+    ///   memory to the pool that owns it.
+    /// - The memory may not be valid for type `T`, so some sort of memset
+    ///   operation should be called on the memory.
     pub unsafe fn upgrade_device_ptr<T>(
         self: &Arc<Self>,
         cu_device_ptr: sys::CUdeviceptr,
@@ -4237,6 +4252,58 @@ mod fathomdb_private_pool {
             Err(DriverError(oom))
         );
         assert_eq!(seams::POOL_DESTROYS.get(), 0, "pools destroyed");
+    }
+
+    /// CF-AC-03: a private-pool pointer leaked and upgraded onto an ordinary
+    /// context of the same device is freed back into its pool.
+    #[test]
+    fn a_private_pointer_upgraded_onto_a_default_context_returns_to_its_pool() {
+        if !have_device() {
+            return;
+        }
+        let pool = Arc::new(CudaMemPool::create(0, &SMALL_POOL).unwrap());
+        let private = CudaContext::new_with_mem_pool(0, pool.clone()).unwrap();
+        let private_stream = private.default_stream();
+        let slice = private_stream.clone_htod(&[7u32; 4096]).unwrap();
+        private_stream.synchronize().unwrap();
+        let ptr = slice.leak();
+        assert!(pool.used_current().unwrap() >= 4 * 4096);
+
+        let ordinary = CudaContext::new(0).unwrap();
+        let stream = ordinary.default_stream();
+        let upgraded = unsafe { stream.upgrade_device_ptr::<u32>(ptr, 4096) };
+        assert_eq!(stream.clone_dtoh(&upgraded).unwrap(), std::vec![7u32; 4096]);
+        drop(upgraded);
+        stream.synchronize().unwrap();
+        private_stream.synchronize().unwrap();
+
+        assert_eq!(pool.used_current(), Ok(0));
+        ordinary.check_err().unwrap();
+        private.check_err().unwrap();
+    }
+
+    /// CF-AC-03: a `cuMemAlloc` pointer upgraded onto a private context is
+    /// freed without error and never touches the private pool.
+    #[test]
+    fn a_synchronous_pointer_upgraded_onto_a_private_context_frees_cleanly() {
+        if !have_device() {
+            return;
+        }
+        let pool = Arc::new(CudaMemPool::create(0, &SMALL_POOL).unwrap());
+        let private = CudaContext::new_with_mem_pool(0, pool.clone()).unwrap();
+        private.bind_to_thread().unwrap();
+        let ptr = unsafe { result::malloc_sync(1 << 20) }.unwrap();
+
+        let stream = private.default_stream();
+        let mut upgraded = unsafe { stream.upgrade_device_ptr::<u8>(ptr, 1 << 20) };
+        stream.memset_zeros(&mut upgraded).unwrap();
+        drop(upgraded);
+        stream.synchronize().unwrap();
+
+        private.check_err().unwrap();
+        assert_eq!(pool.used_current(), Ok(0));
+        assert_eq!(pool.used_high(), Ok(0));
+        assert_eq!(pool.reserved_high(), Ok(0));
     }
 
     /// Design D-8: one helper builds the location from zeroed memory on every
