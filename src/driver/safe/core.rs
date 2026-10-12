@@ -5292,7 +5292,8 @@ mod fathomdb_private_pool {
     /// limit succeeds and keeps its data. The limit is at most the cap and
     /// within one chunk of it. On an integrated device (Tegra) only about a
     /// third of the cap is usable (design D-4), so there the limit must be
-    /// at least one chunk, and it is printed as an M-2 measurement.
+    /// at least one chunk and leave at least one chunk of the cap unusable,
+    /// and it is printed as an M-2 measurement.
     #[test]
     fn requests_within_the_cap_succeed() {
         if !have_device() {
@@ -5309,6 +5310,14 @@ mod fathomdb_private_pool {
             assert!(
                 limit >= chunk,
                 "limit {limit} is less than one chunk ({chunk}) of the cap {cap}"
+            );
+            // Measured Orin/JetPack 6 behaviour (design D-4 table, fitted,
+            // not documented by NVIDIA): a 64 MiB cap gives a 32 MiB limit.
+            // A driver that serves the whole cap here is a finding to
+            // record, not a pass.
+            assert!(
+                limit + chunk <= cap,
+                "limit {limit} is within one chunk ({chunk}) of the cap {cap}: the measured Tegra limit (design D-4) no longer holds"
             );
         } else {
             assert!(
