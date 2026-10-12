@@ -190,10 +190,12 @@ the Jetson AGX Orin (JetPack 6, L4T R36.5.2, CUDA 12.6) during FC8:
 - `cuMemGetInfo` free memory equals `/proc/meminfo` `MemAvailable`. Once
   the nvmap page pools are warm (`enable_page_pools=Y`), it does not move
   when pool memory is reserved or released: 96 MiB reserved and released
-  left it at `52810706944 -> 52810706944`. Whether it moves in a fresh
-  process depends on the page pools, so it is not a usable oracle either
-  way. Upstream's `test_post_alloc_memory` fails on the Orin at
-  `ec1cac71` for this reason.
+  left it at `52810706944 -> 52810706944`. A `cuMemAlloc` probe (G6
+  receipt `8528fc2`) moved it by 0 to 6 MiB for 96 MiB to 2 GiB
+  allocations, and by 1373 MiB for 4 GiB, while `VmRSS` rose by the full
+  size each time. It is therefore not a usable oracle. Upstream's
+  `test_post_alloc_memory` fails on the Orin at `ec1cac71` for this
+  reason.
 - The pool attributes and the process's `VmRSS` are exact: 3 × 32 MiB
   gave `RESERVED_MEM_CURRENT` 100663296 and `VmRSS` +104 MiB, and after a
   synchronize at release threshold 0, reserved 0 and `VmRSS` back.
@@ -211,8 +213,9 @@ four; the next uncapped `cuMemPoolCreate` returns
 
 - the device's default pool, which the aarch64 fallback obtains on
   `CudaContext::new` (item 1);
-- graph memory, after a stream capture allocates, for the rest of the
-  process (D-9);
+- graph memory, once a graph with an allocation node is instantiated, for
+  the rest of the process: destroying the graph and
+  `cuDeviceGraphMemTrim` do not return it (D-9);
 - every uncapped private pool, including one in deferred destruction
   because an allocation is still outstanding (above): its range stays
   taken until that allocation is freed.
@@ -220,7 +223,9 @@ four; the next uncapped `cuMemPoolCreate` returns
 With four uncapped private pools live, `cuDeviceGetDefaultMemPool` fails
 and `CudaContext::new` picks `AllocMode::Synchronous`, which is the
 fallback's intended behaviour. A fresh process picks `Default`. Capped
-pools take less address space. The numbers are measured, not documented
+pools take less address space: 200 pools capped at 64 MiB were created
+together and still left room for three uncapped ones (G6 receipt
+`8528fc2`, probe `defer.c`). The numbers are measured, not documented
 by NVIDIA. The fork's tests free leaked pointers through a guard during
 unwinding, so a failing test cannot leave a deferred-destroyed pool that
 fails later tests (test plan § 3.1; finding F-G6-1).
@@ -466,8 +471,9 @@ as "not compiled (upstream cfg)" (CF-REQ-12).
   T-CAPTURE; a failure there is recorded as a known Tegra limit for
   FathomDB.
 - **Tegra budget (revision 3, measured at FC8):** T-CAPTURE passes on the
-  Orin. After a capture allocates, graph memory holds one of the process's
-  about four uncapped-pool address ranges until the process exits (D-2).
+  Orin. Once a graph with an allocation node is instantiated, graph memory
+  holds one of the process's about four uncapped-pool address ranges until
+  the process exits (D-2).
   So a Tegra process that captures and also uses the default pool has
   room for about two uncapped private pools.
 

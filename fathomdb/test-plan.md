@@ -196,9 +196,10 @@ was released branch at run time on the device's
   alive, plus the process's `VmRSS` from `/proc/self/status`. On the Orin
   (JetPack 6, 12.6), `cuMemGetInfo` free memory is `/proc/meminfo`
   `MemAvailable`, and once the nvmap page pools are warm
-  (`enable_page_pools=Y`) it does not move: 96 MiB reserved and then
-  released left it at `52810706944 -> 52810706944` (G6 receipt
-  `2026-10-12-G6-b29c41c.md`). The pool attributes and `VmRSS` are exact:
+  (`enable_page_pools=Y`) it does not track device memory: 96 MiB
+  reserved and then released left it at `52810706944 -> 52810706944` (G6
+  receipt `2026-10-12-G6-b29c41c.md`), and `cuMemAlloc` of 96 MiB to
+  2 GiB moved it by 0 to 6 MiB (G6 receipt `2026-10-12-G6-8528fc2.md`). The pool attributes and `VmRSS` are exact:
   3 × 32 MiB gave `RESERVED_MEM_CURRENT` 100663296 and `VmRSS` +104 MiB,
   and after a synchronize at threshold 0, reserved 0 and `VmRSS` back
   (FC8 G6 root-cause probes, 2026-10-12; the new G6 receipt reproduces

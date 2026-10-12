@@ -37,6 +37,11 @@ reviewer re-runs each RED; the last column holds that result.
 | 2026-10-12 | FC7 `use-baseline-lock.py`, 9 fixture tests | `ace64e1` | 7 of 9 fail against a stub (`NotImplementedError`) | `9aef7c0` (9 pass) | pending (R-FC-CODE) |
 | 2026-10-12 | FC7 `test_crlf_line_endings_are_kept` | `0c66c4d` | 1 of 10 fails: `expected exactly one root entry (name = "cudarc", no source), found 0` | `27fa9c5` (10 pass) | pending (R-FC-CODE) |
 | 2026-10-12 | R-FC-CODE L3 `report_address_symbols_are_bound_wherever_the_library_is` | `480db3f` | 9 passed, 1 failed at 12060, 11040 and 13000: `cufile: cuFileGetVersion not bound for [cuda-11040 … cuda-12020]` | `3647a60` (10 of 10) | pending |
+| 2026-10-12 | FC8-G6 spec: test plan rev 4, requirements rev 6, design rev 3 (F-G6-1, F-G6-2, F-G5a-1) | — (documents) | — | `fe8e1b4` | — |
+| 2026-10-12 | FC8-G6 Tegra release oracle and cap bound: `a_private_pointer_freed_synchronously_releases_its_memory`, `destroy_with_outstanding_allocations_is_deferred`, `requests_within_the_cap_succeed` | `fe8e1b4` (code of `b29c41c`; Orin) | `precondition: reserved 100663296, free 53138673664 -> 53138673664, chunk 33554432`; `the outstanding allocation was released with the pool: free 53139124224 -> 53139124224`; `limit 33554432 leaves more than a chunk (33554432) of the cap 67108864 unusable` | `ba537a2` (Orin: 3 of 3 alone, k = 3; RTX 3090: discrete path unchanged, pass) | pending (R-FC-CODE-2) |
+| 2026-10-12 | FC8-G6 leaked-pointer guard | `fe8e1b4` (Orin, fork modules in sequence) | 50 passed, 6 failed: the 3 above plus 3 out-of-memory cascade failures | `ba537a2` (56 passed; with mutations M1/M3, only the 2 mutated tests fail) | pending (R-FC-CODE-2) |
+| 2026-10-12 | FC8-G6 FATHOMDB.md Tegra notes | — (packaging doc) | — | `8528fc2` | — |
+| 2026-10-12 | FC8-G6 catalogue: `ignored` restored on 3 rows | `fe8e1b4` (catalogue edit wrote the new `red` text over `ignored = false`) | G1 at `8528fc2`: `count-tests: FAIL`, `expected ignored, got ok` for 2 tests | `9702b51` (`count-tests: PASS`) | pending (R-FC-CODE-2) |
 
 ## FC4-0 (class D)
 
@@ -1169,3 +1174,66 @@ Scratch venvs added for G5a (`~/fathomdb-forks/venvs`, `pip install
   `measure_reservation_steps` (catalogue cell G5b; M-1).
 - T-DEV (e) `driver_loads_with_only_libcuda_so_1`.
 - After G5b: R-FC-VERIFY over CF-AC-01…06, 07a and 09…12 at `C`.
+
+## FC8 G6 fix round (findings F-G6-1, F-G6-2, F-G5a-1; classes D, U, P)
+
+Dispositions decided by the main thread; implemented 2026-10-12 by an
+implementer subagent on `windchill3` and the Orin. New code commit
+**`8528fc2`**; the pin chain restarts there (plan § 1.5), so `b29c41c` is
+no longer the commit to pin.
+
+| Commit | Class | Files | Purpose |
+| --- | --- | --- | --- |
+| `fe8e1b4` | D | `test-plan.md`, `requirements.md`, `design.md`, `fork-catalogue.toml`, `qualification/2026-10-12-G6-pertest-{ec1cac71,b29c41c}.tsv` | test plan rev 4 (Tegra oracle, cap-test Tegra branch, guard, G6 one process per test, M-2 per platform, § 9 G6 platform list pending R-FC-CODE-2); requirements rev 6 (CF-AC-04c CUBIN statement scoped to the G5a set, F-G5a-1); design rev 3 (Tegra free memory, usable cap fraction, uncapped-pool budget, upstream `cuCtxCreate_v4(NULL)` defect) |
+| `ba537a2` | U | `src/driver/safe/core.rs` (fork test module only) | `integrated`/`vm_rss` helpers and the `Leaked` guard; Tegra branches of the three tests; guard in the two other tests that leak and can panic before freeing |
+| `8528fc2` | P | `FATHOMDB.md` | "Tegra notes" section |
+| `9702b51` | D | `fork-catalogue.toml` | restores `ignored = false` on the three rows `fe8e1b4` broke |
+| this commit | D | `qualification/2026-10-12-G6-8528fc2.{md,log}`, `status.md`, `design.md`, `test-plan.md` | G6 receipt; probe precision in design D-2/D-9 and test plan § 3.1 |
+
+Discrete path unchanged: in `git diff -w fe8e1b4 ba537a2 --
+src/driver/safe/core.rs`, all five discrete assertions
+(`free_live as u64 + 2 * chunk <= free_before as u64`,
+`free_after as u64 + chunk >= free_before as u64`, `limit + chunk > cap`,
+`free_outstanding + SIZE / 2 <= free_before`,
+`free_after + chunk >= free_before`) and their messages are unchanged
+context lines; they moved only into `else` / `is_none()` branches. The ten
+removed lines are the old leak/collect statements and doc lines.
+`pool_model_property` keeps its bare `leak()`: it frees the pointer in the
+next statement, with no panic point between.
+
+### Verification at `8528fc2`
+
+- `cargo fmt --check`: clean.
+- Fork CI clippy (`--no-default-features --features
+  "cuda-<v>,$CLIPPY_FEATURES" --all-targets -- -D warnings`, the
+  workflow's `CLIPPY_FEATURES`): pass at 13040 and 12060 on x86_64, and at
+  12060 and 13040 natively on the Orin (aarch64).
+- `cargo check --locked --lib`, driver-only, at 11040, 12060, 13000 and
+  13040, and default features at 12060 and 13040: pass, no warnings.
+- `python3 -I -m unittest discover -s fathomdb/scripts -p 'test_*.py'`
+  (count-tests and use-baseline-lock self-tests): 49 tests OK.
+- **G1 (RTX 3090 `41:00`, 12060 default, k = 1):** `cargo test --locked
+  --lib -F cuda-12060 -- fathomdb_ --test-threads=1 --nocapture`: 55
+  passed, 0 failed, 5 ignored, 75 filtered out, `count-tests: PASS`
+  (catalogue at `9702b51`); no `integrated` line printed (discrete path).
+  Alone with `--ignored --exact`: `drops_after_a_sticky_error_…`,
+  `measure_max_size_semantics`, `measure_reservation_steps`: 1 passed
+  each, `count-tests: PASS`. Guards 11:45:53, 11:46:46, 11:46:48 and
+  11:55:13: `580.178.04`, `/usr/local/cuda-12.6`.
+- **G6 (Orin):** receipt `qualification/2026-10-12-G6-8528fc2.md`. RED,
+  mutations and GREEN as above; fork modules in sequence k = 3: 56 passed
+  each, `count-tests: PASS`; the six F-G6-1 tests alone k = 3: 18 of 18
+  pass; every `--lib` test as its own process, k = 3 at `ec1cac71` and at
+  `8528fc2`: only the § 9 G6 platform list fails (identically at both
+  commits in all runs) plus the two T-MULTI tests (G2 only, recorded).
+
+### Open after this round
+
+- R-FC-CODE-2: review of `fe8e1b4..9702b51` and the receipt commit,
+  including the § 9 G6 platform list amendment (pending approval).
+- The restarted chain at `8528fc2` (plan § 8: item 5 tests and `P`): fork
+  CI on `8528fc2` pushed as the tip (CI receipt), CF-AC-07a at `8528fc2`
+  (FATHOMDB.md is in the package), and G3 for the touched test kinds
+  (`requests_within_the_cap_succeed` is a G3 test) were not run here. The
+  push is the main thread's.
+- G5b (unchanged by this round).
