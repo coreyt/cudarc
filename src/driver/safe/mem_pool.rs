@@ -168,6 +168,14 @@ fn read_max_pool_size(
         seams::READ_BACK_SKIPS.set(seams::READ_BACK_SKIPS.get() + 1);
         return Ok(None);
     }
+    #[cfg(test)]
+    if let Some(err) = seams::READ_BACK_ERROR.get() {
+        return Err(DriverError(err));
+    }
+    #[cfg(test)]
+    if let Some(value) = seams::READ_BACK_VALUE.get() {
+        return Ok(Some(value));
+    }
     let mut value: u64 = 0;
     unsafe {
         result::mem_pool::get_attribute(
@@ -371,6 +379,14 @@ pub(crate) mod seams {
         /// Times `create` skipped the `MAX_POOL_SIZE` read-back because the
         /// driver is older than 13020.
         pub(crate) static READ_BACK_SKIPS: Cell<u32> = const { Cell::new(0) };
+        /// When set, the `MAX_POOL_SIZE` read-back returns this value
+        /// instead of asking the driver.
+        pub(crate) static READ_BACK_VALUE: Cell<Option<u64>> = const { Cell::new(None) };
+        /// When set, the `MAX_POOL_SIZE` read-back fails with this error
+        /// instead of asking the driver.
+        pub(crate) static READ_BACK_ERROR: Cell<Option<CUresult>> = const { Cell::new(None) };
+        /// Times a [super::CudaMemPool] was dropped (`cuMemPoolDestroy`).
+        pub(crate) static POOL_DESTROYS: Cell<u32> = const { Cell::new(0) };
     }
 
     pub(crate) fn enter_driver() -> Result<(), DriverError> {
@@ -404,12 +420,17 @@ pub(crate) mod seams {
         DRIVER_VERSION.set(None);
         POOL_CREATES.set(0);
         READ_BACK_SKIPS.set(0);
+        READ_BACK_VALUE.set(None);
+        READ_BACK_ERROR.set(None);
+        POOL_DESTROYS.set(0);
         crate::driver::result::mem_pool::seams::NEWER_ATTRIBUTE_REQUESTS.set(0);
     }
 }
 
 impl Drop for CudaMemPool {
     fn drop(&mut self) {
+        #[cfg(test)]
+        seams::POOL_DESTROYS.set(seams::POOL_DESTROYS.get() + 1);
         let _ = unsafe { result::mem_pool::destroy(self.pool) };
     }
 }

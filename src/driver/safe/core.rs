@@ -4049,6 +4049,89 @@ mod fathomdb_private_pool {
         assert_eq!(pool.max_size(), None);
     }
 
+    /// Design D-4: the driver may report a larger `MAX_POOL_SIZE` than
+    /// requested; `max_size()` returns what it reports. A value below a
+    /// nonzero request fails `create` with `CUDA_ERROR_INVALID_VALUE`, after
+    /// the pool is destroyed.
+    #[cfg(not(any(
+        feature = "cuda-11040",
+        feature = "cuda-11050",
+        feature = "cuda-11060",
+        feature = "cuda-11070",
+        feature = "cuda-11080",
+        feature = "cuda-12000",
+        feature = "cuda-12010",
+        feature = "cuda-12020",
+        feature = "cuda-12030",
+        feature = "cuda-12040",
+        feature = "cuda-12050",
+        feature = "cuda-12060",
+        feature = "cuda-12080",
+        feature = "cuda-12090",
+        feature = "cuda-13000",
+        feature = "cuda-13010"
+    )))]
+    #[test]
+    fn max_pool_size_read_back_uses_the_driver_value() {
+        if !have_device() {
+            return;
+        }
+        let _reset = seams::Reset::new();
+        seams::DRIVER_VERSION.set(Some(13020));
+        let request = SMALL_POOL.max_size as u64;
+
+        for reported in [request, request + (2 << 20)] {
+            seams::READ_BACK_VALUE.set(Some(reported));
+            let pool = CudaMemPool::create(0, &SMALL_POOL).unwrap();
+            assert_eq!(pool.max_size(), Some(reported));
+        }
+        // Positive control: each of the two pools was destroyed and counted.
+        assert_eq!(seams::POOL_DESTROYS.get(), 2);
+        seams::POOL_DESTROYS.set(0);
+        seams::POOL_CREATES.set(0);
+
+        seams::READ_BACK_VALUE.set(Some(request - 1));
+        assert_eq!(
+            CudaMemPool::create(0, &SMALL_POOL).map(|_| ()),
+            Err(DriverError(sys::CUresult::CUDA_ERROR_INVALID_VALUE))
+        );
+        assert_eq!(seams::POOL_CREATES.get(), 1, "pools created");
+        assert_eq!(seams::POOL_DESTROYS.get(), 1, "pools destroyed");
+    }
+
+    /// Design D-4: a failed `MAX_POOL_SIZE` read leaves `create` successful,
+    /// with `max_size()` unknown.
+    #[cfg(not(any(
+        feature = "cuda-11040",
+        feature = "cuda-11050",
+        feature = "cuda-11060",
+        feature = "cuda-11070",
+        feature = "cuda-11080",
+        feature = "cuda-12000",
+        feature = "cuda-12010",
+        feature = "cuda-12020",
+        feature = "cuda-12030",
+        feature = "cuda-12040",
+        feature = "cuda-12050",
+        feature = "cuda-12060",
+        feature = "cuda-12080",
+        feature = "cuda-12090",
+        feature = "cuda-13000",
+        feature = "cuda-13010"
+    )))]
+    #[test]
+    fn a_failed_max_pool_size_read_leaves_create_successful() {
+        if !have_device() {
+            return;
+        }
+        let _reset = seams::Reset::new();
+        seams::DRIVER_VERSION.set(Some(13020));
+        seams::READ_BACK_ERROR.set(Some(sys::CUresult::CUDA_ERROR_INVALID_VALUE));
+        let pool = CudaMemPool::create(0, &SMALL_POOL).unwrap();
+        assert_eq!(pool.max_size(), None);
+        assert_eq!(seams::POOL_DESTROYS.get(), 0);
+    }
+
     /// Design D-8: one helper builds the location from zeroed memory on every
     /// binding, the union's `id` included.
     #[test]
