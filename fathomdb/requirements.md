@@ -32,7 +32,9 @@ Acceptance criteria name the cells of plan § 6.2:
 
 - G1–G4 and G8 run on `windchill3` (RTX 3090, driver 580.178.04);
 - G6 runs on the Jetson AGX Orin (JetPack 6, CUDA 12.6);
-- G5 and G7 are UNMEASURED (owner rulings Q4, Q11 and Q5).
+- G5 runs on a GCP Tesla T4 with a newer driver (owner ruling Q-F1,
+  2026-10-12; CF-AC-04c);
+- G7 is UNMEASURED (owner ruling Q5).
 
 The rules of plan § 1.6 bind every GPU run.
 
@@ -132,6 +134,22 @@ receipt's `head_sha` equals that commit, and it covers:
 - clippy `-D warnings` and fmt;
 - the hosted test job;
 - the name-agnostic publish dry run.
+
+**CF-AC-04c (G5, GCP T4, sm_75).** The full `--lib` test set passes on a
+newer driver for builds with `CUDARC_CUDA_VERSION` and `-F cuda-<v>` equal
+to 13010, 13020, 13030 and 13040, with default features.
+
+- Each build runs on a driver whose `cuDriverGetVersion` is at least that
+  build's version. The receipt records:
+  - the driver package and version;
+  - `cuDriverGetVersion`;
+  - the toolkit whose libraries were loaded (CF-REQ-11 report).
+- One driver that supports 13.4 may serve all four builds. The test plan
+  (FC3) names the branch after checking which branches Ubuntu 24.04 or
+  NVIDIA's repository offers for the T4.
+- The `MAX_POOL_SIZE` read-back (D-4) is exercised on the 13020+ builds.
+- Tests that need hardware the T4 lacks (two GPUs, sm_80+) are recorded
+  UNMEASURED with that reason, and CF-REQ-12 applies.
 
 **CF-AC-04b.** The G3 test set passes on driver 580 for builds with
 `CUDARC_CUDA_VERSION` = 12060, 13000, 13010, 13020, 13030 and 13040.
@@ -379,10 +397,12 @@ filter, or `--skip` used, is printed in the receipt.
 - **CF-REQ-04** requires driver-dependent behaviour to be selected at run
   time from `cuDriverGetVersion`.
 
-## 6. Open questions for the owner
+## 6. Owner rulings
 
-- **Q-F1 Cloud venue for G5.** CUDA 13.1–13.4 builds with default features
-  need driver R590–R615, which `windchill3` can never take. A GCP T4 VM with
-  a newer driver could run G5. That VM is Spot, capped and self-deleting,
-  and the tooling is checked in at FathomDB `scripts/gcp-cuda-lab.sh`. Should
-  G5 stay UNMEASURED (the default under plan § 10), or run on GCP?
+- **Q-F1 Cloud venue for G5 (ruled 2026-10-12): run it on a GCP T4 with a
+  newer driver.** CUDA 13.1–13.4 builds need a driver newer than R580, which
+  `windchill3` can never take (Q4, Q11). The driver change happens only on a
+  lab VM (FathomDB `scripts/gcp-cuda-lab.sh`: Spot, labeled, capped by
+  `--max-run-duration`, deleted on termination), never on `windchill3`. Each
+  T4 session has a 2-hour wall-clock limit, and the receipt records the VM
+  creation and deletion times.

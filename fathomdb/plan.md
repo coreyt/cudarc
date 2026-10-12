@@ -350,7 +350,7 @@ so G7 must keep that bound.
 | G2 | same, both 3090s | 12060 | present | T-MULTI |
 | G3 | same | 12060, 13000, 13010, 13020, 13030, 13040 bindings, driver-only feature set (`--no-default-features -F std,driver,dynamic-loading,cuda-<v>`) | nothing installed | T-DEV, T-CONC, T-FAULT, the D-4 driver-version gate, and every other test D-F1 maps to RUN (CF-AC-04b) |
 | G4 | same | 13000, default features | the 13.0 runtime libraries (NVRTC, cuBLAS): the user-local 13.0 toolkit if the owner approves its download (FathomDB W0 step 4), or else the NVIDIA cu13 wheels from PyPI installed into a scratch virtual environment owned by this work (never the FathomDB primary `.venv`, whose cuBLAS is 13.1.1), pinned to 13.0.x (`nvidia-cuda-runtime==13.0.96`, `nvidia-cuda-nvrtc==13.0.88`, `nvidia-cublas==13.0.2.14`) and reached by `LD_LIBRARY_PATH=<venv>/lib/python3.*/site-packages/nvidia/cu13/lib` for that command only; `libcuda.so.1` stays the system driver's | the toolkit-dependent tests (NVRTC- or cuBLAS-using) that D-F1 identifies; UNMEASURED only if neither source is available |
-| G5 | same | 13010–13040 with default features | R590–R615 drivers, never on `windchill3` (Q4, Q11) | UNMEASURED |
+| G5 | GCP Spot Tesla T4 (sm_75), owner ruling Q-F1 (2026-10-12) | 13010–13040 with default features | a driver newer than R580 installed on the lab VM only, never on `windchill3` (Q4, Q11); 2-hour wall-clock limit per session | `--lib` tests per requirements CF-AC-04c |
 | G6 | Orin, JetPack 6 | 12060 | present | all `driver::` tests incl. T-PROC and the fallback tests |
 | G8 | `windchill3` RTX 3090 | 12060 and 13000, default features | scratch venvs with PyPI `nvidia-cublas-cu12` 12.1.x, 12.4.x, 12.9.x and `nvidia-cublas` 13.0.x, reached by `LD_LIBRARY_PATH` | CF-AC-11: the cuBLAS tests, each recording the loaded file and its reported version |
 | G7 | Orin, JetPack 7.2.x | 13020 / 13040 | reflash (not in Slice 31 — Q5) | UNMEASURED (known issue 5699079 bounds its exhaustion tests) |
@@ -440,8 +440,8 @@ R-VERIFY checks them:
 
 - the qualified code commit and the pin-chain check;
 - R-FC-CODE and R-FC-VERIFY verdicts with no open finding;
-- the receipt list (G1–G4, G6, G8), with G5 and G7 UNMEASURED by owner
-  rulings Q4 and Q5 unless a cloud venue is approved for them;
+- the receipt list (G1–G6, G8; G5 on a GCP T4 by owner ruling Q-F1), with
+  G7 UNMEASURED by owner ruling Q5;
 - the loaded-library report API (D-F4) that FathomDB D-18 consumes;
 - after publication, the published version and its `.cargo_vcs_info.json`
   sha, equal to `C`.
