@@ -3747,6 +3747,227 @@ mod fathomdb_alloc_fallback {
         stream.synchronize().unwrap();
         ctx.check_err().unwrap();
     }
+
+    /// Every constructor of an ordinary context of device 0 that these
+    /// bindings have, with its name. `new_cig` needs a graphics queue,
+    /// which a Linux host cannot give, so its result is usually an error.
+    #[cfg(not(all(target_os = "linux", target_arch = "aarch64")))]
+    fn every_ordinary_constructor() -> Vec<(&'static str, Result<Arc<CudaContext>, DriverError>)> {
+        result::init().unwrap();
+        let cu_device = result::device::get(0).unwrap();
+        #[allow(unused_mut)]
+        let mut made = std::vec![("new", CudaContext::new(0))];
+        #[cfg(any(
+            feature = "cuda-11040",
+            feature = "cuda-11050",
+            feature = "cuda-11060",
+            feature = "cuda-11070",
+            feature = "cuda-11080",
+            feature = "cuda-12000",
+            feature = "cuda-12010",
+            feature = "cuda-12020",
+            feature = "cuda-12030",
+            feature = "cuda-12040",
+            feature = "cuda-12050",
+            feature = "cuda-12060",
+            feature = "cuda-12080",
+            feature = "cuda-12090",
+            feature = "cuda-13000",
+            feature = "cuda-13010"
+        ))]
+        made.push(("new_non_primary", CudaContext::new_non_primary(0, 0)));
+        #[cfg(any(
+            feature = "cuda-12050",
+            feature = "cuda-12060",
+            feature = "cuda-12080",
+            feature = "cuda-12090",
+            feature = "cuda-13000",
+            feature = "cuda-13010"
+        ))]
+        {
+            let mut cig = sys::CUctxCigParam {
+                sharedDataType: sys::CUcigDataType::CIG_DATA_TYPE_D3D12_COMMAND_QUEUE,
+                sharedData: std::ptr::null_mut(),
+            };
+            made.push(("new_cig", CudaContext::new_cig(0, 0, &mut cig)));
+        }
+        #[cfg(not(any(
+            feature = "cuda-11040",
+            feature = "cuda-11050",
+            feature = "cuda-11060",
+            feature = "cuda-11070",
+            feature = "cuda-11080",
+            feature = "cuda-12000",
+            feature = "cuda-12010",
+            feature = "cuda-12020",
+            feature = "cuda-12030",
+            feature = "cuda-12040"
+        )))]
+        let cu_ctx = {
+            let mut cu_ctx = std::ptr::null_mut();
+            unsafe { sys::cuCtxCreate_v4(&mut cu_ctx, std::ptr::null_mut(), 0, cu_device) }
+                .result()
+                .unwrap();
+            cu_ctx
+        };
+        #[cfg(any(
+            feature = "cuda-11040",
+            feature = "cuda-11050",
+            feature = "cuda-11060",
+            feature = "cuda-11070",
+            feature = "cuda-11080",
+            feature = "cuda-12000",
+            feature = "cuda-12010",
+            feature = "cuda-12020",
+            feature = "cuda-12030",
+            feature = "cuda-12040"
+        ))]
+        let cu_ctx = unsafe { result::ctx::create_v3(0, cu_device) }.unwrap();
+        made.push(("from_raw_context", unsafe {
+            CudaContext::from_raw_context(0, cu_device, cu_ctx)
+        }));
+        for (name, ctx) in &made {
+            std::println!("{name}: {:?}", ctx.as_ref().map(|_| "context"));
+        }
+        made
+    }
+
+    /// CF-AC-05 (test plan § 3.3): off target, no constructor of an
+    /// ordinary context queries the device's default pool.
+    #[cfg(not(all(target_os = "linux", target_arch = "aarch64")))]
+    #[test]
+    fn off_target_constructors_never_query_the_default_pool() {
+        if !unsafe { sys::is_culib_present() } || CudaContext::device_count().unwrap_or(0) < 1 {
+            std::eprintln!("SKIP fathomdb_alloc_fallback: no CUDA driver or device");
+            return;
+        }
+        use result::device::seams::DEFAULT_POOL_QUERIES as QUERIES;
+        result::init().unwrap();
+        let cu_device = result::device::get(0).unwrap();
+        let ctx = CudaContext::new(0).unwrap();
+
+        // Positive control: a direct query is counted.
+        QUERIES.set(0);
+        unsafe { result::device::get_default_mem_pool(cu_device) }.unwrap();
+        assert_eq!(QUERIES.get(), 1, "the counter was not reached");
+        QUERIES.set(0);
+        drop(ctx);
+
+        let made = every_ordinary_constructor();
+        assert_eq!(QUERIES.get(), 0, "default-pool queries");
+        for (name, ctx) in &made {
+            if *name != "new_cig" {
+                assert!(ctx.is_ok(), "{name}: {ctx:?}");
+            }
+        }
+    }
+
+    /// CF-AC-05 (test plan § 3.3): off target, each constructor's choice of
+    /// stream-ordered allocation is upstream's inline rule
+    /// `CU_DEVICE_ATTRIBUTE_MEMORY_POOLS_SUPPORTED > 0` (`core.rs:78, 150,
+    /// 201, 238` at `ec1cac71`).
+    #[cfg(not(all(target_os = "linux", target_arch = "aarch64")))]
+    #[test]
+    fn off_target_choice_equals_the_upstream_inline_rule() {
+        if !unsafe { sys::is_culib_present() } || CudaContext::device_count().unwrap_or(0) < 1 {
+            std::eprintln!("SKIP fathomdb_alloc_fallback: no CUDA driver or device");
+            return;
+        }
+        result::init().unwrap();
+        let cu_device = result::device::get(0).unwrap();
+        let pools = unsafe {
+            result::device::get_attribute(
+                cu_device,
+                sys::CUdevice_attribute_enum::CU_DEVICE_ATTRIBUTE_MEMORY_POOLS_SUPPORTED,
+            )
+        }
+        .unwrap();
+        for (name, ctx) in every_ordinary_constructor() {
+            match ctx {
+                Ok(ctx) => assert_eq!(ctx.has_async_alloc(), pools > 0, "{name}"),
+                Err(e) => assert_eq!(name, "new_cig", "{name} failed: {e:?}"),
+            }
+        }
+    }
+
+    /// The result kind of each zero-length request on the synchronous path
+    /// of a context of device 0, and the context's error state afterwards.
+    /// The same text runs at `ec1cac71` and at the fork (test plan § 3.3).
+    #[cfg(not(all(target_os = "linux", target_arch = "aarch64")))]
+    fn zero_length_sync_outcomes() -> Option<Vec<String>> {
+        if !unsafe { sys::is_culib_present() } || CudaContext::device_count().unwrap_or(0) < 1 {
+            std::eprintln!("SKIP zero_length_sync_outcomes: no CUDA driver or device");
+            return None;
+        }
+        fn kind(result: Result<sys::CUdeviceptr, DriverError>) -> String {
+            match result {
+                Ok(0) => "Ok(null)".into(),
+                Ok(_) => "Ok(non-null)".into(),
+                Err(e) => std::format!("Err({:?})", e.0),
+            }
+        }
+        let mut ctx = CudaContext::new(0).unwrap();
+        Arc::get_mut(&mut ctx)
+            .expect("fresh context")
+            .has_async_alloc = false;
+        let stream = ctx.default_stream();
+        let mut outcomes = Vec::new();
+
+        ctx.bind_to_thread().unwrap();
+        let raw = unsafe { result::malloc_sync(0) };
+        if let Ok(ptr) = raw {
+            if ptr != 0 {
+                unsafe { result::free_sync(ptr) }.unwrap();
+            }
+        }
+        outcomes.push(std::format!("cuMemAlloc(0): {}", kind(raw)));
+        let alloc = unsafe { stream.alloc::<u8>(0) };
+        outcomes.push(std::format!(
+            "alloc(0): {}",
+            kind(alloc.as_ref().map(|s| s.cu_device_ptr).map_err(|e| *e))
+        ));
+        drop(alloc);
+        let zeros = stream.alloc_zeros::<u8>(0);
+        outcomes.push(std::format!(
+            "alloc_zeros(0): {}",
+            kind(zeros.as_ref().map(|s| s.cu_device_ptr).map_err(|e| *e))
+        ));
+        drop(zeros);
+        let null = stream.null::<u8>();
+        outcomes.push(std::format!(
+            "null(): {}",
+            kind(null.as_ref().map(|s| s.cu_device_ptr).map_err(|e| *e))
+        ));
+        drop(null);
+        stream.synchronize().unwrap();
+        outcomes.push(std::format!(
+            "check_err: {:?}",
+            ctx.check_err().map_err(|e| e.0)
+        ));
+        Some(outcomes)
+    }
+
+    /// CF-AC-05 (test plan § 3.3): off target, zero-length requests on the
+    /// synchronous path give the result kinds that the same body
+    /// ([zero_length_sync_outcomes]) gave at `ec1cac71`, recorded in
+    /// `fathomdb/status.md` (FC6-a): every one reaches `cuMemAlloc(0)` and
+    /// fails with `CUDA_ERROR_INVALID_VALUE`, and the context records no
+    /// error.
+    #[cfg(not(all(target_os = "linux", target_arch = "aarch64")))]
+    #[test]
+    fn off_target_zero_length_sync_behaviour_matches_the_base() {
+        let Some(outcomes) = zero_length_sync_outcomes() else {
+            return;
+        };
+        let base = [
+            "cuMemAlloc(0): Err(CUDA_ERROR_INVALID_VALUE)",
+            "alloc(0): Err(CUDA_ERROR_INVALID_VALUE)",
+            "alloc_zeros(0): Err(CUDA_ERROR_INVALID_VALUE)",
+            "null(): Err(CUDA_ERROR_INVALID_VALUE)",
+            "check_err: Ok(())",
+        ];
+        assert_eq!(outcomes, base);
+    }
 }
 // FATHOMDB PATCH END
 

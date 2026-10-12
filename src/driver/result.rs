@@ -198,6 +198,8 @@ pub mod device {
     pub unsafe fn get_default_mem_pool(
         dev: sys::CUdevice,
     ) -> Result<sys::CUmemoryPool, DriverError> {
+        #[cfg(test)]
+        seams::DEFAULT_POOL_QUERIES.set(seams::DEFAULT_POOL_QUERIES.get() + 1);
         let mut pool = MaybeUninit::uninit();
         sys::cuDeviceGetDefaultMemPool(pool.as_mut_ptr(), dev).result()?;
         Ok(pool.assume_init())
@@ -226,6 +228,20 @@ pub mod device {
         pool: sys::CUmemoryPool,
     ) -> Result<(), DriverError> {
         sys::cuDeviceSetMemPool(dev, pool).result()
+    }
+
+    /// Test-only counter of default-pool queries (allocator fallback,
+    /// CF-AC-05). Thread-local, so tests that run in parallel do not see
+    /// each other's calls.
+    #[cfg(test)]
+    pub(crate) mod seams {
+        use core::cell::Cell;
+
+        std::thread_local! {
+            /// Calls of [super::get_default_mem_pool]
+            /// (`cuDeviceGetDefaultMemPool`) on this thread.
+            pub(crate) static DEFAULT_POOL_QUERIES: Cell<u32> = const { Cell::new(0) };
+        }
     }
 }
 
