@@ -24,6 +24,15 @@ reviewer re-runs each RED; the last column holds that result.
 | 2026-10-12 | FC6-a § 3.1, 16 tests | — (no RED: characterization; none failed) | — | `32f49c7`, `51a2073` | — |
 | 2026-10-12 | FC6-a § 3.2 revised test; `# Safety` caveat | — (no RED: characterization and doc) | — | `6db7d69` | — |
 | 2026-10-12 | FC6-a § 3.3, 3 tests | — (no RED: characterization; base comparison) | — | `bfdff00` | — |
+| 2026-10-12 | FC6-b T-UNIT, 8 tests of `fathomdb_lib_major` | `17f3fa0` | 8 of 9 fail behaviourally against base-equivalent stubs (verbatim below) | `8470cc2` (9 of 9) | pending (R-FC-CODE) |
+| 2026-10-12 | FC6-b `out_of_scope_and_cuda11_candidates_equal_the_base` | — (no RED: regression guard; passes at `17f3fa0` and `8470cc2`) | — | `17f3fa0` | — |
+| 2026-10-12 | FC6-b T-DEV (a)–(d) | `8aa03b5` (run on a `git archive` of `068779b`, pre-item-9) | (a) maps cu13 `libcublas.so.13`; (b) maps 12.6 `libcublas.so.12`; (c) `culib()` panics; (d) `culib()` binds the cu13 cuFile (1150) | `8470cc2` (run at `7a84fce`) | pending (R-FC-CODE) |
+| 2026-10-12 | FC6-b T-DEV (f) | — (no RED: loads at base and at `C`) | — | `8aa03b5` | — |
+| 2026-10-12 | FC6-b T-DEV (e) | — (no RED; G5b only) | — | pending (G5b) | — |
+| 2026-10-12 | FC6-b `template_loader_tail_matches_the_checked_in_cublas_loader` | `91b1317` | the template renders the base tail, not in `src/cublas/sys/mod.rs` | `160a0c4` | pending (R-FC-CODE) |
+| 2026-10-12 | FC6-b count-tests: other binaries, `--binary` | `43bff6d` | 2 of 38 fail: unexpected sections `test:fathomdb_lib_major`, `unittests:bindings_generator` | `8889071` (38 pass) | pending (R-FC-CODE) |
+| 2026-10-12 | FC6-b count-tests: `- should panic` lines | `2e5de53` | 1 of 39 fails: `{} != {'…test_alloc_pinned_panics_on_size_overflow': 'ok'}` | `5e28fa7` (39 pass) | pending (R-FC-CODE) |
+| 2026-10-12 | FC6-b pool doc (D-2, D-9) | — (doc) | — | `e6e5e0f` | — |
 
 ## FC4-0 (class D)
 
@@ -610,6 +619,207 @@ Also checked at `51a2073`:
 - Design D-9 decides to document on `new_with_mem_pool` that graph memory
   is outside the pool's budget; that doc is not present.
 
+## FC6-b (classes U, D and W)
+
+Test plan § 10 row FC6-b and § 3.4: the T-UNIT REDs, the T-DEV REDs, item 9,
+then the template test. Host `windchill3`; every GPU run used
+`CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=0` (NVIDIA GeForce RTX 3090,
+00000000:41:00.0), `CUDARC_CUDA_VERSION` = the feature and
+`Cargo.lock.baseline` in place. The guard was taken before and after every
+GPU run (first 2026-10-12T09:07:12-05:00, last 2026-10-12T09:34:29-05:00):
+driver `580.178.04` on all three GPUs, `/usr/local/cuda` →
+`/usr/local/cuda-12.6`, never changed. Logs are kept on the host in the
+session scratchpad.
+
+### Scratch venvs (`~/fathomdb-forks/venvs`, PyPI, `pip install --no-deps`)
+
+| Venv | Pins |
+| --- | --- |
+| `cu12-121` | `nvidia-cublas-cu12==12.1.3.1` (newest 12.1 patch on PyPI) |
+| `cu12-124` | `nvidia-cublas-cu12==12.4.5.8` (newest 12.4 patch) |
+| `cu12-129` | `nvidia-cublas-cu12==12.9.2.10` (newest 12.9 patch) |
+| `cu13-130` | the eight test plan § 3.4 pins, exactly |
+
+`--no-deps` keeps each venv to its pins (the wheels' own dependencies would
+add unpinned packages).
+
+### T-UNIT
+
+- **RED `17f3fa0`.** The nine tests plus compile-only stubs that reproduce
+  the base (`lib_candidates` = the `ec1cac71` list, `version_verdict`
+  accepts everything, `LibCell` retries a failure and probes presence
+  separately as upstream's `is_culib_present` does, upstream's panic text,
+  an empty linked-build report). `get_lib_name_candidates` and the loaders
+  were unchanged. `cargo test --locked --lib -F
+  cuda-12060,$CHECK_DEFAULT_FEATURES -- fathomdb_lib_major::` (the same at
+  cuda-11040 and cuda-13000):
+
+  ```text
+  test result: FAILED. 1 passed; 8 failed; 0 ignored; 0 measured; 151 filtered out
+  "CUDA 13" missing from "Unable to dynamically load the \"cublas\" shared library - searched for library names: [\"libcublas.so.13\", \"libcublas.so\"]."
+  a_failed_load_is_memoized: left: 2 right: 1 (cudart: loader calls across two try_culib calls)
+  44 disagreements: ["cudart [false, true] present_first=false: is_present true, try false, try again false", …]
+  the_report_says_linked_at_build_time_when_linked: left: "" right: "linked at build time"
+  67 wrong verdicts: ["cudart Int(12060) (line 12) for CUDA 13: Accept, expected Reject", …]
+  126 mismatches: ["cudart 12.0: first candidate Some(\"cudart.dll\"), wheel ships cudart64_12.dll", …]
+  357 lists out of order, e.g. ["Linux cudart CUDA 12: starts with [\"libcudart.so\"], expected [\"libcudart.so.12\"]", …]
+  4314 candidate names that are not the built major's versioned name or the unversioned name, …
+  ```
+
+  The test plan's named witnesses are among the dumped names: `Linux cublas
+  CUDA 13: libcublas.so.12` (6 lines at cuda-13000, one of them from the
+  base `get_lib_name_candidates("cublas")` of that build) and `Windows cufft
+  CUDA 12: cufft64_12.dll` (18 lines). Log SHA-256: 12060 `409f550f…26d8d`,
+  13000 `96222190…20527`, 11040 `f19d6492…dc960`.
+- **GREEN `8470cc2`.** 9 of 9 pass. Fork CI's T-UNIT job simulated on Linux
+  for all 19 features at `7a84fce` (both steps: listing with `unlanded` and
+  `check --mode list`, then the run by name with `check`): 9 names and
+  9 passed per feature, `count-tests: PASS` for every step, 171 in total.
+  The Windows half runs only in fork CI.
+
+### T-DEV (G1)
+
+`fathomdb/scripts/t-dev-lib-major.sh` (cases a–d and f; e needs G5b). The
+base is a `git archive` of `068779b` (the fork before item 9: the loaders
+and `get_lib_name_candidates` equal `ec1cac71`; the T-DEV test file at
+`8aa03b5` uses only base API), built with its own target directory.
+
+| Case | Test | Before item 9 (`068779b`) | At `C` (`7a84fce`) |
+| --- | --- | --- | --- |
+| (a) | `cuda12_build_skips_an_unversioned_cuda13_cublas` | FAILED: `MAPS a …/venvs/cu13-130/…/nvidia/cu13/lib/libcublas.so.13` | ok: `MAPS a /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12.6.1.4`; `REPORT a cublas: opened as libcublas.so.12, path /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12.6.1.4, version 12.6.1, checked against CUDA 12` |
+| (b) | `cuda13_build_rejects_the_cuda12_cublas_from_the_loader_cache` | FAILED: `RESULT b culib() returned`; `MAPS b /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12.6.1.4` (and `libcublasLt.so.12.6.1.4`) | ok: `MAPS b (no libcublas mapping)`; `Tried: libcublas.so.13 (not found), libcublas.so (wrong version 12.6.1)` |
+| (c) | `no_acceptable_cublas_is_a_typed_error_not_a_panic` | FAILED: `culib()` panicked with the base message (17 names) | ok: `Tried: libcublas.so.12 (not found), libcublas.so (not found)`; no mapping; exit 0 |
+| (d) | `cuda12_build_rejects_an_already_loaded_cuda13_cufile` | FAILED: `RESULT d cuFileGetVersion through culib(): Ok(1150)`; `a CUDA 12 build uses the CUDA 13 cuFile (version 1150)` | ok: `Tried: libcufile.so.0 (already loaded with wrong version 1.15)`; `MAPS d-after …/nvidia/cu13/lib/libcufile.so.0` only (NODELETE) |
+| (f) | `nvtx_loads_with_only_libnvtoolsext_so_1` | ok: `MAPS f /usr/local/cuda-12.6/targets/x86_64-linux/lib/libnvToolsExt.so.1.0.0` | ok: the same |
+| (e) | `driver_loads_with_only_libcuda_so_1` | pending: G5b | pending: G5b |
+
+Preconditions (helper process `t-dev-probe.py`, logged as `HELPER` lines):
+(a) `dlopen(libcublas.so)` maps the cu13 `libcublas.so.13` and
+`libcublasLt.so.13`; (b) `ldconfig -p`: `libcublas.so` →
+`libcublas.so.12.6.1.4`, and `libcublas.so.13` fails; (c) under `ld-linux
+--inhibit-cache` with an empty directory, `libcublas.so`, `.so.12` and
+`.so.13` all fail; (d) `dlopen(libcufile.so)` maps the cu13
+`libcufile.so.0`; (f) under `--inhibit-cache`, `libnvToolsExt.so.1` opens
+and `libnvToolsExt.so` fails. Run logs: RED `1f449a1e…2a752`, GREEN
+`f7707f52…c45f3`.
+
+- **Case (d) reading.** The test opens the decoy `libcufile.so` in-process
+  first, then closes it, and the cu13 `libcufile.so.0` stays mapped
+  (`DF_1_NODELETE`), which is the state the test plan's `C` column
+  (`AlreadyLoadedWrongVersion`, "the object stays mapped") needs. Without
+  that preload the decoy is never reached at `C`: `.so.0` comes first and
+  resolves through the loader cache, so `C` loads the system cuFile
+  (observed with the G8 report program and the decoy directory alone:
+  `REPORT cufile: opened as libcufile.so.0, path
+  /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcufile.so.1.11.1,
+  version 1.11`, nothing mapped from the venv). Needs a test-plan wording
+  confirmation (R-FC-CODE).
+- **Case (c) GREEN body.** RED calls `culib()` (base API); `culib()` still
+  panics by design, so GREEN calls `try_culib()` and asserts the typed error
+  (test plan § 3.4: new API only at GREEN). Cases (a), (b) and (d) keep
+  their RED assertions and add new-API ones.
+- **Missed at RED:** `8aa03b5` compiled case (d) on every feature, but the
+  `cuFileGetVersion` binding starts at cuda-12030, so `cargo check
+  --all-targets` failed at cuda-11040–12020 until `8470cc2` gated it.
+
+### Template test
+
+`template_loader_tail_matches_the_checked_in_cublas_loader` is in
+`bindings_generator/src/loader_tail.rs` (module `loader_tail::tests`). The
+generator crate cannot be built on `windchill3`: `openssl-sys` (through
+`reqwest`) needs the OpenSSL headers, which are not installed, and the
+host rules forbid apt. So the test ran in a scratch crate that includes
+`loader_tail.rs` by `#[path]` with the generator's `proc-macro2 1.0.94` and
+`quote 1.0.40`, and fork CI's new `pure-test-generator` job (`7a84fce`)
+runs it in the generator crate. `merge.rs`/`main.rs` (`91b1317`) are
+therefore compiled only by CI.
+
+- **RED `91b1317`** (the tail moved, unchanged, into `loader_tail`): `test
+  result: FAILED. 0 passed; 1 failed`, `the template's cuBLAS loader tail is
+  not in …/src/cublas/sys/mod.rs`. Positive control: the same rendering is
+  contained in `068779b:src/cublas/sys/mod.rs`.
+- **GREEN `160a0c4`.** 1 passed. A one-off check (not committed) rendered
+  the template for all sixteen modules and found each tail in its
+  checked-in file.
+
+### G8 (`fathomdb/scripts/g8-*.sh`, FC6 evidence; receipts at FC8)
+
+`g8_report.rs` is built as a scratch binary against the tree; it calls
+`try_culib` under `catch_unwind` and cross-checks the report with
+`/proc/self/maps`. Runs at `7a84fce`, all `PASS`:
+
+| Sub-cell | Setup | Result |
+| --- | --- | --- |
+| G8-a | 12060, `cu12-124` | `REPORT cublas: opened as libcublas.so.12, path ~/fathomdb-forks/venvs/cu12-124/…/nvidia/cublas/lib/libcublas.so.12, version 12.4.5`; cuBLASLt the same; upstream `cublas` tests 8 passed |
+| G8-a | 12060, `cu12-129` | version 12.9.2 from the venv; 8 passed |
+| G8-b | 12060, `cu12-121` | version 12.1.3 from the venv; 8 passed (no missing symbol, no panic) |
+| G8-c | 13000, `cu13-130` | `opened as libcublas.so.13 … version 13.0.2, checked against CUDA 13`; 8 passed |
+| G8-d | 12060, cu13 lib dir first | `curand: opened as libcurand.so, path /usr/local/cuda-12.6/…/libcurand.so.10.3.7.68, version 10.3.7`; `cusparse: … libcusparse.so.12.5.3.3, version 12.5.3`; nothing mapped from the venv. With `--inhibit-cache`: `libcurand.so.10 (wrong version 10.4.0), libcurand.so (not found)` and `libcusparse.so.12 (wrong version 12.6.3), libcusparse.so (not found)` |
+| G8-e | 12060, cu13 `libcurand.so.10` preloaded | `libcurand.so.10 (already loaded with wrong version 10.4.0)` |
+| G8-f | 12060, cu13 lib dir first, cuSOLVER | `libcusolver.so.11 (dependency libcusparse.so.12 has wrong version 12.6.3), libcusolver.so (dependency libcusparse.so.12 has wrong version 12.6.3)`; nothing mapped from the venv |
+
+### Runs at `7a84fce` (k = 1, FC6 evidence)
+
+| Run | Result | count-tests (`expect --binary unittests:cudarc`) |
+| --- | --- | --- |
+| G1 default 12060, `--lib -- --test-threads=1` | 124 passed; 0 failed; 10 ignored | PASS (`fathomdb_lib_major` 9 of 9) |
+| default 13000 with `cu13-130` (G4 setup) | 122 passed; 0 failed; 10 ignored | PASS |
+| hosted-test run 1 simulation (driver-only 12060, no GPU) | 54 passed; 4 ignored; 28 filtered out | PASS; `unlanded` PASS |
+| pure-test simulation, 19 features | every step `count-tests: PASS` (4 names to 12010, 3 from 12020) | — |
+
+Log SHA-256: G1 `203f1f87…213c8`, 13000 `d32d6d08…7ac7`.
+
+### Checks at `5e28fa7`
+
+| Check | Result |
+| --- | --- |
+| `cargo fmt --check` | clean |
+| `cargo check --locked --lib`, 19 features × {driver-only, default} | 38 of 38, no warnings |
+| `cargo check --all-targets -F cuda-<v>,$CHECK_DEFAULT_FEATURES`, 19 features | 19 of 19, no warnings |
+| `cargo check --all-targets --no-default-features -F cuda-<v>,$CHECK_NO_STD_FEATURES`, 19 features | 19 of 19, no warnings |
+| `cargo clippy --locked --lib --tests -- -D warnings`, default 12060 and 13040 | clean |
+| fork CI clippy (`$CLIPPY_FEATURES`, `--all-targets`), 11040, 12060, 13000, 13040 | clean |
+| `cargo check --lib`, `dynamic-linking` with the G8 libraries, 12060 | clean |
+| `python3 -I fathomdb/scripts/test_count_tests.py` | 39 tests OK |
+| `actionlint`, `shellcheck -x` on the new scripts | clean |
+| Windows and aarch64 | not compiled locally (no targets installed); fork CI |
+
+### Deviations
+
+- **`RejectReason::NoVersionQuery`** is added: design § 12.4 names the
+  reason (cuFile without `cuFileGetVersion`, the `note` field) but its
+  enum sketch omits it.
+- **cuSolverMg** has no unversioned candidate ("versioned name only").
+  **Windows cuFile** has no candidates ("not available"), so its error
+  lists no names.
+- **Resolved path:** `dladdr` and `dl_iterate_phdr` (Linux),
+  `GetModuleHandleExW` (from the symbol address) and `GetModuleFileNameW`
+  (Windows) through `extern` blocks; canonicalization through
+  `std::fs::canonicalize`, which is `realpath(3)`. No new crate.
+- **The already-loaded probe** is Linux only (`RTLD_NOLOAD`), as is the
+  dependency check (design: Windows gap). A dependency without a decodable
+  version is not judged.
+- **A `W` commit** (`7a84fce`): the template test lives in another binary,
+  so fork CI needs a job for it; the per-feature pure-test steps skip it.
+- **count-tests** (`D`, TDD): sections of binaries other than the lib with
+  no selected test are omitted, `expect --binary` selects binaries, and
+  `- should panic` lines parse. FC8 receipts of unfiltered `cargo test
+  --lib` runs must use `--binary unittests:cudarc`.
+- **G8 report program** is a scratch binary, not a crate test, so no test
+  name was added. The G8 scripts check the upstream tests' outcomes but not
+  their names (FC8).
+- **Untracked file** `log_matmul_f32` in the checkout root, written by the
+  upstream `cublaslt::safe::tests::test_matmul_f32` with cuBLASLt 13.0
+  logging; left in place (deleting needs approval).
+
+### Notes for the orchestrator
+
+- `get_lib_name_candidates`'s doc and the generated loader docs cite
+  `FATHOMDB.md` item 9, which FC7 writes.
+- Memoization and `is_culib_present` changes (design L2) are visible to
+  callers: a failed load is never retried in the process, and
+  `is_culib_present()` keeps the library loaded.
+
 ## Code commits since `ec1cac71` (CF-AC-01)
 
 | Commit | Class | Purpose |
@@ -640,3 +850,10 @@ Also checked at `51a2073`:
 | `6db7d69` | U | FC6-a § 3.2 test; `# Safety` caveat on `cuMemFree` |
 | `bfdff00` | L | FC6-a § 3.3 tests and the default-pool query counter |
 | `51a2073` | U | child-process output prefixed |
+| `17f3fa0` | U | FC6-b RED: T-UNIT tests and base-equivalent stubs |
+| `8aa03b5` | U | FC6-b RED: T-DEV tests (base API) |
+| `8470cc2` | U | FC6-b GREEN: item 9 (lib.rs, 11 loaders, driver report); T-DEV new-API assertions |
+| `91b1317` | U | FC6-b RED: generator `loader_tail` (unchanged tail) and template test |
+| `160a0c4` | U | FC6-b GREEN: item 9 tails in the generator template |
+| `e6e5e0f` | U | `new_with_mem_pool` doc: leaked pointers (D-2), graph capture (D-9) |
+| `7a84fce` | W | fork CI: `pure-test-generator` job; pure-test skips generator rows |
