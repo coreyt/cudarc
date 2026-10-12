@@ -4694,5 +4694,961 @@ mod fathomdb_private_pool {
             );
         }
     }
+    /// The step in `RESERVED_MEM_CURRENT` that one allocation of `bytes`
+    /// makes in `pool`, which must hold nothing. The allocation is freed and
+    /// the stream synchronized before returning (test plan § 3.1,
+    /// "In-process chunk").
+    fn reservation_step(pool: &CudaMemPool, stream: &Arc<CudaStream>, bytes: usize) -> u64 {
+        stream.synchronize().unwrap();
+        assert_eq!(pool.used_current(), Ok(0), "the pool must be empty");
+        let before = pool.reserved_current().unwrap();
+        let buffer = unsafe { stream.alloc::<u8>(bytes) }.unwrap();
+        let step = pool.reserved_current().unwrap() - before;
+        drop(buffer);
+        stream.synchronize().unwrap();
+        assert!(step > 0, "an allocation of {bytes} bytes reserved nothing");
+        step
+    }
+
+    /// Waits until `stream` has no pending work without synchronizing it, so
+    /// the pool's release threshold is not applied (CUDA 12.6 `cuda.h`,
+    /// `CU_MEMPOOL_ATTR_RELEASE_THRESHOLD`: it applies at a synchronize).
+    fn wait_idle_without_synchronizing(stream: &CudaStream) {
+        loop {
+            match unsafe { sys::cuStreamQuery(stream.cu_stream()) } {
+                sys::CUresult::CUDA_SUCCESS => return,
+                sys::CUresult::CUDA_ERROR_NOT_READY => std::thread::yield_now(),
+                other => panic!("cuStreamQuery: {other:?}"),
+            }
+        }
+    }
+
+    /// The counters of a pool handle: reserved and used, current and high.
+    fn counters(pool: sys::CUmemoryPool) -> [u64; 4] {
+        use sys::CUmemPool_attribute::*;
+        [
+            CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT,
+            CU_MEMPOOL_ATTR_RESERVED_MEM_HIGH,
+            CU_MEMPOOL_ATTR_USED_MEM_CURRENT,
+            CU_MEMPOOL_ATTR_USED_MEM_HIGH,
+        ]
+        .map(|attr| {
+            let mut value: u64 = 0;
+            unsafe { result::mem_pool::get_attribute(pool, attr, (&mut value as *mut u64).cast()) }
+                .unwrap();
+            value
+        })
+    }
+
+    /// The test plan's "M-2 limit" for `size`: measured as M-2 does, in a
+    /// pool of its own with `props`, as the total of the requests that
+    /// succeed before the first failure, which must be out-of-memory.
+    fn m2_limit(props: &MemPoolProps, size: usize) -> usize {
+        let (pool, stream) = private_stream(props);
+        let grown = grow_until_failure(&pool, &stream, size, props.max_size);
+        assert_eq!(
+            grown.error,
+            Some(DriverError(sys::CUresult::CUDA_ERROR_OUT_OF_MEMORY)),
+            "the M-2 probe must stop at the cap"
+        );
+        let limit = grown.live.len() * size;
+        drop(grown.live);
+        stream.synchronize().unwrap();
+        limit
+    }
+
+    /// CF-AC-02 isolation: the device's default pool and current pool are
+    /// the same handles before the private pool exists, while it has live
+    /// allocations (seen from the allocating thread and from another
+    /// thread), and after it is gone.
+    #[test]
+    fn default_and_current_pool_are_untouched_while_live() {
+        if !have_device() {
+            return;
+        }
+        result::init().unwrap();
+        let cu_device = result::device::get(0).unwrap();
+        let handles = move || unsafe {
+            (
+                result::device::get_default_mem_pool(cu_device).unwrap() as usize,
+                result::device::get_mem_pool(cu_device).unwrap() as usize,
+            )
+        };
+        let before = handles();
+
+        let (pool, stream) = private_stream(&SMALL_POOL);
+        let live: Vec<_> = (0..4)
+            .map(|_| stream.alloc_zeros::<u8>(1 << 20).unwrap())
+            .collect();
+        stream.synchronize().unwrap();
+        assert!(pool.used_current().unwrap() >= 4 << 20, "live allocations");
+        assert_ne!(before.0, pool.raw() as usize);
+        assert_ne!(before.1, pool.raw() as usize);
+        assert_eq!(handles(), before, "allocating thread, while live");
+        let ctx = stream.context().clone();
+        let other = std::thread::spawn(move || {
+            ctx.bind_to_thread().unwrap();
+            handles()
+        })
+        .join()
+        .unwrap();
+        assert_eq!(other, before, "second thread, while live");
+
+        drop(live);
+        stream.synchronize().unwrap();
+        drop((stream, pool));
+        assert_eq!(handles(), before, "after drop");
+    }
+
+    /// CF-AC-02 accounting: after every allocation is dropped and the
+    /// context synchronized, the pool reports nothing used and, with release
+    /// threshold 0, nothing reserved.
+    #[test]
+    fn accounting_returns_to_zero_after_drop_and_sync() {
+        if !have_device() {
+            return;
+        }
+        let (pool, a) = private_stream(&SMALL_POOL);
+        let ctx = a.context().clone();
+        let b = ctx.new_stream().unwrap();
+        let mut live = Vec::new();
+        for (stream, mib) in [(&a, 1), (&b, 3), (&a, 5), (&b, 7), (&a, 2)] {
+            live.push(stream.alloc_zeros::<u8>(mib << 20).unwrap());
+        }
+        ctx.synchronize().unwrap();
+        let used = pool.used_current().unwrap();
+        assert!(used >= 18 << 20, "used {used}");
+        assert!(pool.reserved_current().unwrap() >= used);
+
+        drop(live);
+        ctx.synchronize().unwrap();
+        assert_eq!(pool.used_current(), Ok(0), "used");
+        assert_eq!(pool.reserved_current(), Ok(0), "reserved");
+        ctx.check_err().unwrap();
+    }
+
+    /// CF-AC-02 threshold: with one allocation live and more reserved than
+    /// max(T, used) + one chunk, a synchronize brings reserved down to at
+    /// most max(T, used) + one chunk.
+    #[test]
+    fn release_threshold_bounds_reserved_after_sync() {
+        if !have_device() {
+            return;
+        }
+        const WORK: usize = 32 << 20;
+        const T: u64 = 16 << 20;
+        let (pool, stream) = private_stream(&MemPoolProps {
+            max_size: 0,
+            release_threshold: T,
+        });
+        let chunk = reservation_step(&pool, &stream, WORK);
+
+        let mut buffers: Vec<_> = (0..4)
+            .map(|_| unsafe { stream.alloc::<u8>(WORK) }.unwrap())
+            .collect();
+        let kept = buffers.pop().unwrap();
+        drop(buffers);
+        wait_idle_without_synchronizing(&stream);
+        let reserved_before = pool.reserved_current().unwrap();
+        let used = pool.used_current().unwrap();
+        assert!(
+            reserved_before > T.max(used) + chunk,
+            "precondition: reserved {reserved_before} > max(T {T}, used {used}) + chunk {chunk}"
+        );
+
+        stream.synchronize().unwrap();
+        let reserved = pool.reserved_current().unwrap();
+        let used = pool.used_current().unwrap();
+        assert!(
+            reserved <= T.max(used) + chunk,
+            "reserved {reserved} > max(T {T}, used {used}) + chunk {chunk}"
+        );
+        drop(kept);
+        stream.synchronize().unwrap();
+    }
+
+    /// CF-AC-02 trim: `trim_to(k)` sets a floor. With one allocation live
+    /// and more reserved than max(k, used) + one chunk, it leaves
+    /// k <= reserved <= max(k, used) + one chunk.
+    #[test]
+    fn trim_to_keeps_the_floor_and_releases_above_it() {
+        if !have_device() {
+            return;
+        }
+        const WORK: usize = 32 << 20;
+        const K: u64 = 48 << 20;
+        // Keep everything at a synchronize, so only the trim releases.
+        let (pool, stream) = private_stream(&MemPoolProps {
+            max_size: 0,
+            release_threshold: u64::MAX,
+        });
+        let chunk = reservation_step(&pool, &stream, WORK);
+
+        let mut buffers: Vec<_> = (0..4)
+            .map(|_| unsafe { stream.alloc::<u8>(WORK) }.unwrap())
+            .collect();
+        let kept = buffers.pop().unwrap();
+        drop(buffers);
+        stream.synchronize().unwrap();
+        let reserved_before = pool.reserved_current().unwrap();
+        let used = pool.used_current().unwrap();
+        assert!(
+            reserved_before > K.max(used) + chunk,
+            "precondition: reserved {reserved_before} > max(k {K}, used {used}) + chunk {chunk}"
+        );
+
+        pool.trim_to(K as usize).unwrap();
+        stream.synchronize().unwrap();
+        let reserved = pool.reserved_current().unwrap();
+        let used = pool.used_current().unwrap();
+        assert!(reserved >= K, "reserved {reserved} < k {K}");
+        assert!(
+            reserved <= K.max(used) + chunk,
+            "reserved {reserved} > max(k {K}, used {used}) + chunk {chunk}"
+        );
+        drop(kept);
+        stream.synchronize().unwrap();
+        pool.trim_to(0).unwrap();
+    }
+
+    /// CF-AC-02 capacity: in a fresh pool, every request up to the M-2
+    /// limit succeeds and keeps its data. The limit is at most the cap and
+    /// within one chunk of it.
+    #[test]
+    fn requests_within_the_cap_succeed() {
+        if !have_device() {
+            return;
+        }
+        const SIZE: usize = 1 << 20;
+        let cap = SMALL_POOL.max_size;
+        let limit = m2_limit(&SMALL_POOL, SIZE);
+        let (pool, stream) = private_stream(&SMALL_POOL);
+        let chunk = reservation_step(&pool, &stream, SIZE) as usize;
+        assert!(limit <= cap, "limit {limit} > cap {cap}");
+        assert!(
+            limit + chunk > cap,
+            "limit {limit} leaves more than a chunk ({chunk}) of the cap {cap} unusable"
+        );
+
+        let buffers: Vec<_> = (0..limit / SIZE)
+            .map(|i| {
+                stream
+                    .clone_htod(&std::vec![i as u8; SIZE])
+                    .unwrap_or_else(|e| panic!("request {i} within the limit {limit}: {e:?}"))
+            })
+            .collect();
+        for (i, buffer) in buffers.iter().enumerate() {
+            assert!(
+                stream
+                    .clone_dtoh(buffer)
+                    .unwrap()
+                    .iter()
+                    .all(|&b| b == i as u8),
+                "buffer {i} lost its data"
+            );
+        }
+        assert!(pool.used_current().unwrap() >= limit as u64);
+        drop(buffers);
+        stream.synchronize().unwrap();
+        assert_eq!(pool.used_current(), Ok(0));
+    }
+
+    /// CF-AC-02 capacity: with the pool filled to the M-2 limit, the next
+    /// request fails with out-of-memory. No more than the cap plus one chunk
+    /// is ever requested.
+    #[test]
+    fn a_request_over_the_cap_is_out_of_memory() {
+        if !have_device() {
+            return;
+        }
+        const SIZE: usize = 1 << 20;
+        let cap = SMALL_POOL.max_size;
+        let limit = m2_limit(&SMALL_POOL, SIZE);
+        let (pool, stream) = private_stream(&SMALL_POOL);
+        let chunk = reservation_step(&pool, &stream, SIZE) as usize;
+        assert!(
+            limit + SIZE <= cap + chunk,
+            "the requests would pass the cap {cap} plus one chunk {chunk}"
+        );
+
+        let buffers: Vec<_> = (0..limit / SIZE)
+            .map(|_| unsafe { stream.alloc::<u8>(SIZE) }.unwrap())
+            .collect();
+        assert_eq!(
+            unsafe { stream.alloc::<u8>(SIZE) }.map(|_| ()),
+            Err(DriverError(sys::CUresult::CUDA_ERROR_OUT_OF_MEMORY))
+        );
+        drop(buffers);
+        stream.synchronize().unwrap();
+        assert_eq!(pool.used_current(), Ok(0));
+        stream.context().check_err().unwrap();
+    }
+
+    /// CF-AC-02 capacity under concurrency (T-CONC): two host threads, two
+    /// streams each, share one more request than the M-2 limit holds. At
+    /// least one request fails with out-of-memory, the successful ones fit
+    /// the limit, and each keeps its own data.
+    #[test]
+    fn exhaustion_under_two_threads_and_four_streams_fails_only_the_excess() {
+        if !have_device() {
+            return;
+        }
+        const SIZE: usize = 1 << 20;
+        let cap = SMALL_POOL.max_size;
+        let limit = m2_limit(&SMALL_POOL, SIZE);
+        let (pool, probe) = private_stream(&SMALL_POOL);
+        let chunk = reservation_step(&pool, &probe, SIZE) as usize;
+        let requests = limit / SIZE + 1;
+        assert!(
+            requests * SIZE <= cap + chunk,
+            "the requests would pass the cap {cap} plus one chunk {chunk}"
+        );
+
+        let ctx = probe.context().clone();
+        let tickets = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let start = Arc::new(std::sync::Barrier::new(2));
+        let workers: Vec<_> = (0..2)
+            .map(|_| {
+                let (ctx, tickets, start) = (ctx.clone(), tickets.clone(), start.clone());
+                std::thread::spawn(move || {
+                    ctx.bind_to_thread().unwrap();
+                    let streams = [ctx.new_stream().unwrap(), ctx.new_stream().unwrap()];
+                    let mut done = Vec::new();
+                    start.wait();
+                    loop {
+                        let ticket = tickets.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                        if ticket >= requests {
+                            break;
+                        }
+                        let stream = &streams[ticket % 2];
+                        done.push((ticket, stream.clone_htod(&std::vec![ticket as u8; SIZE])));
+                    }
+                    for (ticket, buffer) in &done {
+                        if let Ok(buffer) = buffer {
+                            let data = buffer.stream().clone_dtoh(buffer).unwrap();
+                            assert!(
+                                data.iter().all(|&b| b == *ticket as u8),
+                                "buffer {ticket} lost its data"
+                            );
+                        }
+                    }
+                    done
+                })
+            })
+            .collect();
+        let done: Vec<_> = workers
+            .into_iter()
+            .flat_map(|worker| worker.join().unwrap())
+            .collect();
+        assert_eq!(done.len(), requests);
+
+        let failures: Vec<_> = done.iter().filter_map(|(_, r)| r.as_ref().err()).collect();
+        let succeeded = done.iter().filter(|(_, r)| r.is_ok()).count();
+        assert!(!failures.is_empty(), "no request failed");
+        for failure in &failures {
+            assert_eq!(
+                **failure,
+                DriverError(sys::CUresult::CUDA_ERROR_OUT_OF_MEMORY)
+            );
+        }
+        assert!(
+            succeeded * SIZE <= limit,
+            "{succeeded} requests of {SIZE} bytes succeeded, above the limit {limit}"
+        );
+        std::println!(
+            "T-CONC: {requests} requests, {succeeded} succeeded, {} failed, limit {limit}",
+            failures.len()
+        );
+        drop(done);
+        ctx.synchronize().unwrap();
+        assert_eq!(pool.used_current(), Ok(0));
+        ctx.check_err().unwrap();
+    }
+
+    /// A host-side gate a stream waits on (`cuLaunchHostFunc`).
+    struct Latch {
+        open: std::sync::Mutex<bool>,
+        opened: std::sync::Condvar,
+    }
+
+    impl Latch {
+        fn new() -> Self {
+            Latch {
+                open: std::sync::Mutex::new(false),
+                opened: std::sync::Condvar::new(),
+            }
+        }
+
+        fn open(&self) {
+            *self.open.lock().unwrap_or_else(|p| p.into_inner()) = true;
+            self.opened.notify_all();
+        }
+    }
+
+    unsafe extern "C" fn wait_for_latch(latch: *mut core::ffi::c_void) {
+        let latch = &*(latch as *const Latch);
+        let mut open = latch.open.lock().unwrap_or_else(|p| p.into_inner());
+        while !*open {
+            open = latch.opened.wait(open).unwrap_or_else(|p| p.into_inner());
+        }
+    }
+
+    /// CF-AC-02 stream order (T-CONC): stream B is held by a host latch and
+    /// then reads buffer X; X is freed on stream A; stream C allocates the
+    /// same size and writes another pattern. Event tracking makes A's free
+    /// wait for B's read, so B must still see X's pattern, whether or not C
+    /// was given X's address.
+    #[test]
+    fn a_buffer_freed_on_one_stream_is_not_reused_before_its_reader_finishes() {
+        if !have_device() {
+            return;
+        }
+        const LEN: usize = 1 << 20;
+        let (pool, a) = private_stream(&MemPoolProps::default());
+        let ctx = a.context().clone();
+        assert!(ctx.is_event_tracking());
+        let b = ctx.new_stream().unwrap();
+        let c = ctx.new_stream().unwrap();
+        let x = a.clone_htod(&std::vec![0xABu8; LEN]).unwrap();
+        a.synchronize().unwrap();
+        let x_address = x.cu_device_ptr;
+        let mut seen = unsafe { ctx.alloc_pinned::<u8>(LEN) }.unwrap();
+
+        let latch = Arc::new(Latch::new());
+        // If an enqueue below blocked the host, the latch would never open;
+        // the watchdog opens it and the test fails instead of hanging.
+        let watchdog_fired = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let released = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        let watchdog = {
+            let (latch, fired, released) =
+                (latch.clone(), watchdog_fired.clone(), released.clone());
+            std::thread::spawn(move || {
+                let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+                while !released.load(std::sync::atomic::Ordering::SeqCst) {
+                    if std::time::Instant::now() > deadline {
+                        fired.store(true, std::sync::atomic::Ordering::SeqCst);
+                        latch.open();
+                        return;
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                }
+            })
+        };
+        unsafe {
+            result::stream::launch_host_function(
+                b.cu_stream(),
+                wait_for_latch,
+                Arc::as_ptr(&latch) as *mut core::ffi::c_void,
+            )
+        }
+        .unwrap();
+        b.memcpy_dtoh(&x, &mut seen).unwrap();
+        drop(x);
+        let mut y = unsafe { c.alloc::<u8>(LEN) }.unwrap();
+        {
+            let (y_address, _record) = y.device_ptr_mut(&c);
+            unsafe { result::memset_d8_async(y_address, 0xCD, LEN, c.cu_stream()) }.unwrap();
+        }
+        let reused = y.cu_device_ptr == x_address;
+        assert_eq!(
+            unsafe { sys::cuStreamQuery(b.cu_stream()) },
+            sys::CUresult::CUDA_ERROR_NOT_READY,
+            "B must still be held by the latch"
+        );
+        latch.open();
+        released.store(true, std::sync::atomic::Ordering::SeqCst);
+        watchdog.join().unwrap();
+        assert!(
+            !watchdog_fired.load(std::sync::atomic::Ordering::SeqCst),
+            "an enqueue blocked the host while the latch was closed"
+        );
+
+        let read = seen.as_slice().unwrap();
+        let wrong = read.iter().filter(|&&v| v != 0xAB).count();
+        std::println!("stream order: C's buffer reuses X's address: {reused}");
+        assert_eq!(wrong, 0, "B read {wrong} bytes that were not X's pattern");
+        assert!(c.clone_dtoh(&y).unwrap().iter().all(|&v| v == 0xCD));
+        drop(y);
+        ctx.synchronize().unwrap();
+        assert_eq!(pool.used_current(), Ok(0));
+        ctx.check_err().unwrap();
+    }
+
+    /// CF-AC-02 lifetime: with the context, stream and pool handles dropped,
+    /// a live slice alone keeps the pool, whose counters still show the
+    /// allocation; after the slice is dropped and the stream synchronized,
+    /// they read 0, and the pool goes with the last handle.
+    #[test]
+    fn the_pool_outlives_its_context_while_slices_live() {
+        if !have_device() {
+            return;
+        }
+        let pool = Arc::new(CudaMemPool::create(0, &SMALL_POOL).unwrap());
+        let raw = pool.raw();
+        let weak = Arc::downgrade(&pool);
+        let ctx = CudaContext::new_with_mem_pool(0, pool).unwrap();
+        let stream = ctx.new_stream().unwrap();
+        let slice = stream.alloc_zeros::<u8>(1 << 20).unwrap();
+        stream.synchronize().unwrap();
+        drop((stream, ctx));
+        assert_eq!(
+            weak.strong_count(),
+            1,
+            "only the slice's context holds the pool"
+        );
+        // Read through the raw handle, so no reference of the test keeps it.
+        let used = counters(raw)[2];
+        assert!(used >= 1 << 20, "used {used} while only the slice lives");
+
+        let stream = slice.stream().clone();
+        drop(slice);
+        stream.synchronize().unwrap();
+        let pool = weak.upgrade().unwrap();
+        assert_eq!(pool.used_current(), Ok(0));
+        stream.context().check_err().unwrap();
+        drop((pool, stream));
+        assert_eq!(weak.strong_count(), 0, "the pool outlived its last handle");
+    }
+
+    /// CF-AC-02, design D-6: exactly these are `Send + Sync`, checked at
+    /// compile time.
+    #[test]
+    fn mem_pool_and_private_context_are_send_and_sync() {
+        fn send_and_sync<T: Send + Sync>() {}
+        send_and_sync::<CudaMemPool>();
+        send_and_sync::<Arc<CudaMemPool>>();
+        // The type of a context built with `new_with_mem_pool`.
+        send_and_sync::<CudaContext>();
+        send_and_sync::<Arc<CudaContext>>();
+    }
+
+    /// SplitMix64, a small seeded generator, so the property test needs no
+    /// new dev-dependency.
+    struct SplitMix(u64);
+
+    impl SplitMix {
+        fn next(&mut self) -> u64 {
+            self.0 = self.0.wrapping_add(0x9e37_79b9_7f4a_7c15);
+            let mut z = self.0;
+            z = (z ^ (z >> 30)).wrapping_mul(0xbf58_476d_1ce4_e5b9);
+            z = (z ^ (z >> 27)).wrapping_mul(0x94d0_49bb_1331_11eb);
+            z ^ (z >> 31)
+        }
+
+        fn below(&mut self, n: usize) -> usize {
+            (self.next() % n as u64) as usize
+        }
+    }
+
+    /// One live buffer of the model test: its slice and its byte pattern.
+    struct Held {
+        slice: CudaSlice<u8>,
+        pattern: u8,
+    }
+
+    /// Bytes at the start, middle and end of `held`, read synchronously.
+    fn sampled(held: &Held) -> Vec<u8> {
+        let len = held.slice.len();
+        let stream = held.slice.stream();
+        [0, len / 2, len - 16]
+            .into_iter()
+            .flat_map(|at| stream.clone_dtoh(&held.slice.slice(at..at + 16)).unwrap())
+            .collect()
+    }
+
+    /// CF-AC-02 property test: 256 seeded cases (seed = case index) of 64
+    /// operations each: allocate, free on a random stream, synchronize,
+    /// trim. Every case uses one allocation size, so the pool cannot
+    /// fragment, and a fresh pool capped at `SMALL_POOL.max_size`. The model
+    /// predicts:
+    /// - an allocation succeeds iff the live total plus its size is within
+    ///   the M-2 limit for that size, and fails with out-of-memory otherwise;
+    /// - after a synchronize, `USED_MEM_CURRENT` >= the live total;
+    /// - every buffer still holds its pattern when it is freed;
+    /// - the default pool's counters never change;
+    /// - all counters are 0 after the case's drop and synchronize.
+    #[test]
+    fn pool_model_property() {
+        if !have_device() {
+            return;
+        }
+        const CASES: u64 = 256;
+        const OPS: usize = 64;
+        const SIZES: [usize; 3] = [1 << 20, 4 << 20, 32 << 20];
+        let limits = SIZES.map(|size| m2_limit(&SMALL_POOL, size));
+        result::init().unwrap();
+        let cu_device = result::device::get(0).unwrap();
+        let default_pool = unsafe { result::device::get_default_mem_pool(cu_device) }.unwrap();
+        let oom = DriverError(sys::CUresult::CUDA_ERROR_OUT_OF_MEMORY);
+        // Totals over all cases: allocations, predicted out-of-memory
+        // failures, frees, frees on another stream, synchronizes, trims.
+        let mut seen = [0usize; 6];
+
+        for case in 0..CASES {
+            let mut rng = SplitMix(case);
+            let pick = rng.below(SIZES.len());
+            let (size, limit) = (SIZES[pick], limits[pick]);
+            let (pool, first) = private_stream(&SMALL_POOL);
+            let ctx = first.context().clone();
+            let streams = [first, ctx.new_stream().unwrap(), ctx.new_stream().unwrap()];
+            let default_before = counters(default_pool);
+            let mut live: Vec<Held> = Vec::new();
+
+            for op in 0..OPS {
+                let at = std::format!("case {case} (seed {case}) op {op}, size {size}");
+                let live_total = live.len() * size;
+                match rng.below(10) {
+                    0..=3 => {
+                        let stream = &streams[rng.below(streams.len())];
+                        let fits = live_total + size <= limit;
+                        match unsafe { stream.alloc::<u8>(size) } {
+                            Ok(mut slice) => {
+                                assert!(fits, "{at}: succeeded over the limit {limit}");
+                                seen[0] += 1;
+                                let pattern = (seen[0] % 251) as u8 + 1;
+                                let (ptr, record) = slice.device_ptr_mut(stream);
+                                unsafe {
+                                    result::memset_d8_async(ptr, pattern, size, stream.cu_stream())
+                                }
+                                .unwrap();
+                                drop(record);
+                                live.push(Held { slice, pattern });
+                            }
+                            Err(e) => {
+                                assert!(!fits, "{at}: failed within the limit {limit}: {e:?}");
+                                assert_eq!(e, oom, "{at}");
+                                seen[1] += 1;
+                            }
+                        }
+                    }
+                    4..=6 if !live.is_empty() => {
+                        let held = live.swap_remove(rng.below(live.len()));
+                        assert!(
+                            sampled(&held).iter().all(|&b| b == held.pattern),
+                            "{at}: a buffer lost its pattern {}",
+                            held.pattern
+                        );
+                        seen[2] += 1;
+                        let target = &streams[rng.below(streams.len())];
+                        if Arc::ptr_eq(target, held.slice.stream()) {
+                            drop(held);
+                        } else {
+                            seen[3] += 1;
+                            target.join(held.slice.stream()).unwrap();
+                            let ptr = held.slice.leak();
+                            unsafe { result::free_async(ptr, target.cu_stream()) }.unwrap();
+                        }
+                    }
+                    7 | 8 => {
+                        seen[4] += 1;
+                        ctx.synchronize().unwrap();
+                        let used = pool.used_current().unwrap();
+                        assert!(
+                            used >= live_total as u64,
+                            "{at}: used {used} below the live total {live_total}"
+                        );
+                    }
+                    _ => {
+                        seen[5] += 1;
+                        pool.trim_to(rng.below(limit + 1)).unwrap();
+                    }
+                }
+                assert_eq!(counters(default_pool), default_before, "{at}: default pool");
+            }
+
+            for held in &live {
+                assert!(
+                    sampled(held).iter().all(|&b| b == held.pattern),
+                    "case {case}: a buffer lost its pattern at the end"
+                );
+            }
+            drop(live);
+            ctx.synchronize().unwrap();
+            let [reserved, _, used, _] = counters(pool.raw());
+            assert_eq!(
+                (reserved, used),
+                (0, 0),
+                "case {case}: reserved and used after drop and synchronize"
+            );
+            ctx.check_err().unwrap();
+            assert_eq!(counters(default_pool), default_before, "case {case}");
+        }
+        std::println!(
+            "model: {} allocations, {} out-of-memory as predicted, {} frees ({} on another \
+             stream), {} synchronizes, {} trims; limits {limits:?}",
+            seen[0],
+            seen[1],
+            seen[2],
+            seen[3],
+            seen[4],
+            seen[5]
+        );
+        assert!(seen[1] > 0, "no case reached the limit");
+        assert!(seen[3] > 0, "no buffer was freed on another stream");
+    }
+
+    /// Design D-2: dropping the last pool handle while a leaked allocation
+    /// is outstanding defers the destruction. The memory stays allocated
+    /// until the pointer is freed with `cuMemFreeAsync`; then free device
+    /// memory returns to within one chunk of where it started.
+    #[test]
+    fn destroy_with_outstanding_allocations_is_deferred() {
+        if !have_device() {
+            return;
+        }
+        const SIZE: usize = 256 << 20;
+        let ordinary = CudaContext::new(0).unwrap();
+        let other = ordinary.new_stream().unwrap();
+        let chunk = {
+            let (pool, stream) = private_stream(&MemPoolProps::default());
+            reservation_step(&pool, &stream, SIZE) as usize
+        };
+        ordinary.bind_to_thread().unwrap();
+        let (free_before, _) = result::mem_get_info().unwrap();
+
+        let (pool, stream) = private_stream(&MemPoolProps::default());
+        let ptr = stream.alloc_zeros::<u8>(SIZE).unwrap().leak();
+        stream.synchronize().unwrap();
+        drop(stream);
+        assert_eq!(Arc::strong_count(&pool), 1);
+        drop(pool);
+
+        ordinary.bind_to_thread().unwrap();
+        let (free_outstanding, _) = result::mem_get_info().unwrap();
+        assert!(
+            free_outstanding + SIZE / 2 <= free_before,
+            "the outstanding allocation was released with the pool: free {free_before} -> {free_outstanding}"
+        );
+        unsafe { result::free_async(ptr, other.cu_stream()) }.unwrap();
+        other.synchronize().unwrap();
+        let (free_after, _) = result::mem_get_info().unwrap();
+        assert!(
+            free_after + chunk >= free_before,
+            "free {free_before} -> {free_after}, more than one chunk ({chunk}) short"
+        );
+        ordinary.check_err().unwrap();
+    }
+
+    /// Set in the child test process that [run_in_child] starts.
+    const CHILD: &str = "FATHOMDB_CUDARC_TEST_CHILD";
+
+    fn in_child() -> bool {
+        std::env::var_os(CHILD).is_some()
+    }
+
+    /// Runs this module's test `name` alone in a child test process, with
+    /// [CHILD] set.
+    fn run_in_child(name: &str, ignored: bool) -> (std::process::ExitStatus, String) {
+        let full = std::format!("driver::safe::core::fathomdb_private_pool::{name}");
+        let mut command = std::process::Command::new(std::env::current_exe().unwrap());
+        command
+            .args([full.as_str(), "--exact", "--nocapture", "--test-threads=1"])
+            .env(CHILD, "1");
+        if ignored {
+            command.arg("--ignored");
+        }
+        let output = command.output().unwrap();
+        let text = std::format!(
+            "{}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        (output.status, text)
+    }
+
+    /// Design D-2 (T-FAULT, lost context): in a child process, a private
+    /// pool with live slices sees a device-side assert, a sticky error; then
+    /// the slices, stream, context and pool are dropped. The child neither
+    /// panics nor aborts, and exits with status 0.
+    #[cfg(feature = "nvrtc")]
+    #[test]
+    #[ignore = "must be executed by itself"]
+    fn drops_after_a_sticky_error_neither_panic_nor_abort() {
+        if in_child() {
+            use crate::driver::{LaunchConfig, PushKernelArg};
+            let (pool, stream) = private_stream(&SMALL_POOL);
+            let ctx = stream.context().clone();
+            let inp = stream.clone_htod(&[1.0f32; 100]).unwrap();
+            let mut out = stream.alloc_zeros::<f32>(100).unwrap();
+            let ptx = crate::nvrtc::compile_ptx(
+                "
+    extern \"C\" __global__ void foo(float *out, const float *inp, const size_t numel) {
+        assert(0);
+    }",
+            )
+            .unwrap();
+            let module = ctx.load_module(ptx).unwrap();
+            let foo = module.load_function("foo").unwrap();
+            let mut builder = stream.launch_builder(&foo);
+            builder.arg(&mut out);
+            builder.arg(&inp);
+            builder.arg(&100usize);
+            unsafe { builder.launch(LaunchConfig::for_num_elems(100)) }.unwrap();
+            std::thread::sleep(std::time::Duration::from_secs(1));
+            let sticky = stream
+                .synchronize()
+                .expect_err("a device-side assert must fail the stream");
+            std::println!("CHILD sticky error: {sticky:?}");
+            drop((inp, out));
+            drop((foo, module));
+            drop(stream);
+            drop(ctx);
+            drop(pool);
+            std::println!("CHILD dropped everything");
+            return;
+        }
+        let (status, output) =
+            run_in_child("drops_after_a_sticky_error_neither_panic_nor_abort", true);
+        let asserts = output.matches("Assertion `0` failed").count();
+        let rest: Vec<_> = output
+            .lines()
+            .filter(|line| !line.contains("Assertion `0` failed"))
+            .collect();
+        std::println!(
+            "child exited with {status}; {asserts} device-side assert lines; the rest:\n{}",
+            rest.join("\n")
+        );
+        assert!(
+            status.success()
+                && output.contains("CHILD sticky error")
+                && output.contains("CHILD dropped everything")
+                && output.contains("1 passed")
+                && !output.contains("panicked"),
+            "child exited with {status}:\n{output}"
+        );
+    }
+
+    /// Design D-9 (T-CAPTURE): an allocation and a free captured on a stream
+    /// of a private context become graph allocation nodes. The graph
+    /// instantiates and launches, graph memory (`cuDeviceGetGraphMemAttribute`,
+    /// `USED_MEM_CURRENT`) rises, and neither the private pool's counters
+    /// nor the default pool's move.
+    #[test]
+    fn capture_on_a_private_context_uses_graph_memory() {
+        if !have_device() {
+            return;
+        }
+        let (pool, stream) = private_stream(&SMALL_POOL);
+        let ctx = stream.context().clone();
+        // All accesses use one stream; no waits on events recorded outside
+        // the capture (as upstream's graph tests).
+        unsafe { ctx.disable_event_tracking() };
+        let cu_device = ctx.cu_device;
+        let default_pool = unsafe { result::device::get_default_mem_pool(cu_device) }.unwrap();
+        let graph_used = || {
+            let mut value: u64 = 0;
+            unsafe {
+                sys::cuDeviceGetGraphMemAttribute(
+                    cu_device,
+                    sys::CUgraphMem_attribute::CU_GRAPH_MEM_ATTR_USED_MEM_CURRENT,
+                    (&mut value as *mut u64).cast(),
+                )
+            }
+            .result()
+            .unwrap();
+            value
+        };
+        let private_before = counters(pool.raw());
+        let default_before = counters(default_pool);
+        let graph_before = graph_used();
+
+        stream
+            .begin_capture(sys::CUstreamCaptureMode::CU_STREAM_CAPTURE_MODE_THREAD_LOCAL)
+            .unwrap();
+        let buffer = stream.alloc_zeros::<u8>(4 << 20).unwrap();
+        drop(buffer);
+        let graph = stream
+            .end_capture(sys::CUgraphInstantiate_flags(0))
+            .unwrap()
+            .expect("a captured graph");
+        graph.launch().unwrap();
+        stream.synchronize().unwrap();
+        let graph_after = graph_used();
+
+        std::println!("T-CAPTURE graph USED_MEM_CURRENT {graph_before} -> {graph_after}");
+        assert!(
+            graph_after > graph_before,
+            "graph memory did not rise: {graph_before} -> {graph_after}"
+        );
+        assert_eq!(counters(pool.raw()), private_before, "private pool");
+        assert_eq!(counters(default_pool), default_before, "default pool");
+        drop(graph);
+        stream.synchronize().unwrap();
+        ctx.check_err().unwrap();
+    }
+
+    /// Design D-13 (T-MULTI): pools on devices 0 and 1 are independent;
+    /// neither one's counters move when the other allocates.
+    #[test]
+    #[ignore = "must be executed with multiple gpus"]
+    fn two_pools_on_two_devices_are_independent() {
+        assert!(
+            CudaContext::device_count().unwrap() >= 2,
+            "needs two devices"
+        );
+        let streams = [0, 1].map(|ordinal| {
+            let pool = Arc::new(CudaMemPool::create(ordinal, &SMALL_POOL).unwrap());
+            let ctx = CudaContext::new_with_mem_pool(ordinal, pool.clone()).unwrap();
+            (pool, ctx.new_stream().unwrap())
+        });
+        for (mine, other) in [(0, 1), (1, 0)] {
+            let (pool, stream) = &streams[mine];
+            let other_pool = &streams[other].0;
+            let other_before = counters(other_pool.raw());
+            let buffer = stream.alloc_zeros::<u8>(8 << 20).unwrap();
+            stream.synchronize().unwrap();
+            assert!(pool.used_current().unwrap() >= 8 << 20, "device {mine}");
+            assert_eq!(
+                counters(other_pool.raw()),
+                other_before,
+                "device {other}'s pool moved when device {mine} allocated"
+            );
+            drop(buffer);
+            stream.synchronize().unwrap();
+            assert_eq!(pool.used_current(), Ok(0));
+        }
+    }
+
+    /// Design D-13 (T-MULTI): a real pool of device 1 is rejected for a
+    /// context of device 0, and accepted for device 1.
+    #[test]
+    #[ignore = "must be executed with multiple gpus"]
+    fn a_pool_of_device_1_is_rejected_for_device_0() {
+        assert!(
+            CudaContext::device_count().unwrap() >= 2,
+            "needs two devices"
+        );
+        let pool = Arc::new(CudaMemPool::create(1, &SMALL_POOL).unwrap());
+        assert_eq!(
+            CudaContext::new_with_mem_pool(0, pool.clone()).map(|_| ()),
+            Err(DriverError(sys::CUresult::CUDA_ERROR_INVALID_VALUE))
+        );
+        assert_eq!(Arc::strong_count(&pool), 1, "the rejected pool was kept");
+        let ctx = CudaContext::new_with_mem_pool(1, pool).unwrap();
+        assert_eq!(ctx.alloc_mode(), AllocMode::Private);
+    }
+
+    /// Design D-2 (T-TEARDOWN): a child process that allocates from a
+    /// private pool and exits without dropping anything exits cleanly.
+    #[test]
+    fn exit_with_a_live_pool_is_clean() {
+        if in_child() {
+            let (pool, stream) = private_stream(&SMALL_POOL);
+            let slice = stream.alloc_zeros::<u8>(1 << 20).unwrap();
+            stream.synchronize().unwrap();
+            std::println!("CHILD live: used {}", pool.used_current().unwrap());
+            let _keep = (pool, stream, slice);
+            std::process::exit(0);
+        }
+        if !have_device() {
+            return;
+        }
+        let (status, output) = run_in_child("exit_with_a_live_pool_is_clean", false);
+        std::println!("child exited with {status}:\n{output}");
+        assert!(
+            status.success() && output.contains("CHILD live: used "),
+            "child exited with {status}:\n{output}"
+        );
+    }
 }
 // FATHOMDB PATCH END
