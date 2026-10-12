@@ -42,9 +42,6 @@ Class: `U` upstream-shaped code, proposable upstream; `L` local-only code;
 | 8 | Packaging as `cudarc-fathomdb` (`[lib] name = "cudarc"`), `exclude`, README notice, this file | `P` | not applicable | when FathomDB consumes upstream cudarc again |
 | 9 | Built-major library loading: per library, try only the built major's versioned names first, verify unversioned names by the library's version query, and report the loaded file and version | `U` | not upstream; a second upstream proposal (`proposal/lib-major`) is planned and not posted | drop when upstream ships an equivalent |
 
-Source comments marked `FATHOMDB PATCH` that cite `FATHOMDB-PATCH.md` (the
-name of this record in FathomDB's earlier vendored copy) refer to this file.
-
 ## Items 1–4: allocator fallback (aarch64 Linux only)
 
 All four are compiled only for `cfg(all(target_os = "linux", target_arch =
@@ -148,13 +145,14 @@ Item 9 changes how the CUDA toolkit libraries are found under
 `dynamic-loading` and `fallback-dynamic-loading`. The in-scope libraries are
 `cudart`, `cublas`, `cublasLt`, `nvrtc`, `cupti`, `cufft`, `cusolver`,
 `cusolverMg`, `cusparse`, `curand` and `cufile`. The driver, cuDNN, NCCL,
-cuTENSOR and NVTX load as upstream does, and CUDA 11.x builds are unchanged.
+cuTENSOR and NVTX load as upstream does.
 
 Upstream tries a long list of names across CUDA majors, so a CUDA 12 build
 can bind a CUDA 13 library found under an unversioned name, or the reverse.
 NVIDIA guarantees ABI stability only within one major.
 
-Behaviour changes from upstream v0.19.10, for CUDA 12.x and 13.x builds:
+Behaviour changes from upstream v0.19.10 that apply to the in-scope
+libraries in CUDA 12.x and 13.x builds (Windows CUPTI excepted):
 
 - **`get_lib_name_candidates` returns a different list for the in-scope
   libraries.** Its signature is unchanged. The list is the library's
@@ -180,6 +178,12 @@ Behaviour changes from upstream v0.19.10, for CUDA 12.x and 13.x builds:
   `AlreadyLoadedWrongVersion`. In-scope dependencies that an accepted
   library pulls in are checked too, and a wrong one fails the load with
   `WrongMajorDependency`.
+
+In CUDA 11.x builds (and for Windows CUPTI) the candidate list is
+upstream's and the first name that opens is used, with no version check, as
+upstream does. The changes below apply to every in-scope library in every
+build, CUDA 11.x included:
+
 - **A typed, non-panicking path.** Each in-scope `sys` module adds
   `try_culib()`, which returns `Result<&Library, LibLoadError>`, and
   `is_symbol_present(name)`. `LibLoadError` names the library, the CUDA
@@ -196,7 +200,10 @@ Behaviour changes from upstream v0.19.10, for CUDA 12.x and 13.x builds:
   add `loaded_library()`, which returns a `LoadedLibrary`, available after a
   successful load. It gives the major checked against, the name opened, the
   canonical path of the file loaded (comparable with `/proc/self/maps`), and
-  the version (or the reason there is none). Under `dynamic-linking` or
+  the version (or the reason there is none). To fill in the version, the
+  loader calls the library's version query (through `dlsym` on the loaded
+  handle) during the load, in CUDA 11.x builds too, where the result is only
+  reported. Under `dynamic-linking` or
   `static-linking` the report says "linked at build time". The driver's
   report does not change how the driver loads.
 - **New public types** at the crate root: `LibLoadError`, `LibVersion`,
@@ -209,3 +216,6 @@ Known gaps:
 - CUDA 11.x cuFile cannot be told apart from 12.0–12.2 cuFile (neither
   exports `cuFileGetVersion`).
 - The already-loaded and dependency checks are Linux only.
+- On Windows, the code that resolves the loaded file's path
+  (`GetModuleHandleExW`, `GetModuleFileNameW`) is compile-checked by fork CI
+  only; it has not been run.
