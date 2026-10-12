@@ -571,11 +571,11 @@ binary = "unittests:cudarc"
 kind = "P"
 cells = ["pure"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.1"
 serves = "CF-AC-04"
-red = "FC5-b"
+red = "FC5-b 536ec11: at cuda-12010 left Err(CUDA_ERROR_UNKNOWN) (the forced entry error: create went on to the driver), right Err(CUDA_ERROR_NOT_SUPPORTED); GREEN 4dc1ec7"
 cfg = { features = ["driver"], max_version = 12010 }
 
 [[test]]
@@ -585,12 +585,12 @@ binary = "unittests:cudarc"
 kind = "F"
 cells = ["G1", "G3"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.1"
 serves = "CF-AC-04 (D-4)"
-red = "FC5-b"
-cfg = { features = ["driver"] }
+red = "FC5-b 536ec11: G1-setup cuda-12060 driver-only, left Ok(()), right Err(CUDA_ERROR_NOT_SUPPORTED); GREEN 4dc1ec7"
+cfg = { features = ["driver"], min_version = 12020 }
 
 [[test]]
 name = "attributes_newer_than_the_driver_are_never_requested"
@@ -599,12 +599,12 @@ binary = "unittests:cudarc"
 kind = "F+D"
 cells = ["G3"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.1"
 serves = "CF-AC-04b (gate)"
-red = "FC5-b, staged (RED on G3 13020 after the ungated read-back commit)"
-cfg = { features = ["driver"] }
+red = "FC5-b staged: ungated read-back 7889643, RED 5a342fe on G3 cuda-13020 driver 580 (requests for attributes above 8: left 1, right 0); GREEN 2f936a5"
+cfg = { features = ["driver"], min_version = 13020 }
 note = "cells: G3 13020-13040 builds"
 
 [[test]]
@@ -612,14 +612,14 @@ name = "max_pool_size_read_back_uses_the_driver_value"
 module = "driver::safe::core::fathomdb_private_pool"
 binary = "unittests:cudarc"
 kind = "F"
-cells = ["G1"]
+cells = ["G3"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.1"
 serves = "CF-AC-04 (D-4)"
-red = "FC5-b"
-cfg = { features = ["driver"] }
+red = "FC5-b 0314e34: cuda-13020 driver 580, left Ok(()), right Err(CUDA_ERROR_INVALID_VALUE); GREEN f0e72b3. Cells G3 not G1: the read-back exists only from cuda-13020 bindings"
+cfg = { features = ["driver"], min_version = 13020 }
 
 [[test]]
 name = "max_pool_size_reads_back_at_least_the_request"
@@ -627,13 +627,13 @@ module = "driver::safe::core::fathomdb_private_pool"
 binary = "unittests:cudarc"
 kind = "D"
 cells = ["G5b"]
-ignored = false
-landed = false
+ignored = true
+landed = true
 origin = "test-plan"
 section = "3.1"
 serves = "CF-AC-04c"
-red = "no RED at FC5 (needs a newer driver); observed at FC8 on G5b"
-cfg = { features = ["driver"] }
+red = "no RED at FC5 (needs a driver >= 13020); landed c44d3b7; observed at FC8 on G5b"
+cfg = { features = ["driver"], min_version = 13020 }
 note = "cells: G5b 13020-13040 builds"
 
 [[test]]
@@ -641,14 +641,14 @@ name = "a_failed_max_pool_size_read_leaves_create_successful"
 module = "driver::safe::core::fathomdb_private_pool"
 binary = "unittests:cudarc"
 kind = "F"
-cells = ["G1"]
+cells = ["G3"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.1"
 serves = "CF-AC-04 (D-4)"
-red = "FC5-b"
-cfg = { features = ["driver"] }
+red = "FC5-b 0314e34: cuda-13020 driver 580, unwrap on Err(CUDA_ERROR_INVALID_VALUE); GREEN f0e72b3. Cells G3 not G1: the read-back exists only from cuda-13020 bindings"
+cfg = { features = ["driver"], min_version = 13020 }
 
 [[test]]
 name = "typed_reads_return_64_bit_values"
