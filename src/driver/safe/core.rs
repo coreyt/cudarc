@@ -73,10 +73,10 @@ fn alloc_mode_of(has_mem_pool: bool, has_async_alloc: bool) -> AllocMode {
 }
 // FATHOMDB PATCH END
 
-// FATHOMDB PATCH BEGIN: allocator fallback (see FATHOMDB-PATCH.md).
+// FATHOMDB PATCH BEGIN: allocator fallback (see FATHOMDB.md, items 1-3).
 /// Whether this build applies the allocator fallback. It was measured only on
 /// Jetson (Tegra), so it is limited to aarch64 Linux; every other target keeps
-/// upstream 0.19.7's allocator selection and zero-length handling unchanged.
+/// upstream 0.19.10's allocator selection and zero-length handling unchanged.
 const SYNC_FALLBACK: bool = cfg!(all(target_os = "linux", target_arch = "aarch64"));
 
 /// Whether a device should use stream-ordered allocation.
@@ -122,16 +122,20 @@ fn async_alloc_decision(
 /// A buffer may outlive or move between [CudaContext] wrappers of one device
 /// (`CudaContext::new` may be called repeatedly for the same primary context,
 /// and [CudaSlice::leak] / [CudaStream::upgrade_device_ptr] move raw
-/// pointers), and it is freed by whichever wrapper owns it last. If two
-/// wrappers chose differently, a `cuMemAlloc` buffer could reach
-/// `cuMemFreeAsync`. Keying the decision by device makes every wrapper of a
-/// device agree. A cached `true` stays valid: on the measured Jetson the
-/// default pool, once obtained, kept its address range and handle when its
-/// primary context was released to refcount 0 or its non-primary context was
-/// destroyed, and stayed usable on re-retain with every hole in the window
-/// blocked (see `FATHOMDB-PATCH.md`). A cached `false` is conservative: if
-/// the address space later frees up, the device stays on the slower but
-/// correct synchronous path. Used only on aarch64 Linux.
+/// pointers), and it is freed by whichever wrapper owns it last. NVIDIA
+/// allows freeing across the two allocator families (see
+/// [CudaStream::upgrade_device_ptr]), so this is not needed for a correct
+/// free; keying the decision by device keeps every wrapper of a device on one
+/// allocator, which is the configuration measured on the Jetson AGX Orin
+/// (FATHOMDB.md, item 2). A cached `true` stays valid: on the measured Jetson
+/// the default pool, once obtained, kept its address range and handle when
+/// its primary context was released to refcount 0 or its non-primary context
+/// was destroyed, and stayed usable on re-retain with every hole in the window
+/// blocked (FathomDB repository,
+/// `dev/plans/runs/0.8.27-slice-110-tegra/pool-teardown-evidence/`). A cached
+/// `false` is conservative: if the address space later frees up, the device
+/// stays on the slower but correct synchronous path. Used only on aarch64
+/// Linux.
 #[cfg_attr(
     not(all(target_os = "linux", target_arch = "aarch64")),
     allow(dead_code)
@@ -186,8 +190,8 @@ static PROCESS_ALLOC_MODE: AllocModeByDevice = AllocModeByDevice::new();
 /// ([async_alloc_decision] with the fallback). If it fails, `release_context`
 /// runs so the constructor does not leak the context it created.
 ///
-/// Every allocation and its matching free branch on the stored result, so a
-/// buffer is always freed by the API that allocated it.
+/// Every allocation and its matching free branch on the stored result, so all
+/// wrappers of a device use one allocator.
 ///
 /// # Safety
 /// `cu_ctx` must be a live context created for `cu_device`; it is made current
@@ -546,7 +550,7 @@ impl CudaContext {
     /// Returns whether this context supports asynchronous memory allocation.
     ///
     /// It is `true` if the `CU_DEVICE_ATTRIBUTE_MEMORY_POOLS_SUPPORTED` attribute is greater
-    /// than 0. On aarch64 Linux (FathomDB patch; see `FATHOMDB-PATCH.md`) it additionally
+    /// than 0. On aarch64 Linux (FathomDB patch; see `FATHOMDB.md`, items 1-2) it additionally
     /// requires that the device's default memory pool can be obtained, and it is decided once
     /// per device per process, by the first context created for or wrapping that device;
     /// every later context of the device reuses it.
@@ -3501,7 +3505,7 @@ mod tests {
     }
 }
 
-// FATHOMDB PATCH BEGIN: allocator fallback tests (see FATHOMDB-PATCH.md).
+// FATHOMDB PATCH BEGIN: allocator fallback tests (see FATHOMDB.md, item 4).
 #[cfg(test)]
 mod fathomdb_alloc_fallback {
     use super::*;
@@ -3534,7 +3538,7 @@ mod fathomdb_alloc_fallback {
         use sys::CUresult::{
             CUDA_ERROR_ILLEGAL_ADDRESS, CUDA_ERROR_NOT_SUPPORTED, CUDA_ERROR_OUT_OF_MEMORY,
         };
-        // Upstream 0.19.7: stream-ordered allocation iff the pool attribute
+        // Upstream 0.19.10: stream-ordered allocation iff the pool attribute
         // is positive, and the default pool is never queried.
         for supported in [-1, 0, 1, 2] {
             assert_eq!(
