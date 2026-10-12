@@ -39,20 +39,26 @@ def package_name(manifest):
 
 def rename_root(text, new_name):
     """`text` with the root entry's name line set to `new_name`."""
+    # Split on "\n" and compare without a trailing "\r", so a CRLF checkout
+    # (Windows, core.autocrlf) keeps its line endings.
     lines = text.split("\n")
     root_name_line = f'name = "{BASELINE_ROOT}"'
+
+    def line(k):
+        return lines[k].removesuffix("\r")
+
     candidates = []
     i = 0
     while i < len(lines):
-        if lines[i] != "[[package]]":
+        if line(i) != "[[package]]":
             i += 1
             continue
         j = i + 1
-        while j < len(lines) and not lines[j].startswith("["):
+        while j < len(lines) and not line(j).startswith("["):
             j += 1
         block = range(i + 1, j)
-        names = [k for k in block if lines[k] == root_name_line]
-        has_source = any(lines[k].startswith("source = ") for k in block)
+        names = [k for k in block if line(k) == root_name_line]
+        has_source = any(line(k).startswith("source = ") for k in block)
         if names and not has_source:
             candidates.append(names[0])
         i = j
@@ -61,7 +67,9 @@ def rename_root(text, new_name):
             f"use-baseline-lock: expected exactly one root entry "
             f'(name = "{BASELINE_ROOT}", no source), found {len(candidates)}'
         )
-    lines[candidates[0]] = f'name = "{new_name}"'
+    k = candidates[0]
+    eol = "\r" if lines[k].endswith("\r") else ""
+    lines[k] = f'name = "{new_name}"{eol}'
     return "\n".join(lines)
 
 
