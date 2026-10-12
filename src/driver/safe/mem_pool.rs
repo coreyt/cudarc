@@ -329,26 +329,54 @@ impl CudaMemPool {
         self.max_size
     }
 
-    /// Reads a 64-bit pool attribute: the release threshold or one of the
-    /// reserved / used memory counters.
+    /// Bytes the pool currently holds from the OS
+    /// (`CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT`).
     ///
     /// # Errors
-    /// The driver error of `cuMemPoolGetAttribute`, including
-    /// `CUDA_ERROR_INVALID_VALUE` for an attribute that is not 64 bits wide.
-    pub fn attribute(&self, attr: sys::CUmemPool_attribute) -> Result<u64, DriverError> {
-        use sys::CUmemPool_attribute::*;
-        if !matches!(
-            attr,
-            CU_MEMPOOL_ATTR_RELEASE_THRESHOLD
-                | CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT
-                | CU_MEMPOOL_ATTR_RESERVED_MEM_HIGH
-                | CU_MEMPOOL_ATTR_USED_MEM_CURRENT
-                | CU_MEMPOOL_ATTR_USED_MEM_HIGH
-        ) {
-            // The other attributes are 32-bit; the driver would write only
-            // half of `value`.
-            return Err(DriverError(sys::CUresult::CUDA_ERROR_INVALID_VALUE));
-        }
+    /// The driver error of `cuMemPoolGetAttribute`.
+    pub fn reserved_current(&self) -> Result<u64, DriverError> {
+        self.read_u64(sys::CUmemPool_attribute::CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT)
+    }
+
+    /// The high-water mark of [Self::reserved_current]
+    /// (`CU_MEMPOOL_ATTR_RESERVED_MEM_HIGH`).
+    ///
+    /// # Errors
+    /// The driver error of `cuMemPoolGetAttribute`.
+    pub fn reserved_high(&self) -> Result<u64, DriverError> {
+        self.read_u64(sys::CUmemPool_attribute::CU_MEMPOOL_ATTR_RESERVED_MEM_HIGH)
+    }
+
+    /// Bytes of the pool in use by allocations
+    /// (`CU_MEMPOOL_ATTR_USED_MEM_CURRENT`).
+    ///
+    /// # Errors
+    /// The driver error of `cuMemPoolGetAttribute`.
+    pub fn used_current(&self) -> Result<u64, DriverError> {
+        self.read_u64(sys::CUmemPool_attribute::CU_MEMPOOL_ATTR_USED_MEM_CURRENT)
+    }
+
+    /// The high-water mark of [Self::used_current]
+    /// (`CU_MEMPOOL_ATTR_USED_MEM_HIGH`).
+    ///
+    /// # Errors
+    /// The driver error of `cuMemPoolGetAttribute`.
+    pub fn used_high(&self) -> Result<u64, DriverError> {
+        self.read_u64(sys::CUmemPool_attribute::CU_MEMPOOL_ATTR_USED_MEM_HIGH)
+    }
+
+    /// Bytes of freed memory the pool may keep at a synchronization point
+    /// (`CU_MEMPOOL_ATTR_RELEASE_THRESHOLD`).
+    ///
+    /// # Errors
+    /// The driver error of `cuMemPoolGetAttribute`.
+    pub fn release_threshold(&self) -> Result<u64, DriverError> {
+        self.read_u64(sys::CUmemPool_attribute::CU_MEMPOOL_ATTR_RELEASE_THRESHOLD)
+    }
+
+    /// Reads one of the attributes that are `cuuint64_t` in every binding
+    /// (4-8; CUDA 12.6 `cuda.h`).
+    fn read_u64(&self, attr: sys::CUmemPool_attribute) -> Result<u64, DriverError> {
         let mut value: u64 = 0;
         unsafe {
             result::mem_pool::get_attribute(self.pool, attr, (&mut value as *mut u64).cast())

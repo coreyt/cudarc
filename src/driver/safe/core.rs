@@ -3738,10 +3738,6 @@ mod fathomdb_private_pool {
     use crate::driver::safe::mem_pool::{
         device_location, pool_props, seams, CudaMemPool, MemPoolProps,
     };
-    use sys::CUmemPool_attribute::{
-        CU_MEMPOOL_ATTR_RELEASE_THRESHOLD, CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT,
-        CU_MEMPOOL_ATTR_USED_MEM_CURRENT,
-    };
 
     fn have_device() -> bool {
         if !unsafe { sys::is_culib_present() } || CudaContext::device_count().unwrap_or(0) < 1 {
@@ -4207,11 +4203,8 @@ mod fathomdb_private_pool {
             },
         )
         .unwrap();
-        assert_eq!(
-            pool.attribute(CU_MEMPOOL_ATTR_RELEASE_THRESHOLD),
-            Ok(1 << 20)
-        );
-        assert_eq!(pool.attribute(CU_MEMPOOL_ATTR_USED_MEM_CURRENT), Ok(0));
+        assert_eq!(pool.release_threshold(), Ok(1 << 20));
+        assert_eq!(pool.used_current(), Ok(0));
         pool.trim_to(0).unwrap();
     }
 
@@ -4235,15 +4228,15 @@ mod fathomdb_private_pool {
         let stream = ctx.default_stream();
         let slice = stream.alloc_zeros::<u8>(1 << 20).unwrap();
         stream.synchronize().unwrap();
-        let used = pool.attribute(CU_MEMPOOL_ATTR_USED_MEM_CURRENT).unwrap();
+        let used = pool.used_current().unwrap();
         assert!(used >= 1 << 20, "private pool used={used}");
         assert_eq!(stream.clone_dtoh(&slice).unwrap(), std::vec![0u8; 1 << 20]);
 
         drop(slice);
         stream.synchronize().unwrap();
-        assert_eq!(pool.attribute(CU_MEMPOOL_ATTR_USED_MEM_CURRENT), Ok(0));
+        assert_eq!(pool.used_current(), Ok(0));
         // Release threshold 0: freed memory goes back at the synchronization.
-        assert_eq!(pool.attribute(CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT), Ok(0));
+        assert_eq!(pool.reserved_current(), Ok(0));
         ctx.check_err().unwrap();
         assert_eq!(
             unsafe { result::device::get_mem_pool(cu_device) },
@@ -4272,7 +4265,7 @@ mod fathomdb_private_pool {
         drop((null, unset, zeros));
         stream.synchronize().unwrap();
         ctx.check_err().unwrap();
-        assert_eq!(pool.attribute(CU_MEMPOOL_ATTR_USED_MEM_CURRENT), Ok(0));
+        assert_eq!(pool.used_current(), Ok(0));
     }
 
     /// The pool outlives every allocation: slice → stream → context →
@@ -4305,7 +4298,7 @@ mod fathomdb_private_pool {
         let pool = weak.upgrade().unwrap();
         drop(ctx);
         let pool = Arc::try_unwrap(pool).expect("the context released the pool");
-        assert_eq!(pool.attribute(CU_MEMPOOL_ATTR_USED_MEM_CURRENT), Ok(0));
+        assert_eq!(pool.used_current(), Ok(0));
         let raw = pool.raw();
         std::mem::forget(pool);
         assert_eq!(unsafe { result::mem_pool::destroy(raw) }, Ok(()));
