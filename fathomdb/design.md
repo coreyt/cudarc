@@ -557,9 +557,18 @@ Notes:
    notes ship cuRAND 10.4.4. It is accepted only through the version check
    (UNCONFIRMED name).
 
-**The Windows names were not read from wheel contents.** They come from
-PATHFINDER, conda-forge recipes and cudarc #242/#246. FC3 checks them on
-the Windows VM before FC6.
+**The Windows names were confirmed from NVIDIA's Windows wheels**
+(win_amd64, downloaded from PyPI without installing, 2026-10-12):
+
+| Wheels | DLLs |
+| --- | --- |
+| cu12 12.6: runtime 12.6.77, cuBLAS 12.6.4.1, NVRTC 12.6.85, CUPTI 12.6.80, cuFFT 11.3.0.4, cuSOLVER 11.7.1.2, cuSPARSE 12.5.4.2, cuRAND 10.3.7.77 | `cudart64_12`, `cublas64_12`, `cublasLt64_12`, `nvrtc64_120_0`, `cupti64_2024.3.2`, `cufft64_11`, `cusolver64_11`, `cusolverMg64_11`, `cusparse64_12`, `curand64_10` |
+| cu13 13.0: runtime 13.0.96, cuBLAS 13.0.2.14, NVRTC 13.0.88, CUPTI 13.0.85, cuFFT 12.0.0.61, cuSOLVER 12.0.4.66, cuSPARSE 12.6.3.3, cuRAND 10.4.0.35 | `cudart64_13`, `cublas64_13`, `cublasLt64_13`, `nvrtc64_130_0`, `cupti64_2025.3.1`, `cufft64_12`, `cusolver64_12`, `cusolverMg64_12`, `cusparse64_12`, `curand64_10` |
+
+All names end in `.dll`. The cu13 wheels place their DLLs under
+`nvidia/cu13/bin/x86_64/`, which affects users' `PATH` but not the names.
+`curand64_11.dll` is not shipped in 13.0 and stays an accepted-by-version
+candidate only.
 
 **The version check** runs `dlsym` on the candidate's own handle, never
 through the generated binding, which panics. A library is accepted if its
@@ -576,7 +585,7 @@ query reports the built major's line:
 | cusolver | `cusolverGetProperty` | 11.4.2 ≤ v < 12 | 12 |
 | cusparse | `cusparseGetProperty(MAJOR, MINOR)` | 12.0–12.5 | 12.6 or later |
 | curand | `curandGetVersion` | 10301–10399 | ≥ 10400 |
-| cufile | `cuFileGetVersion`, if the symbol exists | 1110–1140 with the symbol; no symbol: accepted, reason `NoVersionQuery` | ≥ 1150; no symbol: rejected |
+| cufile | `cuFileGetVersion`, if the symbol exists (cuFile 1.8 / CUDA 12.3 on) | 1080–1140 with the symbol; no symbol: accepted, reason `NoVersionQuery` | ≥ 1150; no symbol: rejected |
 | cusolverMg | none exported | versioned name only (known gap below) | versioned name only |
 
 Lower bounds keep CUDA 11.x libraries out of 12.x builds. CUDA 11.x shares
@@ -589,12 +598,23 @@ Known gaps:
 - **cuSolverMg `.so.11`** exists in both CUDA 11.x and 12.x and exports no
   version query, so a CUDA 11 cuSolverMg on the path of a 12.x build is not
   detected. FathomDB does not use cuSolverMg.
-- **cuFile before 1.11** (CUDA 11.x to 12.5) may export no
-  `cuFileGetVersion`. Whether it does is UNCONFIRMED, and FC3 measures the
-  cu12 12.3 and 12.5 wheels. A cuFile without the symbol is accepted for
-  M = 12 with reason `NoVersionQuery`, in the report and in its
-  documentation. It is rejected for M = 13, since every 13.x cuFile is
-  1.15 or later.
+- **cuFile before 1.8** (CUDA 11.x to 12.2) exports no `cuFileGetVersion`.
+  This was measured on 2026-10-12 from NVIDIA's Ubuntu 22.04 apt packages,
+  extracted without installing:
+
+  | Package | `cuFileGetVersion` | Value |
+  | --- | --- | --- |
+  | `libcufile-12-0` 1.5.1.14 | absent | — |
+  | `libcufile-12-3` 1.8.1.2 | present | 1080 |
+  | `libcufile-12-5` 1.10.1.7 | present | 1100 |
+
+  The encoding is major × 1000 + minor × 10.
+
+  A cuFile without the symbol is accepted for M = 12 with reason
+  `NoVersionQuery`, in the report and in its documentation. CUDA 11.x
+  cuFile cannot be told apart from 12.0–12.2 cuFile, which is a known gap.
+  A cuFile without the symbol is rejected for M = 13, since every 13.x
+  cuFile is 1.15 or later.
 - **Future majors:** the 13.x ranges are open-ended, so a future CUDA 14
   library that keeps the same soname would be accepted by a 13.x build.
   This trade-off is accepted and noted for the second proposal (FC9b).
@@ -775,10 +795,11 @@ fn lib_candidates(os: TargetOs, ptr_width: u32, lib: &str, major: u32, minor: u3
 2. Measure the allocation granule on G1, G5b and G6.
 3. Check that driver 580 rejects attributes 9–15. This is an observation
    only; the gate never requests them.
-4. Check the Windows DLL names on the Windows VM (`gh-runner-wonl-win11`).
+4. Done at FC2: the Windows DLL names were confirmed from NVIDIA's wheels
+   (§ 12.4).
 5. Pick G5b's driver branch from what Ubuntu 24.04 and NVIDIA's repository
    offer for the T4.
 6. Record the 13.4 Driver API deprecation status of each fork function.
-7. Measure whether `cuFileGetVersion` is exported by the cu12 12.3 and 12.5
-   cuFile wheels.
+7. Done at FC2: `cuFileGetVersion` exists from cuFile 1.8 (CUDA 12.3)
+   (§ 12.4).
 8. Measure the chunk step at the four allocation sizes (§ 5).
