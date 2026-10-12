@@ -4083,6 +4083,7 @@ mod fathomdb_private_pool {
 
     /// Runs `inner` alone in a child test process, so the process-wide
     /// allocator table starts empty whatever this process already decided.
+    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
     fn in_fresh_process(inner: &str) {
         let exe = std::env::current_exe().unwrap();
         let output = std::process::Command::new(exe)
