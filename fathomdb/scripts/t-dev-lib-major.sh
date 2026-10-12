@@ -90,14 +90,15 @@ run_case() {  # run_case <case> <test name> <binary> [env/loader prefix...]
   local c="$1" name="$2" bin="$3"; shift 3
   local log="$out/case-$c.log" status=0
   "$@" "$bin" --ignored --exact "$name" --nocapture --test-threads=1 >"$log" 2>&1 || status=$?
-  grep -E '^(MAPS|RESULT) |panicked at|^(a CUDA|loading|precondition|assertion)' "$log" | sed "s/^/  /" || true
-  if grep -q "^test $name \.\.\. ok" "$log"; then
-    echo "CASE $c $name: test ok (exit $status)"
-  elif grep -q "^test $name \.\.\. FAILED" "$log"; then
-    echo "CASE $c $name: test FAILED (exit $status)"
-  else
-    echo "CASE $c $name: no test result (exit $status); see $log"
-  fi
+  grep -oE '(MAPS|RESULT) .*|panicked at .*' "$log" | sed "s/^/  /" || true
+  grep -A1 'panicked at' "$log" | grep -vE 'panicked at|^--$' | sed "s/^/  message: /" || true
+  local summary
+  summary="$(grep -E '^test result: ' "$log" || true)"
+  case "$summary" in
+    "test result: ok. 1 passed;"*) echo "CASE $c $name: test ok (exit $status)" ;;
+    "test result: FAILED. 0 passed; 1 failed;"*) echo "CASE $c $name: test FAILED (exit $status)" ;;
+    *) echo "CASE $c $name: no test result (exit $status); see $log" ;;
+  esac
 }
 
 for c in "${cases[@]}"; do
