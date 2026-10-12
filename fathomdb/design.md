@@ -1,6 +1,6 @@
 # cudarc-fathomdb design (FC2)
 
-- Status: FC2 revision 3, 2026-10-12. Revision 1 (`8259c14`) was reviewed by
+- Status: FC2 revision 4, 2026-10-12. Revision 1 (`8259c14`) was reviewed by
   R-FC-DES (APPROVE-WITH-FIXES); revision 2 fixes every finding
   (dispositions in [review.md](review.md)). Revision 3 (FC8 G6 fix round,
   findings F-G6-1 and F-G6-2 of `qualification/2026-10-12-G6-b29c41c.md`)
@@ -8,6 +8,10 @@
   `maxSize` cap (D-4), the per-process budget of uncapped pools (D-2,
   D-9), and an upstream `cuCtxCreate_v4` defect (§ 10). No fork code
   changes for them; the fork's tests change (test plan revision 4).
+  Revision 4 (R-FC-CODE-2 findings L1, L2) replaces the estimated
+  address space per uncapped pool and the inferred `Synchronous`
+  selection in D-2 with the measurements of
+  `qualification/2026-10-12-uncapped-pools-probe.md`.
 - Inputs:
   - [requirements](requirements.md) revision 4 (§ 13 lists the changes made
     with this design: revision 3 with design revision 1, revision 4 with
@@ -205,11 +209,14 @@ use the pool attributes and `VmRSS` to show release; discrete devices keep
 `cuMemGetInfo` (test plan § 3.1). Consumers that judge pool memory on
 Tegra should read the pool's counters, not `cuMemGetInfo`.
 
-**Tegra: about four uncapped pools per process (revision 3).** On the
-Orin, each pool created with `maxSize` 0 reserves about 21 GB of
-contiguous GPU virtual address space, and a fresh process can hold about
-four; the next uncapped `cuMemPoolCreate` returns
-`CUDA_ERROR_OUT_OF_MEMORY`. The holders:
+**Tegra: four uncapped pools per process (revision 3; measured in
+revision 4).** On the Orin, each pool created with `maxSize` 0 takes
+21978152960 bytes (20.47 GiB) of GPU virtual address space, and a fresh
+process holds four; the next uncapped `cuMemPoolCreate` returns
+`CUDA_ERROR_OUT_OF_MEMORY` (probe receipt
+`qualification/2026-10-12-uncapped-pools-probe.md`: `VmSize` rises by
+that amount at the third and fourth create; the first two fit in the
+66026328064 bytes `cuInit` maps; `VmRSS` does not move). The holders:
 
 - the device's default pool, which the aarch64 fallback obtains on
   `CudaContext::new` (item 1);
@@ -220,9 +227,11 @@ four; the next uncapped `cuMemPoolCreate` returns
   because an allocation is still outstanding (above): its range stays
   taken until that allocation is freed.
 
-With four uncapped private pools live, `cuDeviceGetDefaultMemPool` fails
-and `CudaContext::new` picks `AllocMode::Synchronous`, which is the
-fallback's intended behaviour. A fresh process picks `Default`. Capped
+With four uncapped private pools live, `cuDeviceGetDefaultMemPool`
+returns `CUDA_ERROR_OUT_OF_MEMORY` and `CudaContext::new` picks
+`AllocMode::Synchronous`, which is the fallback's intended behaviour; the
+decision is per process, so it stays `Synchronous` after the pools are
+dropped. A fresh process picks `Default` (same probe receipt). Capped
 pools take less address space: 200 pools capped at 64 MiB were created
 together and still left room for three uncapped ones (G6 receipt
 `8528fc2`, probe `defer.c`). The numbers are measured, not documented

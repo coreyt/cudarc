@@ -1,0 +1,8 @@
+[package]
+name = "uncapped-pools-probe"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+cudarc = { package = "cudarc-fathomdb", path = "<fork tree>", default-features = false, features = ["std", "driver", "dynamic-loading", "cuda-12060"] }

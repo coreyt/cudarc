@@ -1,0 +1,66 @@
+=== exhaust
+2026-10-12T12:13:08-05:00 GUARD-BEFORE # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+before cuInit: VmSize 2998272 VmRSS 946176
+mode exhaust; driver 12060; integrated 1; start VmSize 66029326336 VmRSS 5824512
+pool 1: ok; VmSize 66029326336 -> 66029326336 (+0 bytes, 0.00 GiB); VmRSS 5824512 -> 5824512
+pool 2: ok; VmSize 66029326336 -> 66029502464 (+176128 bytes, 0.00 GiB); VmRSS 5824512 -> 5824512
+pool 3: ok; VmSize 66029502464 -> 88007655424 (+21978152960 bytes, 20.47 GiB); VmRSS 5824512 -> 5824512
+pool 4: ok; VmSize 88007655424 -> 109985808384 (+21978152960 bytes, 20.47 GiB); VmRSS 5824512 -> 6381568
+pool 5: DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory"); VmSize 109985808384 -> 109985984512 (+176128 bytes)
+with 4 uncapped pools live: cuDeviceGetDefaultMemPool -> Err(DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")); VmSize 109985984512 -> 109985984512
+with 4 uncapped pools live: CudaContext::new(0).alloc_mode() = Synchronous
+after dropping the pools: CudaContext::new(0).alloc_mode() = Synchronous (process-wide decision, fixed by the first new)
+EXIT 0
+2026-10-12T12:13:08-05:00 GUARD-AFTER # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+=== exhaust
+2026-10-12T12:13:08-05:00 GUARD-BEFORE # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+before cuInit: VmSize 2998272 VmRSS 937984
+mode exhaust; driver 12060; integrated 1; start VmSize 66029326336 VmRSS 5816320
+pool 1: ok; VmSize 66029326336 -> 66029326336 (+0 bytes, 0.00 GiB); VmRSS 5816320 -> 5816320
+pool 2: ok; VmSize 66029326336 -> 66029502464 (+176128 bytes, 0.00 GiB); VmRSS 5816320 -> 5816320
+pool 3: ok; VmSize 66029502464 -> 88007655424 (+21978152960 bytes, 20.47 GiB); VmRSS 5816320 -> 5816320
+pool 4: ok; VmSize 88007655424 -> 109985808384 (+21978152960 bytes, 20.47 GiB); VmRSS 5816320 -> 6373376
+pool 5: DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory"); VmSize 109985808384 -> 109985984512 (+176128 bytes)
+with 4 uncapped pools live: cuDeviceGetDefaultMemPool -> Err(DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")); VmSize 109985984512 -> 109985984512
+with 4 uncapped pools live: CudaContext::new(0).alloc_mode() = Synchronous
+after dropping the pools: CudaContext::new(0).alloc_mode() = Synchronous (process-wide decision, fixed by the first new)
+EXIT 0
+2026-10-12T12:13:09-05:00 GUARD-AFTER # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+=== exhaust
+2026-10-12T12:13:09-05:00 GUARD-BEFORE # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+before cuInit: VmSize 2998272 VmRSS 937984
+mode exhaust; driver 12060; integrated 1; start VmSize 66029326336 VmRSS 5816320
+pool 1: ok; VmSize 66029326336 -> 66029326336 (+0 bytes, 0.00 GiB); VmRSS 5816320 -> 5816320
+pool 2: ok; VmSize 66029326336 -> 66029502464 (+176128 bytes, 0.00 GiB); VmRSS 5816320 -> 5816320
+pool 3: ok; VmSize 66029502464 -> 88007655424 (+21978152960 bytes, 20.47 GiB); VmRSS 5816320 -> 5816320
+pool 4: ok; VmSize 88007655424 -> 109985808384 (+21978152960 bytes, 20.47 GiB); VmRSS 5816320 -> 6373376
+pool 5: DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory"); VmSize 109985808384 -> 109985984512 (+176128 bytes)
+with 4 uncapped pools live: cuDeviceGetDefaultMemPool -> Err(DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")); VmSize 109985984512 -> 109985984512
+with 4 uncapped pools live: CudaContext::new(0).alloc_mode() = Synchronous
+after dropping the pools: CudaContext::new(0).alloc_mode() = Synchronous (process-wide decision, fixed by the first new)
+EXIT 0
+2026-10-12T12:13:09-05:00 GUARD-AFTER # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+=== fresh
+2026-10-12T12:13:09-05:00 GUARD-BEFORE # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+before cuInit: VmSize 2998272 VmRSS 942080
+mode fresh; driver 12060; integrated 1; start VmSize 66029326336 VmRSS 5820416
+fresh process: CudaContext::new(0).alloc_mode() = Default; VmSize 66029326336 -> 66124152832 (+94826496 bytes)
+pool 1: ok; VmSize 66124152832 -> 66124152832 (+0 bytes, 0.00 GiB); VmRSS 108879872 -> 108879872
+pool 2: ok; VmSize 66124152832 -> 88102477824 (+21978324992 bytes, 20.47 GiB); VmRSS 108879872 -> 108879872
+pool 3: ok; VmSize 88102477824 -> 110080630784 (+21978152960 bytes, 20.47 GiB); VmRSS 108879872 -> 108879872
+pool 4: DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory"); VmSize 110080630784 -> 110080630784 (+0 bytes)
+with the context's default pool: 3 uncapped private pools created
+EXIT 0
+2026-10-12T12:13:09-05:00 GUARD-AFTER # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+=== fresh
+2026-10-12T12:13:09-05:00 GUARD-BEFORE # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+before cuInit: VmSize 2998272 VmRSS 942080
+mode fresh; driver 12060; integrated 1; start VmSize 66029326336 VmRSS 5820416
+fresh process: CudaContext::new(0).alloc_mode() = Default; VmSize 66029326336 -> 66124152832 (+94826496 bytes)
+pool 1: ok; VmSize 66124152832 -> 66124152832 (+0 bytes, 0.00 GiB); VmRSS 108879872 -> 108879872
+pool 2: ok; VmSize 66124152832 -> 88102477824 (+21978324992 bytes, 20.47 GiB); VmRSS 108879872 -> 108879872
+pool 3: ok; VmSize 88102477824 -> 110080630784 (+21978152960 bytes, 20.47 GiB); VmRSS 108879872 -> 108879872
+pool 4: DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory"); VmSize 110080630784 -> 110080630784 (+0 bytes)
+with the context's default pool: 3 uncapped private pools created
+EXIT 0
+2026-10-12T12:13:09-05:00 GUARD-AFTER # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6

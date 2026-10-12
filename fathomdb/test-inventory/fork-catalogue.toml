@@ -448,7 +448,7 @@ landed = true
 origin = "test-plan"
 section = "3.1"
 serves = "CF-AC-02 capacity"
-red = "no RED on discrete GPUs: characterization. Tegra branch (test plan revision 4): RED is the revision-3 test on G6 at b29c41c, limit 33554432 leaves more than a chunk (33554432) of the cap 67108864 unusable (F-G6-1)"
+red = "no RED on discrete GPUs: characterization. Tegra branch (test plan revision 4): RED is the revision-3 test on G6 at b29c41c, limit 33554432 leaves more than a chunk (33554432) of the cap 67108864 unusable (F-G6-1). Tegra upper bound (test plan revision 5, R-FC-CODE-2 M1): RED is the mutation raw.maxSize = max_size * 2 on G6, limit 67108864 is within one chunk (33554432) of the cap 67108864"
 cfg = { features = ["driver"] }
 
 [[test]]
@@ -703,7 +703,7 @@ landed = true
 origin = "test-plan"
 section = "3.1"
 serves = "design D-2"
-red = "no RED on discrete GPUs: characterization. Tegra branch (test plan revision 4, VmRSS oracle): RED is the revision-3 test on G6 at b29c41c, cuMemGetInfo free memory does not move (F-G6-1)"
+red = "Tegra branch (test plan revision 4, VmRSS oracle): RED is the revision-3 test on G6 at b29c41c, cuMemGetInfo free memory does not move (F-G6-1). Discrete post-free bound (test plan revision 5, R-FC-CODE-2 M2): RED is the leak mutation (free_async removed) on the RTX 3090, free 25017122816 -> 24748687360: half the allocation (134217728) or more is still taken; the revision-4 bound passed it"
 cfg = { features = ["driver"] }
 
 [[test]]

@@ -1,6 +1,6 @@
 # cudarc-fathomdb test plan (FC3)
 
-- Status: FC3 revision 3, 2026-10-12.
+- Status: FC3 revision 5, 2026-10-12.
   - Revision 1 (`936c25e`) was reviewed by R-FC-TEST (APPROVE-WITH-FIXES).
   - Revision 2 fixes every finding; dispositions are in
     [review.md](review.md).
@@ -16,8 +16,14 @@
     guard; § 4 runs G6 one process per test; § 8 gives M-2 per platform
     with the Orin table; § 9 adds the G6 platform list. The § 9 list
     amends the "closed list" rule and is **pending R-FC-CODE-2**.
+  - Revision 5 (R-FC-CODE-2 findings M1, M2, L1): § 3.1 adds the Tegra
+    upper bound of `requests_within_the_cap_succeed` (limit + chunk ≤ cap)
+    and tightens the discrete post-free bound of
+    `destroy_with_outstanding_allocations_is_deferred` to half the
+    allocation; the leaked-pointer note gives the measured address space
+    per uncapped pool.
 - Inputs: [requirements](requirements.md) revision 6,
-  [design](design.md) revision 3, [plan](plan.md) §§ 1, 6–9.
+  [design](design.md) revision 4, [plan](plan.md) §§ 1, 6–9.
 - Tracing: every test traces to a CF-AC, or, where marked "design", to the
   design topic it serves. Each test names its cell, command and expected
   result.
@@ -211,8 +217,8 @@ was released branch at run time on the device's
 that takes a pointer out with `CudaSlice::leak` and can panic before
 freeing it holds the pointer in a guard that frees it during unwinding.
 A failing test therefore cannot leave a pool in deferred destruction
-behind. On the Orin each uncapped pool holds about 21 GB of GPU virtual
-address space and a process gets about four (design D-2), so one leaked
+behind. On the Orin each uncapped pool holds 20.47 GiB of GPU virtual
+address space and a process gets four (design D-2), so one leaked
 pool made later tests fail with `CUDA_ERROR_OUT_OF_MEMORY` (F-G6-1).
 `pool_model_property` frees each leaked pointer in the next statement,
 with no panic point between, and needs no guard.
@@ -224,7 +230,7 @@ with no panic point between, and needs no guard.
 | `accounting_returns_to_zero_after_drop_and_sync` | D | CF-AC-02 accounting | G1, G3, G6 | used = reserved = 0 | no RED: characterization |
 | `release_threshold_bounds_reserved_after_sync` | D | CF-AC-02 threshold | G1, G3, G5b, G6 | precondition holds; reserved ≤ max(T, used) + chunk | no RED: the driver enforces it; characterization |
 | `trim_to_keeps_the_floor_and_releases_above_it` | D | CF-AC-02 trim | G1, G3, G5b, G6 | precondition holds; k ≤ reserved ≤ max(k, used) + chunk | no RED: characterization |
-| `requests_within_the_cap_succeed` | D | CF-AC-02 capacity | G1, G3, G5b, G6 | each allocation up to the M-2 limit succeeds. **Discrete:** unchanged; limit ≤ cap and limit + chunk > cap. **Tegra:** every allocation within the measured usable limit succeeds, limit ≤ cap, and limit ≥ one chunk; the limit is printed as an M-2 measurement (§ 8, Orin table) | no RED on discrete (characterization). Tegra branch: RED is the revision-3 test on G6 at `b29c41c` (`limit 33554432 leaves more than a chunk (33554432) of the cap 67108864 unusable`) |
+| `requests_within_the_cap_succeed` | D | CF-AC-02 capacity | G1, G3, G5b, G6 | each allocation up to the M-2 limit succeeds. **Discrete:** unchanged; limit ≤ cap and limit + chunk > cap. **Tegra:** every allocation within the measured usable limit succeeds, limit ≤ cap, limit ≥ one chunk, and (revision 5) limit + chunk ≤ cap: measured Orin/JetPack 6 behaviour (design D-4 table, fitted, not documented; 64 MiB cap, limit 32 MiB), so a driver that serves the whole cap fails as a finding. The limit is printed as an M-2 measurement (§ 8, Orin table) | no RED on discrete (characterization). Tegra branch: RED is the revision-3 test on G6 at `b29c41c` (`limit 33554432 leaves more than a chunk (33554432) of the cap 67108864 unusable`). Revision 5 upper bound (R-FC-CODE-2 M1): the mutation `raw.maxSize = max_size * 2` passes the revision-4 test on the Orin (limit 67108864 = cap) and fails the revision-5 one; status.md records both |
 | `a_request_over_the_cap_is_out_of_memory` | D | CF-AC-02 capacity | G1, G3, G5b, G6 | `CUDA_ERROR_OUT_OF_MEMORY`; total requested ≤ cap + one chunk | no RED: characterization |
 | `exhaustion_under_two_threads_and_four_streams_fails_only_the_excess` | D | CF-AC-02 capacity (T-CONC) | G1, G3, G6 | 2 host threads × 2 streams each; total requested ≤ cap + one chunk; at least one call fails with OOM; sum of successful sizes ≤ the M-2 limit; every successful buffer verifies its data pattern | no RED: characterization |
 | `a_buffer_freed_on_one_stream_is_not_reused_before_its_reader_finishes` | D | CF-AC-02 stream order (T-CONC) | G1, G3, G6 | see "stream-order test" below | no RED: characterization of event tracking |
@@ -242,7 +248,7 @@ with no panic point between, and needs no guard.
 | `typed_reads_return_64_bit_values` | D | CF-AC-04 (D-4) | G1, G6 | a threshold of 2^33 round-trips through `result::mem_pool::set_attribute` and `release_threshold()` | no RED: the vendored `attribute()` already reads a `u64`; characterization |
 | `create_destroys_the_pool_when_setting_the_threshold_fails` | F | CF-AC-02 (D-2) | G1 | the seam fails `set_attribute`; the destroy counter (with positive control) is 1 | no RED: the vendored `create` already owns the pool before `set_attribute`; characterization |
 | `a_pool_create_out_of_memory_returns_the_error_and_no_pool` | F | CF-AC-02 (T-FAULT) | G1 | the seam makes `cuMemPoolCreate` return OOM; `create` returns `CUDA_ERROR_OUT_OF_MEMORY` and the destroy counter is 0 | no RED: characterization |
-| `destroy_with_outstanding_allocations_is_deferred` | D | design D-2 | G1, G6 | drop the pool handle with a live leaked pointer (held by the guard), free it with `free_async`, synchronize. **Discrete:** `cuMemGetInfo` free memory is at least half the allocation below its start while outstanding, and returns to within one chunk of its starting value. **Tegra:** `VmRSS` is at least half the allocation above its start while outstanding, and returns to within half the allocation of its start (the pool is gone, so its attributes cannot be read; half the allocation, not one chunk, because the chunk of a 256 MiB request is 256 MiB) | no RED on discrete (characterization). Tegra branch: RED is the revision-3 test on G6 at `b29c41c` (`the outstanding allocation was released with the pool: free 52818878464 -> 52818878464`) |
+| `destroy_with_outstanding_allocations_is_deferred` | D | design D-2 | G1, G6 | drop the pool handle with a live leaked pointer (held by the guard), free it with `free_async`, synchronize. **Discrete:** `cuMemGetInfo` free memory is at least half the allocation below its start while outstanding, and returns to less than half the allocation below its start (revision 5; revision 4 said within one chunk, which cannot fail because the chunk of a 256 MiB request is 256 MiB). **Tegra:** `VmRSS` is at least half the allocation above its start while outstanding, and returns to within half the allocation of its start (the pool is gone, so its attributes cannot be read; half the allocation, not one chunk, because the chunk of a 256 MiB request is 256 MiB) | no RED on discrete (characterization). Tegra branch: RED is the revision-3 test on G6 at `b29c41c` (`the outstanding allocation was released with the pool: free 52818878464 -> 52818878464`). Revision 5 discrete post-free bound (R-FC-CODE-2 M2, a pre-existing defect): with `free_async` removed (pointer leaked) the revision-4 test passes on the RTX 3090 and the revision-5 one fails; status.md records both |
 | `drops_after_a_sticky_error_neither_panic_nor_abort` | X | design D-2 (T-FAULT, lost context) | G1, G5b (ignored, run alone) | child process: private pool, live slices, then a device-side assert (as upstream's `test_device_side_assert`); then drops slices, stream, context and pool; exit status 0 and no panic | no RED: characterization |
 | `capture_on_a_private_context_uses_graph_memory` | D | design D-9 (T-CAPTURE) | G1, G5b: success required; G6: success or recorded Tegra limit | capture instantiates and launches; graph-memory `USED_MEM_CURRENT` rises; private and default pool counters are unchanged | no RED: characterization. A capture failure on G1 or G5b is a finding needing a design disposition |
 | `two_pools_on_two_devices_are_independent` | D | design D-13 (T-MULTI) | G2 | `#[ignore = "must be executed with multiple gpus"]`; pool 0 counters do not move when pool 1 allocates | no RED: characterization |
