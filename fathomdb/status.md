@@ -34,6 +34,8 @@ reviewer re-runs each RED; the last column holds that result.
 | 2026-10-12 | FC6-b count-tests: `- should panic` lines | `2e5de53` | 1 of 39 fails: `{} != {'…test_alloc_pinned_panics_on_size_overflow': 'ok'}` | `5e28fa7` (39 pass) | pending (R-FC-CODE) |
 | 2026-10-12 | FC6-b pool doc (D-2, D-9) | — (doc) | — | `e6e5e0f` | — |
 | 2026-10-12 | FC7 packaging (item 8) | — (packaging; test plan § 10: no RED) | — | `d04ea18` | — |
+| 2026-10-12 | FC7 `use-baseline-lock.py`, 9 fixture tests | `ace64e1` | 7 of 9 fail against a stub (`NotImplementedError`) | `9aef7c0` (9 pass) | pending (R-FC-CODE) |
+| 2026-10-12 | FC7 `test_crlf_line_endings_are_kept` | `0c66c4d` | 1 of 10 fails: `expected exactly one root entry (name = "cudarc", no source), found 0` | `27fa9c5` (10 pass) | pending (R-FC-CODE) |
 
 ## FC4-0 (class D)
 
@@ -861,7 +863,7 @@ and the doc tests use the library name `cudarc`, which `[lib]` keeps; no
 | `python3 -I fathomdb/scripts/test_count_tests.py` | 39 tests OK |
 | `git diff 5b23a87 HEAD --stat -- . ':(exclude)fathomdb'` | `Cargo.toml`, `FATHOMDB.md`, `README.md` only (`Cargo.lock` is gitignored) |
 
-### `--locked` and the baseline lock (open)
+### `--locked` and the baseline lock (resolved below: FC7 follow-up)
 
 `fathomdb/qualification/Cargo.lock.baseline` names the root package
 `cudarc`. With the rename, `cp …/Cargo.lock.baseline Cargo.lock` followed by
@@ -906,14 +908,77 @@ lock gains a `cudarc-fathomdb` entry, which the check also accepts.
 
 ### Notes for the orchestrator
 
-- The `--locked` break above needs a decision before the push.
-- `examples/07-build-workflow/Cargo.toml` (its own package, not in the
-  crate) depends on `cudarc = { path = "../.." }`, which no longer resolves
-  under the new package name; it needs `package = "cudarc-fathomdb"`. Not
-  changed: outside the `P` file list.
+- The `--locked` break above: resolved by renaming at copy time (main
+  thread decision; FC7 follow-up below).
+- `examples/07-build-workflow/Cargo.toml` no longer resolved under the new
+  package name; fixed in the FC7 follow-up (`b8f9777`).
 - Source comments still cite `FATHOMDB-PATCH.md` (`core.rs`, `mem_pool.rs`)
   and "upstream 0.19.7" (`core.rs`, `SYNC_FALLBACK`). `FATHOMDB.md` says such
   citations refer to it; the comments themselves are code-tree changes.
+
+### FC7 follow-up: baseline lock renamed at copy time
+
+Main-thread decision: `fathomdb/qualification/Cargo.lock.baseline` stays
+byte-identical (SHA-256 `3d399b4e…747923`, unchanged); runs at
+`ec1cac71` need its `cudarc` root.
+
+- **Helper** `fathomdb/scripts/use-baseline-lock.py [--baseline LOCK]
+  [DEST]` (Python 3.11+, `-I`, standard library). It copies the baseline to
+  DEST (default `Cargo.lock`) and sets the one root entry (`name =
+  "cudarc"`, no `source` line) to the `[package] name` of the `Cargo.toml`
+  next to DEST. Zero or several candidates exit nonzero and write nothing.
+  CRLF line endings are kept. It reports on stderr.
+- **Oracle.** The fixture `fathomdb/scripts/fixtures/Cargo.lock.cudarc-fathomdb`
+  (SHA-256 `d20e4d90…fe404ca`) is what cargo 1.95.0 wrote offline
+  when it updated the baseline for the renamed root (`cp` baseline, then
+  `cargo metadata --offline`, on a copy of the tree at `d04ea18`). It differs
+  from the baseline in line 24 only. `cargo generate-lockfile --offline` is
+  not the oracle: on the same copy it re-resolved from the local cache and
+  changed `wasip2` (`1.0.3+wasi-0.2.9` → `1.0.4+wasi-0.2.12`, lines 204 and
+  206) as well as line 24.
+- **RED `ace64e1`** (stub raising `NotImplementedError`): `Ran 9 tests`,
+  `FAILED (failures=7)`. The two that pass against the stub only check a
+  nonzero exit and that the baseline is not written. **GREEN `9aef7c0`:**
+  9 of 9.
+- **RED `0c66c4d`** (CRLF, for the Windows T-UNIT checkout):
+  `AssertionError: 1 != 0 : use-baseline-lock: expected exactly one root
+  entry (name = "cudarc", no source), found 0`; 1 of 10 fails. **GREEN
+  `27fa9c5`:** 10 of 10.
+- **Consumers.** `7475fa7` (`W`) changes the three steps of
+  `fathomdb-ci.yaml` that copied the baseline (hosted-test run 1,
+  pure-test, T-UNIT); the Linux steps log the SHA-256 of both files.
+  `3174517` (`D`) changes `g8-common.sh` and `t-dev-lib-major.sh`. Both run
+  the helper from this checkout's `scripts/` directory, so a `--src` or
+  `G8_SRC` tree without `fathomdb/` (`ec1cac71`) still works. No other
+  file copied the baseline (grep).
+- **Example 07** (`b8f9777`, `P`): `cudarc = { package = "cudarc-fathomdb",
+  path = "../.." }`. Before the change, `cargo metadata --offline
+  --manifest-path examples/07-build-workflow/Cargo.toml` failed with `no
+  matching package named cudarc found`. After it, `cargo metadata` (online:
+  `--offline` cannot resolve `bindgen 0.66.1`'s dependencies from this
+  host's cache) resolves the dependency `cudarc` to `cudarc-fathomdb@0.19.10`.
+  That run rewrote the example's tracked `Cargo.lock` (upstream's, still at
+  cudarc 0.9.14), so the file was restored with `git restore`. Not built:
+  its `build.rs` compiles CUDA.
+
+Checks at `b8f9777`:
+
+| Check | Result |
+| --- | --- |
+| helper at HEAD, then `diff` against the baseline | line 24 only; copy SHA-256 equals the fixture's |
+| `cargo tree -e normal --locked`, driver-only 12060 | `cudarc-fathomdb v0.19.10` → `libloading v0.9.0` → `cfg-if v1.0.5` |
+| `cargo check --locked --lib -F cuda-12060` | ok |
+| hosted-test run 1 simulated (helper, `--locked`, driver-only 12060, no GPU) | 54 passed; 4 ignored; 28 filtered out; `count-tests: PASS` |
+| helper in a `git archive ec1cac71` tree (no `fathomdb/`) | root `cudarc`; `cmp` byte-identical to the baseline; `cargo tree --locked --offline` ok |
+| `test_use_baseline_lock.py` / `test_count_tests.py` | 10 OK / 39 OK |
+| `ruff check` on the two new Python files | clean |
+| `cargo fmt --all -- --check` | clean |
+| fork CI clippy, 13040, `--locked` | clean |
+| `actionlint .github/workflows/fathomdb-ci.yaml` | clean (bare `actionlint` also reports upstream's four workflows for old actions; unchanged upstream files) |
+| `shellcheck -x fathomdb/scripts/*.sh` | clean |
+| T-DEV case f (`t-dev-lib-major.sh f`, RTX 3090 index 0) | `use-baseline-lock: … (root cudarc-fathomdb)`; `CASE f nvtx_loads_with_only_libnvtoolsext_so_1: test ok (exit 0)`; guard before 2026-10-12T09:57:35-05:00 and after 09:57:43-05:00, driver `580.178.04`, `/usr/local/cuda` → `/usr/local/cuda-12.6` |
+
+The helper's self-tests are not run by fork CI (nor are `count-tests`'s).
 
 ## Code commits since `ec1cac71` (CF-AC-01)
 
@@ -953,3 +1018,5 @@ lock gains a `cudarc-fathomdb` entry, which the check also accepts.
 | `e6e5e0f` | U | `new_with_mem_pool` doc: leaked pointers (D-2), graph capture (D-9) |
 | `7a84fce` | W | fork CI: `pure-test-generator` job; pure-test skips generator rows |
 | `d04ea18` | P | item 8: `cudarc-fathomdb` package, `exclude`, README notice, `FATHOMDB.md` |
+| `7475fa7` | W | fork CI: baseline lock through `use-baseline-lock.py` |
+| `b8f9777` | P | example 07 depends on `cudarc-fathomdb` by path |
