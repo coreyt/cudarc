@@ -5,7 +5,11 @@
 - Owner: Corey Thompson. Consumer: FathomDB 0.8.28 Slice 31
   (`fathomadb/fathomdb`, `dev/plans/0.8.28/features/slice-31/plan.md` on
   `release/0.8.28`).
-- Status: plan revision 3 (2026-10-11), with FathomDB Slice 31 plan
+- Status: plan revision 4 (2026-10-12): FC1 requirements
+  ([requirements.md](requirements.md) revision 2, after R-FC-REQ) supersede
+  § 4; owner ruling Q-F1 splits G5 into G5a (`windchill3`) and G5b (GCP T4);
+  § 1.4 adds the T-UNIT job and aarch64 `no-std`; § 8 adds an item 9 row;
+  FC8 covers CF-AC-09 to 12. Revision 3 (2026-10-11), with FathomDB Slice 31 plan
   revision 11: item 9 (built-major library loading, CF-REQ-11, D-F4, G8,
   with a loaded-library report), its second upstream proposal (FC9b,
   CF-REQ-08b, not posted), and the K620 / R580 host constraint. Revision 2 went with plan
@@ -85,7 +89,8 @@ It adds:
 - **trigger and pinning:** the push and `workflow_dispatch` triggers, and
   `CUDARC_CUDA_VERSION` equal to the feature in every cell (upstream issue
   #525);
-- **aarch64 Linux:** check and clippy for all 19 features on an aarch64 Linux
+- **aarch64 Linux:** check (default and `no-std` feature sets) and clippy
+  for all 19 features on an aarch64 Linux
   runner (`ubuntu-24.04-arm`), because items 1–3 compile only there; if that
   runner is unavailable, `cargo check --target aarch64-unknown-linux-gnu`
   on ubuntu (no CUDA needed). FC2 D-F2 picks one;
@@ -96,6 +101,12 @@ It adds:
   without a GPU. The job also runs once with FathomDB's `Cargo.lock`
   seeded, as FathomDB's retired `test_vendored_cudarc.sh` did; FC2 D-F2
   says where that lock comes from (the latest FathomDB pin commit);
+- **a T-UNIT job** (requirements CF-AC-11) on Linux x86_64 and Windows:
+  for each of the 19 features, with every library feature enabled, run the
+  item-9 test module by name. The receipt asserts a nonzero count per
+  feature, equal to the test plan's expected count. On `ci/proposal-*`
+  the hosted jobs run the proposal's own tests by name, because those tests
+  carry no `fathomdb_` prefix;
 - **a name-agnostic publish dry run** (`cargo publish --dry-run`, no `-p`),
   so it works before the packaging commit and on `ci/proposal-*`, where the
   crate is still `cudarc`.
@@ -184,10 +195,13 @@ the crate so consumers can see what differs from upstream.
 | 5 | Private memory pool: `CudaMemPool`, `CudaContext::new_with_mem_pool`, `AllocMode::Private`, tests | `U` | proposal prepared (FC9), not posted | drop when an upstream release ships an equivalent; FathomDB switches to the upstream names |
 | 6 | Marker feature `fathomdb-private-pool` | `L` | local only | with item 5 |
 | 7 | Fork CI workflow | `W` | not applicable | delete with the branch |
-| 9 | Built-major library loading: load only CUDA libraries (cuBLAS, cuBLASLt, NVRTC, cuRAND, and the rest) of the major the crate was built for, and verify the loaded library's version | `U` | second proposal prepared (FC9b, `proposal/lib-major`), not posted | drop when upstream ships an equivalent |
+| 9 | Built-major library loading: per library, try only the built major's versioned names first, verify unversioned names by the library's version query, and report the loaded file and version (requirements CF-REQ-11) | `U` | second proposal prepared (FC9b, `proposal/lib-major`), not posted | drop when upstream ships an equivalent |
 | 8 | Packaging as `cudarc-fathomdb` (`[lib] name = "cudarc"`), `exclude`, README notice | `P` | not applicable | when FathomDB consumes upstream cudarc again |
 
 ## 4. Requirements (draft; finalized in FC1 as `fathomdb/requirements.md`, reviewed by R-FC-REQ)
+
+Superseded by [requirements.md](requirements.md) (FC1 revision 2). This
+draft is kept for history; requirements.md governs.
 
 FathomDB REQ31 IDs are noted in brackets. Every acceptance criterion names a
 host and a receipt (§ 7).
@@ -350,7 +364,8 @@ so G7 must keep that bound.
 | G2 | same, both 3090s | 12060 | present | T-MULTI |
 | G3 | same | 12060, 13000, 13010, 13020, 13030, 13040 bindings, driver-only feature set (`--no-default-features -F std,driver,dynamic-loading,cuda-<v>`) | nothing installed | T-DEV, T-CONC, T-FAULT, the D-4 driver-version gate, and every other test D-F1 maps to RUN (CF-AC-04b) |
 | G4 | same | 13000, default features | the 13.0 runtime libraries (NVRTC, cuBLAS): the user-local 13.0 toolkit if the owner approves its download (FathomDB W0 step 4), or else the NVIDIA cu13 wheels from PyPI installed into a scratch virtual environment owned by this work (never the FathomDB primary `.venv`, whose cuBLAS is 13.1.1), pinned to 13.0.x (`nvidia-cuda-runtime==13.0.96`, `nvidia-cuda-nvrtc==13.0.88`, `nvidia-cublas==13.0.2.14`) and reached by `LD_LIBRARY_PATH=<venv>/lib/python3.*/site-packages/nvidia/cu13/lib` for that command only; `libcuda.so.1` stays the system driver's | the toolkit-dependent tests (NVRTC- or cuBLAS-using) that D-F1 identifies; UNMEASURED only if neither source is available |
-| G5 | GCP Spot Tesla T4 (sm_75), owner ruling Q-F1 (2026-10-12) | 13010–13040 with default features | a driver newer than R580 installed on the lab VM only, never on `windchill3` (Q4, Q11); 2-hour wall-clock limit per session | `--lib` tests per requirements CF-AC-04c |
+| G5a | `windchill3` RTX 3090, driver 580 (owner ruling Q-F1) | 13010–13040 with default features | 13.x wheels in a scratch venv; NVRTC to CUBIN | tests that need neither 13.1+ PTX JIT nor post-13.0 driver behaviour (requirements CF-AC-04c) |
+| G5b | GCP Spot Tesla T4 (sm_75), in addition to G5a (owner ruling Q-F1) | 13010–13040 with default features | a driver newer than R580 on the lab VM only, never on `windchill3` (Q4, Q11); 2-hour wall-clock limit per session | full `--lib` set (requirements CF-AC-04c) |
 | G6 | Orin, JetPack 6 | 12060 | present | all `driver::` tests incl. T-PROC and the fallback tests |
 | G8 | `windchill3` RTX 3090 | 12060 and 13000, default features | scratch venvs with PyPI `nvidia-cublas-cu12` 12.1.x, 12.4.x, 12.9.x and `nvidia-cublas` 13.0.x, reached by `LD_LIBRARY_PATH` | CF-AC-11: the cuBLAS tests, each recording the loaded file and its reported version |
 | G7 | Orin, JetPack 7.2.x | 13020 / 13040 | reflash (not in Slice 31 — Q5) | UNMEASURED (known issue 5699079 bounds its exhaustion tests) |
@@ -395,7 +410,8 @@ fresh process (T-PROC) run one per process.
 | `fathomdb/` only | nothing |
 | item 1–4 code | G1, G6 (the allocator fallback tests and T-PROC), fork CI |
 | item 5 code or `mem_pool.rs` | G1–G4 for the touched test kinds, G6, fork CI |
-| cfg or bindings use (D-8) | fork CI, G1, G3, G6 |
+| cfg or bindings use (D-8) | fork CI, G1, G3, G5a, G5b, G6 |
+| item 9 code (library loading or the report) | fork CI including the T-UNIT job; the CF-AC-11 T-DEV cases on G1; G8 |
 | packaging (`P`), including `FATHOMDB.md` | fork CI; CF-AC-07a; G1 smoke; restarts the chain (§ 1.5) |
 | fork CI workflow (`W`) only | fork CI |
 | FathomDB's `Cargo.lock` changes the resolved dependency set of `cudarc-fathomdb` (FathomDB's D-16 guard, owner ruling Q8 option (b), fails until this re-run is recorded) | the hosted test job with FathomDB's lock; G1 and G6 if any dependency of the pool path changed |
@@ -425,7 +441,7 @@ disposition, before the blocked step starts.
 | FC5 | Implementer: RED then GREEN fixes. The `CUmemLocation` constructor, `CUmemPoolProps` from `zeroed()`, the `max_size` cfg rule and the `set_max_size` cfg form. 64-bit attributes, the driver-version check, raw attribute reads and no exhaustive matches. The `upgrade_device_ptr` precondition and doc, and the dead-code warning. | `U` commits | — | FC6 |
 | FC6 | Implementer: new tests from the test plan, RED first, then code; item 9 (D-F4, CF-REQ-11) as its own `U` commits | `U`/`L` commits | — | FC7 |
 | FC7 | Implementer: packaging commit `P` (`cudarc-fathomdb`, `[lib] name = "cudarc"`, `exclude`, README notice, `FATHOMDB.md`) | `P` commit | R-FC-CODE (whole branch, class check, RED re-runs, fork CI) | FC8 |
-| FC8 | Main thread: push the qualified commit `C` as the tip (§ 1.4); CI receipt; run G1–G4, G6, G8 (optionally a Claude agent on the Orin); CF-AC-07a package receipts; receipts committed after `C` | `fathomdb/qualification/` | R-FC-VERIFY (CF-AC-01…06, 07a, 09, 10 at `C`) | the Candle fork's FK2; FathomDB R-PIN |
+| FC8 | Main thread: push the qualified commit `C` as the tip (§ 1.4); CI receipt; run G1–G4, G5a, G5b, G6, G8 (optionally a Claude agent on the Orin), each with its `ec1cac71` baseline (requirements CF-REQ-12); CF-AC-07a package receipts; receipts committed after `C` | `fathomdb/qualification/` | R-FC-VERIFY (CF-AC-01…06, 07a, 09–12 at `C`) | the Candle fork's FK2; FathomDB R-PIN |
 | FC9 | Implementer in `cudarc-proposal`: `proposal/mem-pool` from `upstream/main`, item 5 only, re-authored in upstream style, RED first; example and benchmark (T-PERF); `ci/proposal-mem-pool` run then deleted. Main thread writes `fathomdb/proposal/issue.md` and `pr.md` (motivation, API, #594 coexistence, benchmark) | proposal branch and drafts | R-PROP (CF-AC-08) | owner sign-off, later |
 | FC9b | Implementer in `cudarc-proposal` (after FC9, never concurrently): `proposal/lib-major` from `upstream/main`, item 9 only, re-authored in upstream style, RED first; `ci/proposal-lib-major` run then deleted. Main thread writes `fathomdb/proposal-lib-major/issue.md` and `pr.md` | proposal branch and drafts | R-PROP2 (CF-AC-08b) | owner sign-off, later |
 | FC10 | Main thread: publish preparation from a detached checkout of `C` (§ 1.5); `cargo package --list`, `cargo publish --dry-run` (CF-AC-07b); crates.io token for the new name | dry-run receipt | R-FC-PUB, then owner R-PUB | owner `cargo publish` |
