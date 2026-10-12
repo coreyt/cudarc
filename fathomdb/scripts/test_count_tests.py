@@ -485,6 +485,18 @@ class Generate(unittest.TestCase):
         )
         self.assertEqual(ct.cell_names(self.catalogue, "pure", version=12060, **args), [])
 
+    def test_names_cli_can_print_the_binary_of_each_name(self):
+        out = io.StringIO()
+        argv = ["names", "--catalogue", str(self.dir / "fork-catalogue.toml"),
+                "--manifest", str(self.dir / "Cargo.toml"), "--set", "drv", "--version", "11040",
+                "--arch", "x86_64", "--os", "linux", "--cell", "pure", "--with-binary"]
+        with redirect_stdout(out):
+            self.assertEqual(ct.main(argv), 0)
+        self.assertEqual(
+            out.getvalue(),
+            f"unittests:cudarc\t{PP}::max_size_without_binding_support_is_not_supported\n",
+        )
+
     def test_unlanded_names_present_in_a_listing_are_reported(self):
         listing = (
             "     Running unittests src/lib.rs (target/debug/deps/cudarc-0123456789abcdef)\n"
