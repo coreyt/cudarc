@@ -191,3 +191,52 @@ resolving after the rename. Fixed in `f37c698` (D).
 
 Re-qualification (plan § 8): the fix round is a code change, so fork CI
 must pass at the new tip, and FC8 runs at that tip.
+
+## R-FC-CODE-2 (FC8 G6 fix round), 2026-10-12
+
+- Model: `opus` (Claude Opus), general-purpose, read-only.
+- Reviewed: `9e5b231..863ee48`, code commit `8528fc2`, which disposes of
+  FC8 findings F-G6-1, F-G6-2 and F-G5a-1. Evidence: the root-cause
+  probes, the G6 receipts at `b29c41c` and `8528fc2`, and the per-test
+  TSVs.
+- Checks, all measured unless marked:
+  - **Classes, paths and product code:** classes and paths are correct;
+    product code is unchanged, and every hunk is inside
+    `mod fathomdb_private_pool`.
+  - **Discrete path:** the discrete assertions are byte-identical, and
+    they still run on the RTX 3090.
+  - **Tegra release oracle:** catches a real non-release. Independent
+    mutations on the Orin (free and free_async removed) both fail.
+  - **`Leaked` guard:** sound (inferred from code).
+  - **§ 9 G6 platform list:** the same 10 failures at `ec1cac71` and
+    `8528fc2`, with the same exit codes, in the reviewer's own
+    per-process sweep. **APPROVED**, together with the G6
+    one-process-per-test rule. CF-AC-04c revision 6 is principled, not a
+    weakening.
+  - **Re-qualification still owed at the new code commit:** G3 (all six
+    builds), G4, CF-AC-07a and a CI receipt.
+- Verdict: APPROVE-WITH-FIXES. Every finding is fixed in
+  `393f165..97daf96`, with the new code commit `C' = b777f8d`; none was
+  deferred.
+
+| Finding | Defect (short) | Disposition |
+| --- | --- | --- |
+| M1 | The Tegra branch of `requests_within_the_cap_succeed` was nearly vacuous: a `maxSize × 2` mutation passed every Orin capacity test | `5fce665` (U): adds the Tegra bound `limit + chunk <= cap`, labelled as measured Orin/JetPack 6 behaviour (design D-4, fitted, not documented). On the Orin the mutation now fails; GREEN k = 3; the 3090 path passes k = 3 |
+| M2 | The discrete bound in `destroy_with_outstanding_allocations_is_deferred` could never fail, because the chunk of a 256 MiB request is 256 MiB (pre-existing) | `84ede22` (U): the bound becomes SIZE/2, as on Tegra. The main thread accepted this as a fix of a pre-existing defect: it strengthens a discrete assertion, which this round had promised to leave unchanged. On the 3090 the leak mutation now fails k = 3; GREEN free-memory deltas are −268435456 then 0 |
+| L1 | "~21 GB of VA per uncapped pool" had no committed measurement | `393f165` (D): probe source and output committed. Pools 3 and 4 each add 21978152960 bytes (20.47 GiB) of VmSize; pools 1 and 2 fit within the range `cuInit` maps; pool 5 is OOM |
+| L2 | The claim that `CudaContext::new` picks Synchronous with the ranges exhausted was inferred | `393f165` (D), `b777f8d` (P): measured. With 4 uncapped pools live, `cuDeviceGetDefaultMemPool` is OOM and `alloc_mode()` is `Synchronous`, and it stays so for the process |
+| L3 | `FATHOMDB.md` said "about a third" next to a 64 → 32 MiB example | `b777f8d` (P): about a third for large caps; caps of 32–96 MiB give 32 MiB |
+| L4 | F-G6-1 text implied the old oracle failed deterministically | `97daf96` (D): the old `cuMemGetInfo` oracle was nondeterministic on the Orin (page-pool warmth) |
+
+Re-qualification at `b777f8d`, all k = 3; receipts under
+`fathomdb/qualification/*-b777f8d.md`:
+
+| Cell | Result |
+| --- | --- |
+| G1 | 125/0/10 |
+| G3 (six builds) | pass; the one failure per main run is the host-dependent `test_pinned_copy_is_faster` |
+| G4 | pass |
+| G6 | fork module 56 passed; one process per test fails only on the § 9 list, the T-MULTI tests and the host-dependent timing test |
+| CF-AC-07a | file list byte-identical (`83db814a…`) |
+
+G2, G5a and G8 are unchanged areas. G5b runs at `b777f8d`.
