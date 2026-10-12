@@ -3846,6 +3846,85 @@ mod fathomdb_private_pool {
         unsafe { std::mem::transmute::<sys::CUmemLocation, [u8; 8]>(location) }
     }
 
+    /// Design D-8: the props start from zeroed memory (`reserved` "must be
+    /// 0", CUDA 12.6 `cuda.h`), and `maxSize` is written on every binding
+    /// that has it, from `cuda-12020` on.
+    #[test]
+    fn pool_props_are_zeroed_then_written() {
+        for max_size in [0, 4096, (5 << 30) + 4096] {
+            let raw = pool_props(
+                2,
+                &MemPoolProps {
+                    max_size,
+                    release_threshold: 7,
+                },
+            );
+            assert!(
+                raw.reserved.iter().all(|b| *b == 0),
+                "reserved: {:?}",
+                raw.reserved
+            );
+            assert_eq!(
+                raw.allocType,
+                sys::CUmemAllocationType::CU_MEM_ALLOCATION_TYPE_PINNED
+            );
+            assert_eq!(
+                raw.handleTypes,
+                sys::CUmemAllocationHandleType::CU_MEM_HANDLE_TYPE_NONE
+            );
+            assert_eq!(
+                location_bytes(raw.location),
+                location_bytes(device_location(2))
+            );
+            assert!(raw.win32SecurityAttributes.is_null());
+            #[cfg(not(any(
+                feature = "cuda-11040",
+                feature = "cuda-11050",
+                feature = "cuda-11060",
+                feature = "cuda-11070",
+                feature = "cuda-11080",
+                feature = "cuda-12000",
+                feature = "cuda-12010"
+            )))]
+            assert_eq!(raw.maxSize, max_size, "maxSize");
+            #[cfg(not(any(
+                feature = "cuda-11040",
+                feature = "cuda-11050",
+                feature = "cuda-11060",
+                feature = "cuda-11070",
+                feature = "cuda-11080",
+                feature = "cuda-12000",
+                feature = "cuda-12010",
+                feature = "cuda-12020",
+                feature = "cuda-12030",
+                feature = "cuda-12040",
+                feature = "cuda-12050"
+            )))]
+            assert_eq!(raw.usage, 0, "usage");
+            #[cfg(not(any(
+                feature = "cuda-11040",
+                feature = "cuda-11050",
+                feature = "cuda-11060",
+                feature = "cuda-11070",
+                feature = "cuda-11080",
+                feature = "cuda-12000",
+                feature = "cuda-12010",
+                feature = "cuda-12020",
+                feature = "cuda-12030",
+                feature = "cuda-12040",
+                feature = "cuda-12050",
+                feature = "cuda-12060",
+                feature = "cuda-12080",
+                feature = "cuda-12090",
+                feature = "cuda-13000",
+                feature = "cuda-13010",
+                feature = "cuda-13020",
+                feature = "cuda-13030"
+            )))]
+            assert_eq!(raw.gpuDirectRDMACapable, 0, "gpuDirectRDMACapable");
+        }
+    }
+
     /// Design D-8: one helper builds the location from zeroed memory on every
     /// binding, the union's `id` included.
     #[test]
