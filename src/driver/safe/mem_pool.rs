@@ -26,12 +26,68 @@ pub(crate) fn pool_props(ordinal: i32, props: &MemPoolProps) -> sys::CUmemPoolPr
     let mut raw: sys::CUmemPoolProps = unsafe { std::mem::zeroed() };
     raw.allocType = sys::CUmemAllocationType::CU_MEM_ALLOCATION_TYPE_PINNED;
     raw.handleTypes = sys::CUmemAllocationHandleType::CU_MEM_HANDLE_TYPE_NONE;
-    raw.location = sys::CUmemLocation {
-        type_: sys::CUmemLocationType::CU_MEM_LOCATION_TYPE_DEVICE,
-        id: ordinal,
-    };
+    raw.location = device_location(ordinal);
     set_max_size(&mut raw, props.max_size);
     raw
+}
+
+/// The location of device `ordinal`, built from zeroed memory so that no
+/// struct literal depends on the binding's layout: from `cuda-13020` the
+/// `id` field lives in an anonymous union.
+pub(crate) fn device_location(ordinal: i32) -> sys::CUmemLocation {
+    // SAFETY: CUmemLocation is a plain C struct of integers; all-zero is a
+    // valid value that the writes below complete.
+    let mut location: sys::CUmemLocation = unsafe { std::mem::zeroed() };
+    location.type_ = sys::CUmemLocationType::CU_MEM_LOCATION_TYPE_DEVICE;
+    set_location_id(&mut location, ordinal);
+    location
+}
+
+// Version gates name the old bindings that lack a field, never the new ones
+// that have it, so a future `cuda-*` feature falls on the new side (design
+// D-8).
+#[cfg(not(any(
+    feature = "cuda-11040",
+    feature = "cuda-11050",
+    feature = "cuda-11060",
+    feature = "cuda-11070",
+    feature = "cuda-11080",
+    feature = "cuda-12000",
+    feature = "cuda-12010",
+    feature = "cuda-12020",
+    feature = "cuda-12030",
+    feature = "cuda-12040",
+    feature = "cuda-12050",
+    feature = "cuda-12060",
+    feature = "cuda-12080",
+    feature = "cuda-12090",
+    feature = "cuda-13000",
+    feature = "cuda-13010"
+)))]
+fn set_location_id(location: &mut sys::CUmemLocation, ordinal: i32) {
+    location.__bindgen_anon_1.id = ordinal;
+}
+
+#[cfg(any(
+    feature = "cuda-11040",
+    feature = "cuda-11050",
+    feature = "cuda-11060",
+    feature = "cuda-11070",
+    feature = "cuda-11080",
+    feature = "cuda-12000",
+    feature = "cuda-12010",
+    feature = "cuda-12020",
+    feature = "cuda-12030",
+    feature = "cuda-12040",
+    feature = "cuda-12050",
+    feature = "cuda-12060",
+    feature = "cuda-12080",
+    feature = "cuda-12090",
+    feature = "cuda-13000",
+    feature = "cuda-13010"
+))]
+fn set_location_id(location: &mut sys::CUmemLocation, ordinal: i32) {
+    location.id = ordinal;
 }
 
 #[cfg(any(
