@@ -405,6 +405,7 @@ def generate_expected(
     exact=False,
     skips=(),
     ignored_mode="normal",
+    binaries=(),
 ):
     """Expected list text for one cell; see the module docstring."""
     features = enabled_features(manifest, feature_set, version, extra_features)
@@ -507,6 +508,9 @@ def main(argv=None):
     pe.add_argument("--filter", action="append", default=[], help="libtest filter (repeatable)")
     pe.add_argument("--exact", action="store_true")
     pe.add_argument("--skip", action="append", default=[])
+    pe.add_argument(
+        "--binary", action="append", default=[], help="only this binary label (repeatable)"
+    )
     g = pe.add_mutually_exclusive_group()
     g.add_argument("--ignored", action="store_true")
     g.add_argument("--include-ignored", action="store_true")

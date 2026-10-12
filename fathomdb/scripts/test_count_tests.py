@@ -340,6 +340,26 @@ CATALOGUE = textwrap.dedent(
     ignored = false
     landed = true
     cfg = { features = ["cublas"] }
+
+    [[test]]
+    name = "case_a_decoy"
+    module = ""
+    binary = "test:fathomdb_lib_major"
+    kind = "D"
+    cells = ["G1"]
+    ignored = true
+    landed = true
+    cfg = { features = ["driver"] }
+
+    [[test]]
+    name = "template_matches"
+    module = "loader_tail::tests"
+    binary = "unittests:bindings_generator"
+    kind = "P"
+    cells = ["generator"]
+    ignored = false
+    landed = true
+    cfg = {  }
     """
 )
 
@@ -496,6 +516,31 @@ class Generate(unittest.TestCase):
             out.getvalue(),
             f"unittests:cudarc\t{PP}::max_size_without_binding_support_is_not_supported\n",
         )
+
+    def test_other_binaries_without_selected_tests_are_omitted(self):
+        # `cargo test --lib` never runs them, so they cannot report a summary
+        exp = self.gen(filters=("fathomdb_",))
+        self.assertEqual(set(exp.sections), {"unittests:cudarc"})
+        exp = self.gen(filters=("case_a",))
+        self.assertEqual(exp.sections["test:fathomdb_lib_major"].names, {"case_a_decoy": "ignored"})
+        self.assertEqual(exp.sections["test:fathomdb_lib_major"].filtered_out, 0)
+        # the lib section stays, with its filtered-out count
+        self.assertEqual(exp.sections["unittests:cudarc"].names, {})
+        self.assertEqual(exp.sections["unittests:cudarc"].filtered_out, 4)
+
+    def test_binary_option_restricts_the_sections(self):
+        name = "loader_tail::tests::template_matches"
+        exp = self.gen(filters=(name,), exact=True, binaries=("unittests:bindings_generator",))
+        self.assertEqual(set(exp.sections), {"unittests:bindings_generator"})
+        self.assertEqual(exp.sections["unittests:bindings_generator"].names, {name: "ok"})
+        out = io.StringIO()
+        argv = ["expect", "--catalogue", str(self.dir / "fork-catalogue.toml"),
+                "--manifest", str(self.dir / "Cargo.toml"), "--inventory-dir", str(self.dir),
+                "--set", "drv", "--version", "12060", "--arch", "x86_64", "--os", "linux",
+                "--binary", "unittests:bindings_generator", "--exact", "--filter", name]
+        with redirect_stdout(out):
+            self.assertEqual(ct.main(argv), 0)
+        self.assertEqual(set(ct.parse_expected(out.getvalue()).sections), {"unittests:bindings_generator"})
 
     def test_unlanded_names_present_in_a_listing_are_reported(self):
         listing = (
