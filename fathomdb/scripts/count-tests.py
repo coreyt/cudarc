@@ -49,7 +49,7 @@ OUTCOMES = ("ok", "FAILED", "ignored")
 
 _RUNNING = re.compile(r"^\s*Running (unittests )?(\S+) \(([^)]*)\)\s*$")
 _DOCTESTS = re.compile(r"^\s*Doc-tests (\S+)\s*$")
-_TEST_LINE = re.compile(r"^test (\S+) \.\.\. ?(.*)$")
+_TEST_LINE = re.compile(r"^test (\S+)(?: - should panic)? \.\.\. ?(.*)$")
 _OUTCOME = re.compile(r"^(ok|FAILED|ignored)(?:, .*)?$")
 _SUMMARY = re.compile(
     r"^test result: (?:ok|FAILED)\. (\d+) passed; (\d+) failed; (\d+) ignored; "
