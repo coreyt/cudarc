@@ -144,9 +144,13 @@ impl CudaMemPool {
     /// pool's address range) or of setting the release threshold; on the
     /// last, the pool is destroyed before returning.
     pub fn create(ordinal: usize, props: &MemPoolProps) -> Result<Self, DriverError> {
+        #[cfg(test)]
+        seams::enter_driver()?;
         result::init()?;
         let cu_device = result::device::get(ordinal as i32)?;
         let raw = pool_props(ordinal as i32, props);
+        #[cfg(test)]
+        seams::POOL_CREATES.set(seams::POOL_CREATES.get() + 1);
         let pool = unsafe { result::mem_pool::create(&raw) }?;
         // Owned from here, so an error below destroys the pool.
         let created = Self { cu_device, pool };
@@ -200,6 +204,58 @@ impl CudaMemPool {
     /// The raw pool handle. It stays owned by this value.
     pub fn raw(&self) -> sys::CUmemoryPool {
         self.pool
+    }
+}
+
+/// Test-only seams of [CudaMemPool::create]. Thread-local, so tests that run
+/// in parallel do not see each other's settings.
+#[cfg(test)]
+pub(crate) mod seams {
+    use crate::driver::{result::DriverError, sys::CUresult};
+    use core::cell::Cell;
+
+    std::thread_local! {
+        /// Times `create` reached its first driver call.
+        pub(crate) static DRIVER_ENTRIES: Cell<u32> = const { Cell::new(0) };
+        /// When set, `create` returns this error at its first driver call,
+        /// before calling the driver.
+        pub(crate) static FAIL_DRIVER_ENTRY: Cell<Option<CUresult>> = const { Cell::new(None) };
+        /// When set, replaces the result of `cuDriverGetVersion`.
+        pub(crate) static DRIVER_VERSION: Cell<Option<i32>> = const { Cell::new(None) };
+        /// Times `create` called `cuMemPoolCreate`.
+        pub(crate) static POOL_CREATES: Cell<u32> = const { Cell::new(0) };
+    }
+
+    pub(crate) fn enter_driver() -> Result<(), DriverError> {
+        DRIVER_ENTRIES.set(DRIVER_ENTRIES.get() + 1);
+        match FAIL_DRIVER_ENTRY.get() {
+            Some(err) => Err(DriverError(err)),
+            None => Ok(()),
+        }
+    }
+
+    /// Clears every seam now and again when dropped, so a failing test
+    /// leaves nothing set for the next test on this thread.
+    pub(crate) struct Reset;
+
+    impl Reset {
+        pub(crate) fn new() -> Self {
+            reset();
+            Reset
+        }
+    }
+
+    impl Drop for Reset {
+        fn drop(&mut self) {
+            reset();
+        }
+    }
+
+    fn reset() {
+        DRIVER_ENTRIES.set(0);
+        FAIL_DRIVER_ENTRY.set(None);
+        DRIVER_VERSION.set(None);
+        POOL_CREATES.set(0);
     }
 }
 

@@ -3735,7 +3735,9 @@ mod fathomdb_alloc_fallback {
 #[cfg(test)]
 mod fathomdb_private_pool {
     use super::*;
-    use crate::driver::safe::mem_pool::{device_location, pool_props, CudaMemPool, MemPoolProps};
+    use crate::driver::safe::mem_pool::{
+        device_location, pool_props, seams, CudaMemPool, MemPoolProps,
+    };
     use sys::CUmemPool_attribute::{
         CU_MEMPOOL_ATTR_RELEASE_THRESHOLD, CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT,
         CU_MEMPOOL_ATTR_USED_MEM_CURRENT,
@@ -3923,6 +3925,72 @@ mod fathomdb_private_pool {
             )))]
             assert_eq!(raw.gpuDirectRDMACapable, 0, "gpuDirectRDMACapable");
         }
+    }
+
+    /// CF-REQ-04: bindings older than `cuda-12020` have no `maxSize`, so a
+    /// nonzero request is refused before any driver call, never ignored.
+    #[cfg(any(
+        feature = "cuda-11040",
+        feature = "cuda-11050",
+        feature = "cuda-11060",
+        feature = "cuda-11070",
+        feature = "cuda-11080",
+        feature = "cuda-12000",
+        feature = "cuda-12010"
+    ))]
+    #[test]
+    fn max_size_without_binding_support_is_not_supported() {
+        let _reset = seams::Reset::new();
+        let refused = sys::CUresult::CUDA_ERROR_UNKNOWN;
+        // Every call below stops at the counted entry instead of the driver.
+        seams::FAIL_DRIVER_ENTRY.set(Some(refused));
+
+        // Positive control: a request nothing refuses reaches the entry.
+        assert_eq!(
+            CudaMemPool::create(0, &MemPoolProps::default()).map(|_| ()),
+            Err(DriverError(refused))
+        );
+        assert_eq!(seams::DRIVER_ENTRIES.get(), 1);
+        seams::DRIVER_ENTRIES.set(0);
+
+        assert_eq!(
+            CudaMemPool::create(0, &SMALL_POOL).map(|_| ()),
+            Err(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED))
+        );
+        assert_eq!(seams::DRIVER_ENTRIES.get(), 0, "driver entries");
+    }
+
+    /// Design D-4: with `maxSize` in the bindings, a driver older than 12020
+    /// reads those bytes as `reserved`, which must be 0, so a nonzero request
+    /// is refused before the pool is created.
+    #[cfg(not(any(
+        feature = "cuda-11040",
+        feature = "cuda-11050",
+        feature = "cuda-11060",
+        feature = "cuda-11070",
+        feature = "cuda-11080",
+        feature = "cuda-12000",
+        feature = "cuda-12010"
+    )))]
+    #[test]
+    fn max_size_on_a_driver_older_than_12020_is_not_supported() {
+        if !have_device() {
+            return;
+        }
+        let _reset = seams::Reset::new();
+        seams::DRIVER_VERSION.set(Some(12010));
+
+        // Positive control: max_size 0 needs no support and is counted.
+        let pool = CudaMemPool::create(0, &MemPoolProps::default()).unwrap();
+        assert_eq!(seams::POOL_CREATES.get(), 1);
+        drop(pool);
+        seams::POOL_CREATES.set(0);
+
+        assert_eq!(
+            CudaMemPool::create(0, &SMALL_POOL).map(|_| ()),
+            Err(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED))
+        );
+        assert_eq!(seams::POOL_CREATES.get(), 0, "pools created");
     }
 
     /// Design D-8: one helper builds the location from zeroed memory on every
