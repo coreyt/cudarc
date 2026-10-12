@@ -1086,3 +1086,86 @@ unchanged each time): T-DEV (d) ended 2026-10-12T10:18:19-05:00; G8-e ended
 | `480db3f` | U | L3 RED: report address-symbol test |
 | `3647a60` | U | L3 GREEN: cuFile address symbol `cuFileDriverOpen` |
 | `b29c41c` | P | FATHOMDB.md: item 9 in CUDA 11.x builds; Windows path code compile-checked only |
+
+## FC8 qualification at `C = b29c41c` (all cells except G5b)
+
+Run 2026-10-12 by an implementer subagent on `windchill3` and the Orin. The
+tree tested is a `git archive` of the branch tip `5249683`, whose code diff
+to `b29c41c` is empty (`git diff b29c41c 5249683 -- . ':(exclude)fathomdb'`).
+Every cell ran k = 3 at `C` and, where requirements CF-REQ-12 demands one,
+k = 3 at `ec1cac71` (a `git archive`), with `Cargo.lock.baseline` through
+`use-baseline-lock.py` and `--locked`. Receipts are in `qualification/`;
+logs over 1 MiB, and the FC8 scratch tools (`run-cell.sh`, the
+`fdbmaps.so` maps preload, `analyze.py`, `mkreceipt.py`), are kept on
+`windchill3` in `~/fathomdb-forks/fc8-logs/`.
+
+| Cell | Result | Receipt | UNMEASURED / open |
+| --- | --- | --- | --- |
+| CI run 38269933260 (`head_sha` `5249683`) | PASS: 139 of 139 jobs `success`; T-UNIT 10 per feature on 38 jobs | `2026-10-12-CI-5249683.md` | — |
+| G1 (12060, default) | PASS; `test_pinned_copy_is_faster` (host-dependent) failed once at each commit | `2026-10-12-G1-b29c41c.md` | none |
+| G1 T-DEV (a)–(d), (f) | PASS, k = 3 | `2026-10-12-G1-TDEV-b29c41c.md` | (e): G5b |
+| G2 (T-MULTI, 0,1) | PASS | `2026-10-12-G2-b29c41c.md` | none |
+| G3 12060, 13000, 13010 | PASS | `2026-10-12-G3-<v>-b29c41c.md` | none |
+| G3 13020, 13030, 13040 | PASS; driver-version gate holds | `2026-10-12-G3-<v>-b29c41c.md` | `max_pool_size_reads_back_at_least_the_request` (G5b) |
+| G4 (13000, default, CUDA 13.0 wheels) | PASS; baseline loaded CUDA 12.6 libraries | `2026-10-12-G4-b29c41c.md` | none |
+| G5a 13010–13040 (default, 13.1–13.4 wheels) | PASS for the G5a set; finding F-G5a-1 open | `2026-10-12-G5a-<v>-b29c41c.md` | per build: 15 upstream `launch`/`unified_memory` tests, `test_device_side_assert`, `drops_after_a_sticky_error_neither_panic_nor_abort` (13.1+ PTX JIT on driver 580: `CUDA_ERROR_UNSUPPORTED_PTX_VERSION`); from 13020 also `max_pool_size_reads_back_at_least_the_request` |
+| G6 (Orin, 12060) | **FAIL, stopped**: findings F-G6-1, F-G6-2 | `2026-10-12-G6-b29c41c.md` | 46 upstream tests and the 10 `fathomdb_lib_major` tests never reached (crash, F-G6-2) |
+| G8 a–f | PASS | `2026-10-12-G8-b29c41c.md` | none |
+| CF-AC-07a | PASS: 135 files, list SHA-256 `83db814a…f6ddac7` at `5249683` and at `b29c41c` (unchanged); no `fathomdb/`, no `fathomdb-ci.yaml`; dry run ok | `2026-10-12-CF-AC-07a-b29c41c.md`, `package-list-b29c41c.txt` | `.cargo_vcs_info.json` names `5249683`; FC10 packages `C` itself |
+| G7 | UNMEASURED (owner ruling Q5) | — | — |
+
+Guards: `windchill3` first 2026-10-12T10:33:04-05:00, last
+11:11:21-05:00, 852 guard lines in the runner logs (plus the T-DEV and G8
+script guards), all `driver=580.178.04 cuda=/usr/local/cuda-12.6`. Orin
+first 10:31:48-05:00, last 11:11:21-05:00, all `R36 (release), REVISION:
+5.2` with `/usr/local/cuda-12.6`. No guard changed. The Orin work directory
+`~/fdb-fork-qual/` was removed afterwards.
+
+Scratch venvs added for G5a (`~/fathomdb-forks/venvs`, `pip install
+--no-deps`, pins = NVIDIA's `cuda-toolkit` metapackage components on PyPI):
+
+| Venv | Pins |
+| --- | --- |
+| `cu13-131` | `nvidia-cuda-runtime==13.1.80`, `nvidia-cuda-nvrtc==13.1.115`, `nvidia-cublas==13.2.2.2`, `nvidia-curand==10.4.1.81`, `nvidia-nvjitlink==13.1.115` (`cuda-toolkit==13.1.2.0`) |
+| `cu13-132` | `nvidia-cuda-runtime==13.2.86`, `nvidia-cuda-nvrtc==13.2.86`, `nvidia-cublas==13.4.1.3`, `nvidia-curand==10.4.2.66`, `nvidia-nvjitlink==13.2.86` (`cuda-toolkit==13.2.2`) |
+| `cu13-133` | `nvidia-cuda-runtime==13.3.29`, `nvidia-cuda-nvrtc==13.3.33`, `nvidia-cublas==13.6.0.2`, `nvidia-curand==10.4.3.29`, `nvidia-nvjitlink==13.3.33` (`cuda-toolkit==13.3.1`) |
+| `cu13-134` | `nvidia-cuda-runtime==13.4.92`, `nvidia-cuda-nvrtc==13.4.92`, `nvidia-cublas==13.8.0.4`, `nvidia-curand==10.4.4.72`, `nvidia-nvjitlink==13.4.92` (`cuda-toolkit==13.4.2`) |
+
+### FC8 findings (open; no disposition made here)
+
+- **F-G6-1.** On the Orin, six fork tests fail at `C` in every run:
+  `a_private_pointer_freed_synchronously_releases_its_memory`,
+  `destroy_with_outstanding_allocations_is_deferred` and
+  `requests_within_the_cap_succeed` (also alone), and
+  `max_size_on_a_driver_older_than_12020_is_not_supported`,
+  `release_threshold_bounds_reserved_after_sync` and
+  `trim_to_keeps_the_floor_and_releases_above_it` (only in sequence,
+  `CUDA_ERROR_OUT_OF_MEMORY`). Observations: `cuMemGetInfo` free memory does
+  not move on Tegra (upstream `test_post_alloc_memory` fails the same way at
+  both commits), and M-2 gives a 32 MiB limit for a 64 MiB cap on the Orin.
+  Verbatim messages in the G6 receipt.
+- **F-G6-2.** Upstream `test_from_raw_context_bind_to_thread` segfaults on
+  the Orin at `ec1cac71` and at `C` (alone too, and without the maps
+  preload), which ends every `--lib` main run; the tests after it are not
+  measured on the Orin.
+- **F-G5a-1.** CF-AC-04c says the fork's NVRTC-dependent tests compile to
+  CUBIN; `drops_after_a_sticky_error_neither_panic_nor_abort` compiles PTX
+  (`nvrtc::compile_ptx`), so it fails on G5a with
+  `CUDA_ERROR_UNSUPPORTED_PTX_VERSION` and is recorded UNMEASURED. The
+  catalogue lists it for G1 and G5b only.
+
+### Left for G5b (GCP T4)
+
+- The full `--lib` set for 13010–13040 with default features (CF-AC-04c),
+  including every test recorded UNMEASURED in the G5a receipts.
+- `max_pool_size_reads_back_at_least_the_request` (13020+; M-4
+  `cuDriverGetVersion` ≥ each build).
+- `drops_after_a_sticky_error_neither_panic_nor_abort`,
+  `release_threshold_bounds_reserved_after_sync`,
+  `trim_to_keeps_the_floor_and_releases_above_it`,
+  `requests_within_the_cap_succeed`,
+  `a_request_over_the_cap_is_out_of_memory`,
+  `capture_on_a_private_context_uses_graph_memory` and
+  `measure_reservation_steps` (catalogue cell G5b; M-1).
+- T-DEV (e) `driver_loads_with_only_libcuda_so_1`.
+- After G5b: R-FC-VERIFY over CF-AC-01…06, 07a and 09…12 at `C`.
