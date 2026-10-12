@@ -6,7 +6,8 @@
     [review.md](review.md).
   - Revision 3 (R-FC-CODE fix round): § 3.4 T-UNIT gains
     `report_address_symbols_are_bound_wherever_the_library_is` (finding L3),
-    so T-UNIT has 10 tests per feature.
+    so T-UNIT has 10 tests per feature; the T-DEV (d) setup states the
+    in-process preload (finding L4).
 - Inputs: [requirements](requirements.md) revision 5,
   [design](design.md) revision 2, [plan](plan.md) §§ 1, 6–9.
 - Tracing: every test traces to a CF-AC, or, where marked "design", to the
@@ -302,9 +303,16 @@ its own environment, and reads `/proc/self/maps`. The RED body calls only
 | (a) | 12060 | decoy dir holding `libcublas.so` → cu13 `libcublas.so.13`, then the cu13 venv's `nvidia/cu13/lib`, first on `LD_LIBRARY_PATH` (cu13 cuBLAS has `RUNPATH $ORIGIN` and needs `libcublasLt.so.13`) | `dlopen("libcublas.so")` in a helper process maps `.so.13` | maps `libcublas.so.13` (RED) | maps the system `libcublas.so.12`; report names it |
 | (b) | 13000 | no CUDA 13 cuBLAS reachable; the loader cache gives 12.6 for `libcublas.so` | `ldconfig -p` lists `libcublas.so` → 12.6 | maps `libcublas.so.12` (RED) | typed error; no `libcublas.so.12` mapping |
 | (c) | 12060 | binary run as `ld-linux-x86-64.so.2 --inhibit-cache <test binary>` with an empty dir first | no cuBLAS resolvable (helper probe) | panics (RED) | typed error; exit 0 |
-| (d) | 12060 | decoy dir holding `libcufile.so` → cu13 `libcufile.so.0`, first on the path | helper maps the cu13 cuFile | maps cu13 cuFile (RED) | `AlreadyLoadedWrongVersion` (the object stays mapped: `DF_1_NODELETE`) |
+| (d) | 12060 | decoy dir holding `libcufile.so` → cu13 `libcufile.so.0`, first on the path; the test loads the decoy in-process first, then closes it (it stays mapped: `DF_1_NODELETE`) | helper maps the cu13 cuFile | maps cu13 cuFile (RED) | `AlreadyLoadedWrongVersion` (the object stays mapped: `DF_1_NODELETE`) |
 | (e) | 12060 | driver only as `libcuda.so.1` (G5b host) | `ldconfig -p` has no `libcuda.so` entry and no `libcuda.so` file exists in the loader paths | loads | loads (unchanged); no RED |
 | (f) | 12060 | `libnvToolsExt.so.1` only, for `nvtx` | the helper finds it | loads | loads (unchanged); no RED |
+
+Case (d) setup (revision 3): the in-process preload is how FC6-b ran it.
+R-FC-CODE found it a faithful reading of R-FC-DES M2 (the already-loaded
+check). Without the preload, `C` never reaches the decoy:
+`libcufile.so.0` comes first and resolves through the loader cache, so `C`
+loads and accepts the system cuFile 1.11 (`/usr/local/cuda-12.6/.../
+libcufile.so.1.11.1`), and nothing is mapped from the venv.
 
 **G8** (D, `windchill3`; venvs `cu12-121`, `cu12-124`, `cu12-129`,
 `cu13-130`; builds with
