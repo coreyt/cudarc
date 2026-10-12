@@ -3735,7 +3735,7 @@ mod fathomdb_alloc_fallback {
 #[cfg(test)]
 mod fathomdb_private_pool {
     use super::*;
-    use crate::driver::safe::mem_pool::{pool_props, CudaMemPool, MemPoolProps};
+    use crate::driver::safe::mem_pool::{device_location, pool_props, CudaMemPool, MemPoolProps};
     use sys::CUmemPool_attribute::{
         CU_MEMPOOL_ATTR_RELEASE_THRESHOLD, CU_MEMPOOL_ATTR_RESERVED_MEM_CURRENT,
         CU_MEMPOOL_ATTR_USED_MEM_CURRENT,
@@ -3784,10 +3784,87 @@ mod fathomdb_private_pool {
             raw.location.type_,
             sys::CUmemLocationType::CU_MEM_LOCATION_TYPE_DEVICE
         );
-        assert_eq!(raw.location.id, 3);
+        assert_eq!(location_id(&raw.location), 3);
+        assert_eq!(
+            location_bytes(raw.location),
+            location_bytes(device_location(3))
+        );
         assert!(raw.win32SecurityAttributes.is_null());
         #[cfg(feature = "cuda-12060")]
         assert_eq!(raw.maxSize, 3 << 30);
+    }
+
+    /// The location's `id`, which the 13020+ bindings hold in a union.
+    #[cfg(not(any(
+        feature = "cuda-11040",
+        feature = "cuda-11050",
+        feature = "cuda-11060",
+        feature = "cuda-11070",
+        feature = "cuda-11080",
+        feature = "cuda-12000",
+        feature = "cuda-12010",
+        feature = "cuda-12020",
+        feature = "cuda-12030",
+        feature = "cuda-12040",
+        feature = "cuda-12050",
+        feature = "cuda-12060",
+        feature = "cuda-12080",
+        feature = "cuda-12090",
+        feature = "cuda-13000",
+        feature = "cuda-13010"
+    )))]
+    fn location_id(location: &sys::CUmemLocation) -> i32 {
+        // SAFETY: every variant of the union is plain integer data.
+        unsafe { location.__bindgen_anon_1.id }
+    }
+
+    #[cfg(any(
+        feature = "cuda-11040",
+        feature = "cuda-11050",
+        feature = "cuda-11060",
+        feature = "cuda-11070",
+        feature = "cuda-11080",
+        feature = "cuda-12000",
+        feature = "cuda-12010",
+        feature = "cuda-12020",
+        feature = "cuda-12030",
+        feature = "cuda-12040",
+        feature = "cuda-12050",
+        feature = "cuda-12060",
+        feature = "cuda-12080",
+        feature = "cuda-12090",
+        feature = "cuda-13000",
+        feature = "cuda-13010"
+    ))]
+    fn location_id(location: &sys::CUmemLocation) -> i32 {
+        location.id
+    }
+
+    fn location_bytes(location: sys::CUmemLocation) -> [u8; 8] {
+        // SAFETY: CUmemLocation is 8 bytes of integers with no padding in every
+        // binding (design D-8); the size is checked at compile time here.
+        unsafe { std::mem::transmute::<sys::CUmemLocation, [u8; 8]>(location) }
+    }
+
+    /// Design D-8: one helper builds the location from zeroed memory on every
+    /// binding, the union's `id` included.
+    #[test]
+    fn device_location_is_the_ordinal_on_every_binding() {
+        assert_eq!(std::mem::size_of::<sys::CUmemLocation>(), 8);
+        for ordinal in [0, 1, 3, 255, 256, i32::MAX] {
+            let location = device_location(ordinal);
+            assert_eq!(
+                location.type_,
+                sys::CUmemLocationType::CU_MEM_LOCATION_TYPE_DEVICE
+            );
+            assert_eq!(location_id(&location), ordinal);
+            let bytes = location_bytes(location);
+            assert_eq!(
+                bytes[..4],
+                (sys::CUmemLocationType::CU_MEM_LOCATION_TYPE_DEVICE as u32).to_ne_bytes()
+            );
+            assert_eq!(bytes[4..], ordinal.to_ne_bytes());
+        }
     }
 
     #[test]
