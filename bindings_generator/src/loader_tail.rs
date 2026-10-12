@@ -3,8 +3,134 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 
-/// The loader tail for a module that loads `lib_names`.
+/// The libraries loaded by FATHOMDB.md item 9's rules (`src/lib.rs`,
+/// `lib_major::IN_SCOPE`).
+const CHECKED: [&str; 11] = [
+    "cudart",
+    "cublas",
+    "cublasLt",
+    "nvrtc",
+    "cupti",
+    "cufft",
+    "cusolver",
+    "cusolverMg",
+    "cusparse",
+    "curand",
+    "cufile",
+];
+
+/// The loader tail for a module that loads `lib_names`: item 9's checked
+/// loader for the CUDA toolkit libraries, the upstream loader plus a report
+/// for the driver, and the upstream loader for everything else.
 pub fn loader_tail(lib_names: &[String]) -> TokenStream {
+    match lib_names.first().map(String::as_str) {
+        Some("cuda") => driver_tail(lib_names),
+        Some(lib) if CHECKED.contains(&lib) => checked_tail(lib),
+        _ => base_tail(lib_names),
+    }
+}
+
+fn checked_tail(lib: &str) -> TokenStream {
+    quote! {
+        #[cfg(feature = "dynamic-loading")]
+        static CULIB: crate::lib_major::LibCell<::libloading::Library> = crate::lib_major::LibCell::new();
+
+        #[doc = " Loads the library for the built CUDA major, once (FATHOMDB.md item 9). Candidates come from [`crate::get_lib_name_candidates`]; each is version-checked, and a failure is memoized and returned again by later calls."]
+        #[cfg(feature = "dynamic-loading")]
+        pub unsafe fn try_culib() -> Result<&'static ::libloading::Library, crate::LibLoadError> {
+            CULIB.try_get(|| crate::lib_major::load_culib(#lib))
+        }
+
+        #[doc = " Whether [`try_culib`] succeeds. Performs (and keeps) the load."]
+        #[cfg(feature = "dynamic-loading")]
+        pub unsafe fn is_culib_present() -> bool {
+            CULIB.is_present(|| crate::lib_major::load_culib(#lib))
+        }
+
+        #[doc = " [`try_culib`], panicking with the [`crate::LibLoadError`] message if the library cannot be loaded."]
+        #[cfg(feature = "dynamic-loading")]
+        pub unsafe fn culib() -> &'static ::libloading::Library {
+            try_culib().unwrap_or_else(|e| crate::lib_major::panic_lib_load_error(&e))
+        }
+
+        #[doc = " Whether the loaded library exports the symbol `name`, or why the library cannot be loaded."]
+        #[cfg(feature = "dynamic-loading")]
+        pub unsafe fn is_symbol_present(name: &str) -> Result<bool, crate::LibLoadError> {
+            Ok(try_culib()?
+                .get::<*const ::core::ffi::c_void>(name.as_bytes())
+                .is_ok())
+        }
+
+        #[doc = " What was loaded, after a successful load; \"linked at build time\" under `dynamic-linking` or `static-linking`."]
+        pub fn loaded_library() -> Option<crate::LoadedLibrary> {
+            #[cfg(feature = "dynamic-loading")]
+            {
+                CULIB.report()
+            }
+            #[cfg(not(feature = "dynamic-loading"))]
+            {
+                Some(crate::lib_major::linked_at_build_time(#lib))
+            }
+        }
+    }
+}
+
+fn driver_tail(lib_names: &[String]) -> TokenStream {
+    quote! {
+        #[cfg(feature = "dynamic-loading")]
+        pub unsafe fn is_culib_present() -> bool {
+            let lib_names = [#(#lib_names),*];
+            let choices = lib_names
+                .iter()
+                .map(|l| crate::get_lib_name_candidates(l))
+                .flatten();
+            for choice in choices {
+                if ::libloading::Library::new(choice).is_ok() {
+                    return true;
+                }
+            }
+            false
+        }
+
+        #[cfg(feature = "dynamic-loading")]
+        static CULIB: OnceLock<(::libloading::Library, std::string::String)> = OnceLock::new();
+
+        #[cfg(feature = "dynamic-loading")]
+        pub unsafe fn culib() -> &'static ::libloading::Library {
+            &CULIB
+                .get_or_init(|| {
+                    let lib_names = std::vec![#(#lib_names),*];
+                    let choices: std::vec::Vec<_> = lib_names
+                        .iter()
+                        .map(|l| crate::get_lib_name_candidates(l))
+                        .flatten()
+                        .collect();
+                    for choice in choices.iter() {
+                        if let Ok(lib) = ::libloading::Library::new(choice) {
+                            return (lib, choice.clone());
+                        }
+                    }
+                    crate::panic_no_lib_found(lib_names[0], &choices);
+                })
+                .0
+        }
+
+        #[doc = " The driver's file and `cuDriverGetVersion`, after it is loaded; \"linked at build time\" under `dynamic-linking` or `static-linking`."]
+        pub fn loaded_library() -> Option<crate::LoadedLibrary> {
+            #[cfg(feature = "dynamic-loading")]
+            {
+                let (lib, name) = CULIB.get()?;
+                Some(unsafe { crate::lib_major::driver_report(lib, name) })
+            }
+            #[cfg(not(feature = "dynamic-loading"))]
+            {
+                Some(crate::lib_major::linked_at_build_time("cuda"))
+            }
+        }
+    }
+}
+
+fn base_tail(lib_names: &[String]) -> TokenStream {
     quote! {
         #[cfg(feature = "dynamic-loading")]
         pub unsafe fn is_culib_present() -> bool {
