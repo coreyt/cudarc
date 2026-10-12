@@ -206,7 +206,7 @@ trim fails the bound. No environment variable is involved.
 | `exit_with_a_live_pool_is_clean` | X | design D-2 (T-TEARDOWN) | G1, G6 | child process allocates and exits without dropping; exit status 0 | no RED: characterization |
 | `measure_reservation_steps` | D | M-1 | G1, G5b, G6 (ignored) | prints steps | measurement |
 | `measure_max_size_semantics` | D | M-2 | G1 (ignored) | prints reserved and used at the first OOM, at thresholds 0 and cap | measurement |
-| `observe_new_attributes_on_driver_580` | D | M-3 | G1 (ignored) | calls `result::mem_pool::get_attribute` for 9–15 directly and prints each result | observation; the gate never relies on it |
+| `observe_new_attributes_on_driver_580` | D | M-3 | G3 13020+ (ignored; the 12060 bindings have no attributes 9–15) | calls `result::mem_pool::get_attribute` for 9–15 directly and prints each result | observation; the gate never relies on it |
 
 **Stream-order test.**
 
