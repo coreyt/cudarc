@@ -1,0 +1,211 @@
+R-FC-CODE-2 RED / mutation / GREEN evidence (findings M1, M2), 2026-10-12.
+Trees: git archive 8528fc2 + core.rs of 84ede22 (src-new; its core.rs equals b777f8d's), plus mutations; old-* trees are 8528fc2 unmodified + the mutation.
+core.rs / mem_pool.rs SHA-256 (prefix):
+  src-new core=b7003e56eca1e668 mem_pool=17ad1e2a35000e94
+  src-m1mut core=b7003e56eca1e668 mem_pool=47eccca76efa72dc
+  src-old-m1mut core=da69c61cc6cedd8d mem_pool=47eccca76efa72dc
+Mutation M1 (mem_pool.rs set_max_size): raw.maxSize = max_size; -> raw.maxSize = max_size * 2;
+Mutation M2 (core.rs destroy_with_outstanding_allocations_is_deferred): unsafe { result::free_async(ptr, other.cu_stream()) }.unwrap(); -> let _ = ptr;
+Orin test binaries (SHA-256): new e0b87680abaf4b063053de08d103a887b6bd1160ea11d55ea77becf6d4037424; m1mut c70099de94312ee09ac97a0c11db5f90eb6a350cf83107709c9bb58a6dac026d; old-m1mut f197e11d8bd61563c916942127e659ccbdd65490afe4bc58b1025e1c2292e01b
+RTX 3090 test binaries (SHA-256): new 7e38d645a2fafbf22ba07e34d325902922ed1c3573cb596aaabb5ea91bdaf812; m2mut bed63e20ba02913b96392e3fd413616ccd51465325ea68b5247583e0fffb9d96; old-m2mut aec0866b1428e5c5f0b5b1745eb5dbf38499287120b062022506b9967e58a04b
+Command: <bin> --exact <test> --nocapture --test-threads=1, CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=0 CUDARC_CUDA_VERSION=12060, guarded.
+======== Orin: requests_within_the_cap_succeed (m1.log)
+=== m1mut
+2026-10-12T12:12:47-05:00 GUARD-BEFORE # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::requests_within_the_cap_succeed ... M-2 integrated: cap=67108864 size=1048576 limit=67108864 chunk=33554432
+
+thread 'driver::safe::core::fathomdb_private_pool::requests_within_the_cap_succeed' (1804250) panicked at src/driver/safe/core.rs:5318:13:
+limit 67108864 is within one chunk (33554432) of the cap 67108864: the measured Tegra limit (design D-4) no longer holds
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    driver::safe::core::fathomdb_private_pool::requests_within_the_cap_succeed
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 136 filtered out; finished in 0.32s
+
+EXIT 101
+2026-10-12T12:12:48-05:00 GUARD-AFTER # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+=== old-m1mut
+2026-10-12T12:12:48-05:00 GUARD-BEFORE # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::requests_within_the_cap_succeed ... M-2 integrated: cap=67108864 size=1048576 limit=67108864 chunk=33554432
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 136 filtered out; finished in 0.59s
+
+EXIT 0
+2026-10-12T12:12:48-05:00 GUARD-AFTER # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+=== new
+2026-10-12T12:12:48-05:00 GUARD-BEFORE # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::requests_within_the_cap_succeed ... M-2 integrated: cap=67108864 size=1048576 limit=33554432 chunk=33554432
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 136 filtered out; finished in 0.39s
+
+EXIT 0
+2026-10-12T12:12:49-05:00 GUARD-AFTER # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+=== new
+2026-10-12T12:12:49-05:00 GUARD-BEFORE # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::requests_within_the_cap_succeed ... M-2 integrated: cap=67108864 size=1048576 limit=33554432 chunk=33554432
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 136 filtered out; finished in 0.39s
+
+EXIT 0
+2026-10-12T12:12:49-05:00 GUARD-AFTER # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+=== new
+2026-10-12T12:12:49-05:00 GUARD-BEFORE # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::requests_within_the_cap_succeed ... M-2 integrated: cap=67108864 size=1048576 limit=33554432 chunk=33554432
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 136 filtered out; finished in 0.39s
+
+EXIT 0
+2026-10-12T12:12:49-05:00 GUARD-AFTER # R36 (release), REVISION: 5.2, GCID: 46426093, BOARD: generic, EABI: aarch64, DATE: Thu Jul 16 18:56:22 UTC 2026 cuda=/usr/local/cuda-12.6
+======== RTX 3090: requests_within_the_cap_succeed, discrete path (m1-3090.log)
+=== new-m1-discrete
+GUARD-BEFORE 2026-10-12T12:11:57-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::requests_within_the_cap_succeed ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.66s
+
+EXIT 0
+GUARD-AFTER 2026-10-12T12:11:58-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+=== new-m1-discrete
+GUARD-BEFORE 2026-10-12T12:11:58-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::requests_within_the_cap_succeed ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.67s
+
+EXIT 0
+GUARD-AFTER 2026-10-12T12:11:59-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+=== new-m1-discrete
+GUARD-BEFORE 2026-10-12T12:11:59-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::requests_within_the_cap_succeed ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.69s
+
+EXIT 0
+GUARD-AFTER 2026-10-12T12:12:00-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+======== RTX 3090: destroy_with_outstanding_allocations_is_deferred (m2.log; order: m2mut, new x3, m2mut x2, old-m2mut)
+=== m2mut
+GUARD-BEFORE 2026-10-12T12:11:46-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred ... discrete: cuMemGetInfo free 25017122816 -> outstanding 24748687360 -> after 24748687360; chunk 268435456 (observation)
+
+thread 'driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred' (2068155) panicked at src/driver/safe/core.rs:5853:13:
+free 25017122816 -> 24748687360: half the allocation (134217728) or more is still taken
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.39s
+
+EXIT 101
+GUARD-AFTER 2026-10-12T12:11:47-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+=== new
+GUARD-BEFORE 2026-10-12T12:11:47-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred ... discrete: cuMemGetInfo free 25017122816 -> outstanding 24748687360 -> after 25017122816; chunk 268435456 (observation)
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.33s
+
+EXIT 0
+GUARD-AFTER 2026-10-12T12:11:47-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+=== new
+GUARD-BEFORE 2026-10-12T12:11:47-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred ... discrete: cuMemGetInfo free 25017122816 -> outstanding 24748687360 -> after 25017122816; chunk 268435456 (observation)
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.30s
+
+EXIT 0
+GUARD-AFTER 2026-10-12T12:11:48-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+=== new
+GUARD-BEFORE 2026-10-12T12:11:48-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred ... discrete: cuMemGetInfo free 25017122816 -> outstanding 24748687360 -> after 25017122816; chunk 268435456 (observation)
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.30s
+
+EXIT 0
+GUARD-AFTER 2026-10-12T12:11:48-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+=== m2mut
+GUARD-BEFORE 2026-10-12T12:11:56-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred ... discrete: cuMemGetInfo free 25017122816 -> outstanding 24748687360 -> after 24748687360; chunk 268435456 (observation)
+
+thread 'driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred' (2068327) panicked at src/driver/safe/core.rs:5853:13:
+free 25017122816 -> 24748687360: half the allocation (134217728) or more is still taken
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.39s
+
+EXIT 101
+GUARD-AFTER 2026-10-12T12:11:57-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+=== m2mut
+GUARD-BEFORE 2026-10-12T12:11:57-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred ... discrete: cuMemGetInfo free 25017122816 -> outstanding 24748687360 -> after 24748687360; chunk 268435456 (observation)
+
+thread 'driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred' (2068352) panicked at src/driver/safe/core.rs:5853:13:
+free 25017122816 -> 24748687360: half the allocation (134217728) or more is still taken
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.30s
+
+EXIT 101
+GUARD-AFTER 2026-10-12T12:11:57-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+=== old-m2mut (8528fc2 test, free_async removed)
+GUARD-BEFORE 2026-10-12T12:12:13-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.38s
+
+EXIT 0
+GUARD-AFTER 2026-10-12T12:12:13-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6

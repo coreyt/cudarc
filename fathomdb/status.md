@@ -42,6 +42,9 @@ reviewer re-runs each RED; the last column holds that result.
 | 2026-10-12 | FC8-G6 leaked-pointer guard | `fe8e1b4` (Orin, fork modules in sequence) | 50 passed, 6 failed: the 3 above plus 3 out-of-memory cascade failures | `ba537a2` (56 passed; with mutations M1/M3, only the 2 mutated tests fail) | pending (R-FC-CODE-2) |
 | 2026-10-12 | FC8-G6 FATHOMDB.md Tegra notes | — (packaging doc) | — | `8528fc2` | — |
 | 2026-10-12 | FC8-G6 catalogue: `ignored` restored on 3 rows | `fe8e1b4` (catalogue edit wrote the new `red` text over `ignored = false`) | G1 at `8528fc2`: `count-tests: FAIL`, `expected ignored, got ok` for 2 tests | `9702b51` (`count-tests: PASS`) | pending (R-FC-CODE-2) |
+| 2026-10-12 | R-FC-CODE-2 M1 Tegra upper bound in `requests_within_the_cap_succeed` | mutation `raw.maxSize = max_size * 2` on `5fce665`'s test (Orin) | `limit 67108864 is within one chunk (33554432) of the cap 67108864: the measured Tegra limit (design D-4) no longer holds` (the `8528fc2` test passes the same mutation) | `5fce665` (Orin k = 3: `limit=33554432 chunk=33554432`, pass; RTX 3090 k = 3 pass) | pending |
+| 2026-10-12 | R-FC-CODE-2 M2 discrete post-free bound in `destroy_with_outstanding_allocations_is_deferred` | leak mutation (`free_async` removed) on `84ede22`'s test (RTX 3090), k = 3 | `free 25017122816 -> 24748687360: half the allocation (134217728) or more is still taken` (the `8528fc2` test passes the same mutation) | `84ede22` (RTX 3090 k = 3: free `25017122816 -> 24748687360 -> 25017122816`, pass) | pending |
+| 2026-10-12 | R-FC-CODE-2 L1/L2 uncapped-pool probe; L3 FATHOMDB.md | — (measurement and docs) | — | `393f165` (probe), `b777f8d` (FATHOMDB.md) | — |
 
 ## FC4-0 (class D)
 
@@ -1091,6 +1094,11 @@ unchanged each time): T-DEV (d) ended 2026-10-12T10:18:19-05:00; G8-e ended
 | `480db3f` | U | L3 RED: report address-symbol test |
 | `3647a60` | U | L3 GREEN: cuFile address symbol `cuFileDriverOpen` |
 | `b29c41c` | P | FATHOMDB.md: item 9 in CUDA 11.x builds; Windows path code compile-checked only |
+| `ba537a2` | U | FC8 G6 fix round: Tegra release oracle and capacity bound; leaked-pointer guard |
+| `8528fc2` | P | FATHOMDB.md Tegra notes |
+| `5fce665` | U | R-FC-CODE-2 M1: Tegra upper bound in `requests_within_the_cap_succeed` |
+| `84ede22` | U | R-FC-CODE-2 M2: half-allocation post-free bound (discrete) in `destroy_with_outstanding_allocations_is_deferred` |
+| `b777f8d` | P | R-FC-CODE-2 L2/L3: FATHOMDB.md Tegra notes match the cap table and probe; code commit `C'` |
 
 ## FC8 qualification at `C = b29c41c` (all cells except G5b)
 
@@ -1148,7 +1156,10 @@ Scratch venvs added for G5a (`~/fathomdb-forks/venvs`, `pip install
   `CUDA_ERROR_OUT_OF_MEMORY`). Observations: `cuMemGetInfo` free memory does
   not move on Tegra (upstream `test_post_alloc_memory` fails the same way at
   both commits), and M-2 gives a 32 MiB limit for a 64 MiB cap on the Orin.
-  Verbatim messages in the G6 receipt.
+  Verbatim messages in the G6 receipt. The old `cuMemGetInfo` oracle was
+  nondeterministic on the Orin, depending on page-pool warmth: the two
+  release tests passed alone in `2026-10-12-G6-pertest-b29c41c.tsv` but
+  failed alone in the RED runs (R-FC-CODE-2 finding L4).
 - **F-G6-2.** Upstream `test_from_raw_context_bind_to_thread` segfaults on
   the Orin at `ec1cac71` and at `C` (alone too, and without the maps
   preload), which ends every `--lib` main run; the tests after it are not
@@ -1174,6 +1185,9 @@ Scratch venvs added for G5a (`~/fathomdb-forks/venvs`, `pip install
   `measure_reservation_steps` (catalogue cell G5b; M-1).
 - T-DEV (e) `driver_loads_with_only_libcuda_so_1`.
 - After G5b: R-FC-VERIFY over CF-AC-01…06, 07a and 09…12 at `C`.
+- **Code commit now `C' = b777f8d`** (R-FC-CODE-2 fix round, below): G5b
+  runs at `b777f8d`, and every item above is owed at `b777f8d`, not at
+  `b29c41c` or `8528fc2`.
 
 ## FC8 G6 fix round (findings F-G6-1, F-G6-2, F-G5a-1; classes D, U, P)
 
@@ -1237,3 +1251,105 @@ next statement, with no panic point between.
   (`requests_within_the_cap_succeed` is a G3 test) were not run here. The
   push is the main thread's.
 - G5b (unchanged by this round).
+
+## R-FC-CODE-2 fix round (findings M1, M2, L1–L4; classes D, U, P)
+
+Dispositions decided by the main thread; implemented 2026-10-12 by an
+implementer subagent on `windchill3` and the Orin. New code commit
+**`C' = b777f8d`**; the pin chain restarts there (plan § 1.5), so
+`8528fc2` is no longer the commit to pin. `git diff 8528fc2 b777f8d -- .
+':(exclude)fathomdb'` touches only the fork test module in
+`src/driver/safe/core.rs` (4 hunks, all in `mod fathomdb_private_pool`)
+and `FATHOMDB.md`.
+
+| Commit | Class | Files | Purpose |
+| --- | --- | --- | --- |
+| `393f165` | D | `design.md`, `test-plan.md`, `fork-catalogue.toml`, `qualification/uncapped-pools-probe.{rs,Cargo.toml}`, `qualification/2026-10-12-uncapped-pools-probe.{md,log}` | L1/L2 probe and evidence; design rev 4 (D-2 measured: 20.47 GiB VA per uncapped pool, four per process, `Synchronous` with four live); test plan rev 5 rows and catalogue `red` text for M1/M2 |
+| `5fce665` | U | `src/driver/safe/core.rs` (fork test module) | M1: Tegra `limit + chunk <= cap` in `requests_within_the_cap_succeed`, labelled measured Orin/JetPack 6 behaviour (design D-4) |
+| `84ede22` | U | `src/driver/safe/core.rs` (fork test module) | M2: discrete post-free bound `free_after + SIZE / 2 > free_before` in `destroy_with_outstanding_allocations_is_deferred` (was one chunk = 256 MiB, which could not fail). **Strengthens a discrete assertion; accepted by the main thread as a pre-existing defect fix.** The test also prints the discrete `cuMemGetInfo` values |
+| `b777f8d` | P | `FATHOMDB.md` | L3: cap note consistent with the D-4 table (about a third for large caps; 32–96 MiB caps give 32 MiB); L2: `Synchronous` selection measured, per process. **Code commit `C'`** |
+| this commit | D | `status.md`, receipts `qualification/2026-10-12-*-b777f8d.{md,log}`, `qualification/2026-10-12-CI-863ee48.md`, `qualification/package-list-b777f8d.txt`, `qualification/2026-10-12-R-FC-CODE-2-red.log` | L4 sentence (F-G6-1), RED evidence, re-qualification at `C'` |
+
+### RED and GREEN (log `qualification/2026-10-12-R-FC-CODE-2-red.log`, SHA-256 `d61ddda2600059d3e7ec32ccc839481936bebba69452c0c70e4b0c0e9ab9999e`)
+
+Each test alone (`--exact`, `--nocapture`), 12060 bindings, own target
+directory and binary per tree (binary SHA-256 values in the log).
+
+- **M1 (Orin):** with the mutation `raw.maxSize = max_size * 2`, the new
+  test fails: `M-2 integrated: cap=67108864 size=1048576 limit=67108864
+  chunk=33554432`, `limit 67108864 is within one chunk (33554432) of the
+  cap 67108864: the measured Tegra limit (design D-4) no longer holds`.
+  The `8528fc2` test with the same mutation passes (`limit=67108864`).
+  Without the mutation, k = 3: `limit=33554432 chunk=33554432`, `1 passed`
+  each. RTX 3090 discrete path k = 3: `1 passed` each.
+- **M2 (RTX 3090 `41:00`):** with `free_async` removed (pointer leaked),
+  k = 3, the new test fails each time: `discrete: cuMemGetInfo free
+  25017122816 -> outstanding 24748687360 -> after 24748687360; chunk
+  268435456`, `free 25017122816 -> 24748687360: half the allocation
+  (134217728) or more is still taken`. The `8528fc2` test with the same
+  mutation passes. Without the mutation, k = 3: `free 25017122816 ->
+  outstanding 24748687360 -> after 25017122816`, `1 passed` each. Free
+  memory deltas: −268435456 (the full 256 MiB) while outstanding and 0
+  after the free in all three GREEN runs, so the 128 MiB margin is far
+  from `cuMemGetInfo` noise here.
+
+### Re-qualification at `C' = b777f8d` (plan § 7 receipts)
+
+Trees are `git archive`s of `b777f8d` with `Cargo.lock.baseline` through
+`use-baseline-lock.py` and `--locked`. Each cell built in its own
+`CARGO_TARGET_DIR`; the test-binary SHA-256 values all differ (in each
+receipt). Baseline runs at `ec1cac71` were **not** re-run: they are
+unchanged by this round, and each receipt cites the earlier baseline
+receipt (`*-b29c41c.md`; G6: `2026-10-12-G6-8528fc2.md`).
+
+| Cell | Result | Receipt | UNMEASURED / open |
+| --- | --- | --- | --- |
+| G1 (12060, default) | PASS: main 125 passed, 0 failed, 10 ignored ×3; ignored alone (`test_post_alloc_memory`, `test_device_side_assert`, `drops_after_a_sticky_error_…`, `measure_max_size_semantics`, `measure_reservation_steps`) 15 of 15; count-tests PASS in every run | `2026-10-12-G1-b777f8d.md` | none |
+| G3 12060 | PASS: 79 passed, 1 failed (host-dependent `test_pinned_copy_is_faster`), 7 ignored ×3 | `2026-10-12-G3-12060-b777f8d.md` | none |
+| G3 13000, 13010 | PASS: 77 passed, 1 failed (same host-dependent test), 7 ignored ×3 | `2026-10-12-G3-<v>-b777f8d.md` | none |
+| G3 13020, 13030, 13040 | PASS: 77 passed, 1 failed (same), 9 ignored ×3; driver-version gate tests pass | `2026-10-12-G3-<v>-b777f8d.md` | `max_pool_size_reads_back_at_least_the_request` (G5b) |
+| G4 (13000, default, CUDA 13.0 wheels) | PASS: 122 passed, 1 failed (same host-dependent test), 10 ignored ×3; ignored alone 15 of 15 | `2026-10-12-G4-b777f8d.md` | none |
+| G6 (Orin, 12060) | PASS: fork modules in sequence 56 passed ×3 (count-tests PASS); six F-G6-1 tests alone 18 of 18; one process per test ×3: only the § 9 G6 platform list (10), the two T-MULTI tests and the host-dependent `test_pinned_copy_is_faster` fail, identically in all runs | `2026-10-12-G6-b777f8d.md` | none |
+| CF-AC-07a | PASS: 135 files, list byte-identical to `package-list-b29c41c.txt` (SHA-256 `83db814a…f6ddac7`); dry run ok; `.cargo_vcs_info.json` names `b777f8d` | `2026-10-12-CF-AC-07a-b777f8d.md`, `package-list-b777f8d.txt` | — |
+| CI run 38281195051 (`head_sha` `863ee48`, code tree `8528fc2`) | success, 139 of 139 jobs; **superseded** by `C'` | `2026-10-12-CI-863ee48.md` | — |
+| CI at `C'` | **pending**: made after the main thread pushes the new tip | — | — |
+
+In every G3/G4 cell, the host-dependent `test_pinned_copy_is_faster`
+failed in the three main runs and passed in the three `timing-*` runs
+(values in the receipts), the same pattern as at `b29c41c`. Every count-tests
+FAIL line in those cells is that host-dependent outcome; no
+non-host-dependent problem. On the Orin it failed in all three per-test
+runs (it passed in all three at `8528fc2`, failed once at `b29c41c`).
+
+Not run in this round (unchanged areas): G2, G5a, G8, G1 T-DEV. G5b is
+pending owner approval (list above names `C'`).
+
+### Checks at `b777f8d`
+
+- `cargo fmt --check`: clean.
+- Fork CI clippy (`--no-default-features --features
+  "cuda-<v>,$CLIPPY_FEATURES" --all-targets -- -D warnings`, the
+  workflow's `CLIPPY_FEATURES`, `--locked`): pass at 13040 and 12060 on
+  x86_64, and at 12060 and 13040 natively on the Orin.
+- `cargo check --locked --lib`, driver-only, at 11040, 12060, 13000 and
+  13040, and default features at 12060 and 13040: pass, no warnings.
+- `python3 -I -m unittest discover -s fathomdb/scripts -p 'test_*.py'`
+  (count-tests and use-baseline-lock self-tests): 49 tests OK.
+
+### Guards
+
+- `windchill3` (`nvidia-smi … driver_version`, `readlink -f
+  /usr/local/cuda`): first 2026-10-12T12:11:46-05:00, last
+  12:39:11-05:00; every value `580.178.04`, `/usr/local/cuda-12.6`.
+- Orin (`head -1 /etc/nv_tegra_release`, `readlink -f /usr/local/cuda`):
+  first 12:09:23-05:00, last 12:39:06-05:00; every value `R36 (release),
+  REVISION: 5.2` and `/usr/local/cuda-12.6`. Work directory
+  `~/fdb-rfc2/` removed at the end.
+- No guard changed.
+
+### Open after this round
+
+- R-FC-CODE-2 re-review of `393f165..` this commit (the reviewer records
+  it in `review.md`).
+- CI receipt at `C'` after the push (main thread).
+- G5b at `C'` (pending owner approval), then R-FC-VERIFY at `C'`.
