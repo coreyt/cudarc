@@ -1,0 +1,1860 @@
+
+===== baseline/env.txt =====
+host windchill3 Linux 7.0.0-38-generic x86_64
+src /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-base
+features --no-default-features -F std,driver,dynamic-loading,cuda-13030
+V 13030 CVD 0 LLP 
+lock-sha256 3d399b4e43bfa2c4078f2ff607145b6a35216041054225905a74fc1094747923
+rustc 1.95.0 (59807616e 2026-04-14)
+cargo 1.95.0 (f2d3ce0bd 2026-03-21)
+
+===== baseline/guard.log =====
+2026-10-12T10:50:52-05:00 GUARD-FIRST driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:50:54-05:00 GUARD before main-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:50:58-05:00 GUARD after main-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:50:58-05:00 GUARD before ign-test_post_alloc_memory-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:50:59-05:00 GUARD after ign-test_post_alloc_memory-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:50:59-05:00 GUARD before timing-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:51:00-05:00 GUARD after timing-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:51:00-05:00 GUARD before main-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:51:04-05:00 GUARD after main-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:51:04-05:00 GUARD before ign-test_post_alloc_memory-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:51:04-05:00 GUARD after ign-test_post_alloc_memory-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:51:04-05:00 GUARD before timing-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:51:06-05:00 GUARD after timing-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:51:06-05:00 GUARD before main-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:51:10-05:00 GUARD after main-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:51:10-05:00 GUARD before ign-test_post_alloc_memory-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:51:10-05:00 GUARD after ign-test_post_alloc_memory-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:51:10-05:00 GUARD before timing-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:51:12-05:00 GUARD after timing-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:51:12-05:00 GUARD-LAST driver=580.178.04 cuda=/usr/local/cuda-12.6
+
+===== baseline/runs.tsv =====
+main-1	101	2026-10-12T10:50:54-05:00	2026-10-12T10:50:58-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --test-threads=1
+ign-test_post_alloc_memory-1	0	2026-10-12T10:50:58-05:00	2026-10-12T10:50:59-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --ignored --exact driver::safe::core::tests::test_post_alloc_memory --nocapture --test-threads=1
+timing-1	0	2026-10-12T10:50:59-05:00	2026-10-12T10:51:00-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --exact driver::safe::core::tests::test_pinned_copy_is_faster driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined --nocapture --test-threads=1
+main-2	101	2026-10-12T10:51:00-05:00	2026-10-12T10:51:04-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --test-threads=1
+ign-test_post_alloc_memory-2	0	2026-10-12T10:51:04-05:00	2026-10-12T10:51:04-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --ignored --exact driver::safe::core::tests::test_post_alloc_memory --nocapture --test-threads=1
+timing-2	0	2026-10-12T10:51:04-05:00	2026-10-12T10:51:06-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --exact driver::safe::core::tests::test_pinned_copy_is_faster driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined --nocapture --test-threads=1
+main-3	101	2026-10-12T10:51:06-05:00	2026-10-12T10:51:10-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --test-threads=1
+ign-test_post_alloc_memory-3	0	2026-10-12T10:51:10-05:00	2026-10-12T10:51:10-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --ignored --exact driver::safe::core::tests::test_post_alloc_memory --nocapture --test-threads=1
+timing-3	0	2026-10-12T10:51:10-05:00	2026-10-12T10:51:11-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --exact driver::safe::core::tests::test_pinned_copy_is_faster driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined --nocapture --test-threads=1
+
+===== baseline/cargo-tree.txt =====
+cudarc v0.19.10 (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-base)
+└── libloading v0.9.0
+    └── cfg-if v1.0.5
+
+===== baseline/build.log =====
+   Compiling cudarc v0.19.10 (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-base)
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.63s
+  Executable unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-66e570a5ce4ab447)
+
+===== baseline/main-1.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-66e570a5ce4ab447)
+
+running 23 tests
+test driver::result::tests::peer_transfer_contexts ... ignored, must be executed with multiple gpus
+test driver::result::tests::peer_transfer_self ... ok
+test driver::result::tests::re_associate_context_for_memory_op ... ignored, must be executed with multiple gpus
+test driver::safe::core::tests::test_alloc_pinned_panics_on_size_overflow - should panic ... ok
+test driver::safe::core::tests::test_borrowed_stream_is_not_destroyed_on_drop ... ok
+test driver::safe::core::tests::test_copy_uses_correct_context ... ok
+test driver::safe::core::tests::test_ctx_copy_to_views ... ok
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... ok
+test driver::safe::core::tests::test_event_try_is_complete ... ok
+test driver::safe::core::tests::test_event_try_is_complete_preserves_capture_error ... ok
+test driver::safe::core::tests::test_htod_copy_pinned ... ok
+test driver::safe::core::tests::test_htod_copy_pinned_with_default_flags ... ok
+test driver::safe::core::tests::test_leak_and_upgrade ... ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... FAILED
+test driver::safe::core::tests::test_post_alloc_arc_counts ... ok
+test driver::safe::core::tests::test_post_alloc_memory ... ignored, must be executed by itself
+test driver::safe::core::tests::test_post_build_arc_count ... ok
+test driver::safe::core::tests::test_primary_context_is_primary ... ok
+test driver::safe::core::tests::test_slice_is_freed_with_correct_context ... ok
+test driver::safe::core::tests::test_threading ... ok
+test driver::safe::core::tests::test_transmutes ... ok
+test driver::safe::graph::tests::test_end_capture_flags ... ok
+test driver::safe::graph::tests::test_end_capture_invalid_flags ... ok
+
+failures:
+
+---- driver::safe::core::tests::test_pinned_copy_is_faster stdout ----
+
+thread 'driver::safe::core::tests::test_pinned_copy_is_faster' (2005737) panicked at src/driver/safe/core.rs:2964:9:
+747.652µs vs 711.776µs
+
+
+failures:
+    driver::safe::core::tests::test_pinned_copy_is_faster
+
+test result: FAILED. 19 passed; 1 failed; 3 ignored; 0 measured; 0 filtered out; finished in 4.40s
+
+error: test failed, to rerun pass `--lib`
+
+===== baseline/ign-test_post_alloc_memory-1.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-66e570a5ce4ab447)
+
+running 1 test
+test driver::safe::core::tests::test_post_alloc_memory ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 22 filtered out; finished in 0.26s
+
+
+===== baseline/timing-1.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-66e570a5ce4ab447)
+
+running 2 tests
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... default pinned host reads: 20.231534ms; write-combined host reads: 633.412285ms
+ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 21 filtered out; finished in 1.09s
+
+
+===== baseline/main-2.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-66e570a5ce4ab447)
+
+running 23 tests
+test driver::result::tests::peer_transfer_contexts ... ignored, must be executed with multiple gpus
+test driver::result::tests::peer_transfer_self ... ok
+test driver::result::tests::re_associate_context_for_memory_op ... ignored, must be executed with multiple gpus
+test driver::safe::core::tests::test_alloc_pinned_panics_on_size_overflow - should panic ... ok
+test driver::safe::core::tests::test_borrowed_stream_is_not_destroyed_on_drop ... ok
+test driver::safe::core::tests::test_copy_uses_correct_context ... ok
+test driver::safe::core::tests::test_ctx_copy_to_views ... ok
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... ok
+test driver::safe::core::tests::test_event_try_is_complete ... ok
+test driver::safe::core::tests::test_event_try_is_complete_preserves_capture_error ... ok
+test driver::safe::core::tests::test_htod_copy_pinned ... ok
+test driver::safe::core::tests::test_htod_copy_pinned_with_default_flags ... ok
+test driver::safe::core::tests::test_leak_and_upgrade ... ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... FAILED
+test driver::safe::core::tests::test_post_alloc_arc_counts ... ok
+test driver::safe::core::tests::test_post_alloc_memory ... ignored, must be executed by itself
+test driver::safe::core::tests::test_post_build_arc_count ... ok
+test driver::safe::core::tests::test_primary_context_is_primary ... ok
+test driver::safe::core::tests::test_slice_is_freed_with_correct_context ... ok
+test driver::safe::core::tests::test_threading ... ok
+test driver::safe::core::tests::test_transmutes ... ok
+test driver::safe::graph::tests::test_end_capture_flags ... ok
+test driver::safe::graph::tests::test_end_capture_invalid_flags ... ok
+
+failures:
+
+---- driver::safe::core::tests::test_pinned_copy_is_faster stdout ----
+
+thread 'driver::safe::core::tests::test_pinned_copy_is_faster' (2005932) panicked at src/driver/safe/core.rs:2964:9:
+756.761µs vs 713.257µs
+
+
+failures:
+    driver::safe::core::tests::test_pinned_copy_is_faster
+
+test result: FAILED. 19 passed; 1 failed; 3 ignored; 0 measured; 0 filtered out; finished in 4.00s
+
+error: test failed, to rerun pass `--lib`
+
+===== baseline/ign-test_post_alloc_memory-2.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-66e570a5ce4ab447)
+
+running 1 test
+test driver::safe::core::tests::test_post_alloc_memory ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 22 filtered out; finished in 0.26s
+
+
+===== baseline/timing-2.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-66e570a5ce4ab447)
+
+running 2 tests
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... default pinned host reads: 20.220774ms; write-combined host reads: 633.062878ms
+ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 21 filtered out; finished in 1.10s
+
+
+===== baseline/main-3.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-66e570a5ce4ab447)
+
+running 23 tests
+test driver::result::tests::peer_transfer_contexts ... ignored, must be executed with multiple gpus
+test driver::result::tests::peer_transfer_self ... ok
+test driver::result::tests::re_associate_context_for_memory_op ... ignored, must be executed with multiple gpus
+test driver::safe::core::tests::test_alloc_pinned_panics_on_size_overflow - should panic ... ok
+test driver::safe::core::tests::test_borrowed_stream_is_not_destroyed_on_drop ... ok
+test driver::safe::core::tests::test_copy_uses_correct_context ... ok
+test driver::safe::core::tests::test_ctx_copy_to_views ... ok
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... ok
+test driver::safe::core::tests::test_event_try_is_complete ... ok
+test driver::safe::core::tests::test_event_try_is_complete_preserves_capture_error ... ok
+test driver::safe::core::tests::test_htod_copy_pinned ... ok
+test driver::safe::core::tests::test_htod_copy_pinned_with_default_flags ... ok
+test driver::safe::core::tests::test_leak_and_upgrade ... ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... FAILED
+test driver::safe::core::tests::test_post_alloc_arc_counts ... ok
+test driver::safe::core::tests::test_post_alloc_memory ... ignored, must be executed by itself
+test driver::safe::core::tests::test_post_build_arc_count ... ok
+test driver::safe::core::tests::test_primary_context_is_primary ... ok
+test driver::safe::core::tests::test_slice_is_freed_with_correct_context ... ok
+test driver::safe::core::tests::test_threading ... ok
+test driver::safe::core::tests::test_transmutes ... ok
+test driver::safe::graph::tests::test_end_capture_flags ... ok
+test driver::safe::graph::tests::test_end_capture_invalid_flags ... ok
+
+failures:
+
+---- driver::safe::core::tests::test_pinned_copy_is_faster stdout ----
+
+thread 'driver::safe::core::tests::test_pinned_copy_is_faster' (2006127) panicked at src/driver/safe/core.rs:2964:9:
+748.648µs vs 712.221µs
+
+
+failures:
+    driver::safe::core::tests::test_pinned_copy_is_faster
+
+test result: FAILED. 19 passed; 1 failed; 3 ignored; 0 measured; 0 filtered out; finished in 4.06s
+
+error: test failed, to rerun pass `--lib`
+
+===== baseline/ign-test_post_alloc_memory-3.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-66e570a5ce4ab447)
+
+running 1 test
+test driver::safe::core::tests::test_post_alloc_memory ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 22 filtered out; finished in 0.26s
+
+
+===== baseline/timing-3.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-66e570a5ce4ab447)
+
+running 2 tests
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... default pinned host reads: 20.26621ms; write-combined host reads: 640.076641ms
+ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 21 filtered out; finished in 1.10s
+
+
+===== C/env.txt =====
+host windchill3 Linux 7.0.0-38-generic x86_64
+src /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C
+features --no-default-features -F std,driver,dynamic-loading,cuda-13030
+V 13030 CVD 0 LLP 
+lock-sha256 d20e4d909773e7a9a42e97a4a7e7029006da73e42124d3f1f01b61654fe404ca
+rustc 1.95.0 (59807616e 2026-04-14)
+cargo 1.95.0 (f2d3ce0bd 2026-03-21)
+
+===== C/guard.log =====
+2026-10-12T10:51:12-05:00 GUARD-FIRST driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:51:14-05:00 GUARD before main-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:52:06-05:00 GUARD after main-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:52:06-05:00 GUARD before ign-test_post_alloc_memory-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:52:06-05:00 GUARD after ign-test_post_alloc_memory-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:52:06-05:00 GUARD before ign-measure_max_size_semantics-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:52:07-05:00 GUARD after ign-measure_max_size_semantics-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:52:07-05:00 GUARD before ign-measure_reservation_steps-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:52:08-05:00 GUARD after ign-measure_reservation_steps-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:52:08-05:00 GUARD before ign-observe_new_attributes_on_driver_580-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:52:08-05:00 GUARD after ign-observe_new_attributes_on_driver_580-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:52:08-05:00 GUARD before timing-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:52:09-05:00 GUARD after timing-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:52:09-05:00 GUARD before main-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:01-05:00 GUARD after main-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:01-05:00 GUARD before ign-test_post_alloc_memory-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:02-05:00 GUARD after ign-test_post_alloc_memory-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:02-05:00 GUARD before ign-measure_max_size_semantics-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:02-05:00 GUARD after ign-measure_max_size_semantics-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:02-05:00 GUARD before ign-measure_reservation_steps-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:03-05:00 GUARD after ign-measure_reservation_steps-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:03-05:00 GUARD before ign-observe_new_attributes_on_driver_580-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:03-05:00 GUARD after ign-observe_new_attributes_on_driver_580-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:03-05:00 GUARD before timing-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:05-05:00 GUARD after timing-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:05-05:00 GUARD before main-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:56-05:00 GUARD after main-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:56-05:00 GUARD before ign-test_post_alloc_memory-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:56-05:00 GUARD after ign-test_post_alloc_memory-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:56-05:00 GUARD before ign-measure_max_size_semantics-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:57-05:00 GUARD after ign-measure_max_size_semantics-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:57-05:00 GUARD before ign-measure_reservation_steps-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:58-05:00 GUARD after ign-measure_reservation_steps-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:58-05:00 GUARD before ign-observe_new_attributes_on_driver_580-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:58-05:00 GUARD after ign-observe_new_attributes_on_driver_580-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:58-05:00 GUARD before timing-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:59-05:00 GUARD after timing-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:53:59-05:00 GUARD-LAST driver=580.178.04 cuda=/usr/local/cuda-12.6
+
+===== C/runs.tsv =====
+main-1	101	2026-10-12T10:51:14-05:00	2026-10-12T10:52:06-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --test-threads=1
+ign-test_post_alloc_memory-1	0	2026-10-12T10:52:06-05:00	2026-10-12T10:52:06-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --ignored --exact driver::safe::core::tests::test_post_alloc_memory --nocapture --test-threads=1
+ign-measure_max_size_semantics-1	0	2026-10-12T10:52:06-05:00	2026-10-12T10:52:07-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::measure_max_size_semantics --nocapture --test-threads=1
+ign-measure_reservation_steps-1	0	2026-10-12T10:52:07-05:00	2026-10-12T10:52:08-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::measure_reservation_steps --nocapture --test-threads=1
+ign-observe_new_attributes_on_driver_580-1	0	2026-10-12T10:52:08-05:00	2026-10-12T10:52:08-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::observe_new_attributes_on_driver_580 --nocapture --test-threads=1
+timing-1	0	2026-10-12T10:52:08-05:00	2026-10-12T10:52:09-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --exact driver::safe::core::tests::test_pinned_copy_is_faster driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined --nocapture --test-threads=1
+main-2	101	2026-10-12T10:52:09-05:00	2026-10-12T10:53:01-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --test-threads=1
+ign-test_post_alloc_memory-2	0	2026-10-12T10:53:01-05:00	2026-10-12T10:53:02-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --ignored --exact driver::safe::core::tests::test_post_alloc_memory --nocapture --test-threads=1
+ign-measure_max_size_semantics-2	0	2026-10-12T10:53:02-05:00	2026-10-12T10:53:02-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::measure_max_size_semantics --nocapture --test-threads=1
+ign-measure_reservation_steps-2	0	2026-10-12T10:53:02-05:00	2026-10-12T10:53:03-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::measure_reservation_steps --nocapture --test-threads=1
+ign-observe_new_attributes_on_driver_580-2	0	2026-10-12T10:53:03-05:00	2026-10-12T10:53:03-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::observe_new_attributes_on_driver_580 --nocapture --test-threads=1
+timing-2	0	2026-10-12T10:53:03-05:00	2026-10-12T10:53:05-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --exact driver::safe::core::tests::test_pinned_copy_is_faster driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined --nocapture --test-threads=1
+main-3	101	2026-10-12T10:53:05-05:00	2026-10-12T10:53:56-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --test-threads=1
+ign-test_post_alloc_memory-3	0	2026-10-12T10:53:56-05:00	2026-10-12T10:53:56-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --ignored --exact driver::safe::core::tests::test_post_alloc_memory --nocapture --test-threads=1
+ign-measure_max_size_semantics-3	0	2026-10-12T10:53:56-05:00	2026-10-12T10:53:57-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::measure_max_size_semantics --nocapture --test-threads=1
+ign-measure_reservation_steps-3	0	2026-10-12T10:53:57-05:00	2026-10-12T10:53:58-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::measure_reservation_steps --nocapture --test-threads=1
+ign-observe_new_attributes_on_driver_580-3	0	2026-10-12T10:53:58-05:00	2026-10-12T10:53:58-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --ignored --exact driver::safe::core::fathomdb_private_pool::observe_new_attributes_on_driver_580 --nocapture --test-threads=1
+timing-3	0	2026-10-12T10:53:58-05:00	2026-10-12T10:53:59-05:00	cargo test --locked --lib --no-default-features -F std,driver,dynamic-loading,cuda-13030 -- --exact driver::safe::core::tests::test_pinned_copy_is_faster driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined --nocapture --test-threads=1
+
+===== C/cargo-tree.txt =====
+cudarc-fathomdb v0.19.10 (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C)
+└── libloading v0.9.0
+    └── cfg-if v1.0.5
+
+===== C/build.log =====
+   Compiling cudarc-fathomdb v0.19.10 (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C)
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.36s
+  Executable unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+===== C/main-1.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+running 87 tests
+test driver::result::tests::peer_transfer_contexts ... ignored, must be executed with multiple gpus
+test driver::result::tests::peer_transfer_self ... ok
+test driver::result::tests::re_associate_context_for_memory_op ... ignored, must be executed with multiple gpus
+test driver::safe::core::fathomdb_alloc_fallback::a_failed_decision_is_not_remembered ... ok
+test driver::safe::core::fathomdb_alloc_fallback::async_alloc_requires_pool_support_and_an_obtainable_default_pool ... ok
+test driver::safe::core::fathomdb_alloc_fallback::concurrent_wrappers_of_a_device_agree ... ok
+test driver::safe::core::fathomdb_alloc_fallback::every_wrapper_of_a_device_reuses_the_first_decision ... ok
+test driver::safe::core::fathomdb_alloc_fallback::new_context_selection_matches_default_pool_availability ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_choice_equals_the_upstream_inline_rule ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_constructors_never_query_the_default_pool ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_selection_is_the_upstream_rule_whatever_the_pool_would_say ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_zero_length_sync_behaviour_matches_the_base ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_zero_length_sync_handling_is_upstream ... ok
+test driver::safe::core::fathomdb_alloc_fallback::on_target_zero_length_sync_buffers_are_null_and_never_freed ... ok
+test driver::safe::core::fathomdb_alloc_fallback::only_pool_unavailable_errors_select_the_synchronous_allocator ... ok
+test driver::safe::core::fathomdb_alloc_fallback::sync_context_round_trips_data ... ok
+test driver::safe::core::fathomdb_alloc_fallback::unrelated_pool_query_errors_are_propagated_not_downgraded ... ok
+test driver::safe::core::fathomdb_private_pool::a_buffer_freed_on_one_stream_is_not_reused_before_its_reader_finishes ... ok
+test driver::safe::core::fathomdb_private_pool::a_context_with_its_own_pool_is_private_whatever_the_device_decided ... ok
+test driver::safe::core::fathomdb_private_pool::a_created_pool_carries_its_release_threshold ... ok
+test driver::safe::core::fathomdb_private_pool::a_failed_max_pool_size_read_leaves_create_successful ... ok
+test driver::safe::core::fathomdb_private_pool::a_pool_create_out_of_memory_returns_the_error_and_no_pool ... ok
+test driver::safe::core::fathomdb_private_pool::a_pool_of_another_device_is_rejected ... ok
+test driver::safe::core::fathomdb_private_pool::a_pool_of_device_1_is_rejected_for_device_0 ... ignored, must be executed with multiple gpus
+test driver::safe::core::fathomdb_private_pool::a_private_context_allocates_from_its_pool_and_leaves_the_current_pool_alone ... ok
+test driver::safe::core::fathomdb_private_pool::a_private_pointer_freed_synchronously_releases_its_memory ... ok
+test driver::safe::core::fathomdb_private_pool::a_private_pointer_upgraded_onto_a_default_context_returns_to_its_pool ... ok
+test driver::safe::core::fathomdb_private_pool::a_request_over_the_cap_is_out_of_memory ... ok
+test driver::safe::core::fathomdb_private_pool::a_synchronous_pointer_upgraded_onto_a_private_context_frees_cleanly ... ok
+test driver::safe::core::fathomdb_private_pool::accounting_returns_to_zero_after_drop_and_sync ... ok
+test driver::safe::core::fathomdb_private_pool::attributes_newer_than_the_driver_are_never_requested ... ok
+test driver::safe::core::fathomdb_private_pool::capture_on_a_private_context_uses_graph_memory ... ok
+test driver::safe::core::fathomdb_private_pool::create_destroys_the_pool_when_setting_the_threshold_fails ... ok
+test driver::safe::core::fathomdb_private_pool::default_and_current_pool_are_untouched_while_live ... ok
+test driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred ... ok
+test driver::safe::core::fathomdb_private_pool::device_location_is_the_ordinal_on_every_binding ... ok
+test driver::safe::core::fathomdb_private_pool::exhaustion_under_two_threads_and_four_streams_fails_only_the_excess ... ok
+test driver::safe::core::fathomdb_private_pool::exit_with_a_live_pool_is_clean ... ok
+test driver::safe::core::fathomdb_private_pool::max_pool_size_read_back_uses_the_driver_value ... ok
+test driver::safe::core::fathomdb_private_pool::max_pool_size_reads_back_at_least_the_request ... ignored, needs a driver of 13020 or later (test plan G5b)
+test driver::safe::core::fathomdb_private_pool::max_size_on_a_driver_older_than_12020_is_not_supported ... ok
+test driver::safe::core::fathomdb_private_pool::measure_max_size_semantics ... ignored, measurement M-2 (test plan § 8); run alone with --nocapture
+test driver::safe::core::fathomdb_private_pool::measure_reservation_steps ... ignored, measurement M-1 (test plan § 8); run alone with --nocapture
+test driver::safe::core::fathomdb_private_pool::mem_pool_and_private_context_are_send_and_sync ... ok
+test driver::safe::core::fathomdb_private_pool::observe_new_attributes_on_driver_580 ... ignored, observation M-3 (test plan § 8); run alone with --nocapture
+test driver::safe::core::fathomdb_private_pool::ordinary_contexts_report_default_or_synchronous ... ok
+test driver::safe::core::fathomdb_private_pool::pool_model_property ... ok
+test driver::safe::core::fathomdb_private_pool::pool_props_are_pinned_device_memory_on_the_ordinal ... ok
+test driver::safe::core::fathomdb_private_pool::pool_props_are_zeroed_then_written ... ok
+test driver::safe::core::fathomdb_private_pool::release_threshold_bounds_reserved_after_sync ... ok
+test driver::safe::core::fathomdb_private_pool::requests_within_the_cap_succeed ... ok
+test driver::safe::core::fathomdb_private_pool::the_pool_is_destroyed_last_and_cleanly ... ok
+test driver::safe::core::fathomdb_private_pool::the_pool_outlives_its_context_while_slices_live ... ok
+test driver::safe::core::fathomdb_private_pool::trim_to_keeps_the_floor_and_releases_above_it ... ok
+test driver::safe::core::fathomdb_private_pool::two_pools_on_two_devices_are_independent ... ignored, must be executed with multiple gpus
+test driver::safe::core::fathomdb_private_pool::typed_reads_return_64_bit_values ... ok
+test driver::safe::core::fathomdb_private_pool::zero_length_private_allocations_are_null_and_free_cleanly ... ok
+test driver::safe::core::tests::test_alloc_pinned_panics_on_size_overflow - should panic ... ok
+test driver::safe::core::tests::test_borrowed_stream_is_not_destroyed_on_drop ... ok
+test driver::safe::core::tests::test_copy_uses_correct_context ... ok
+test driver::safe::core::tests::test_ctx_copy_to_views ... ok
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... ok
+test driver::safe::core::tests::test_event_try_is_complete ... ok
+test driver::safe::core::tests::test_event_try_is_complete_preserves_capture_error ... ok
+test driver::safe::core::tests::test_htod_copy_pinned ... ok
+test driver::safe::core::tests::test_htod_copy_pinned_with_default_flags ... ok
+test driver::safe::core::tests::test_leak_and_upgrade ... ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... FAILED
+test driver::safe::core::tests::test_post_alloc_arc_counts ... ok
+test driver::safe::core::tests::test_post_alloc_memory ... ignored, must be executed by itself
+test driver::safe::core::tests::test_post_build_arc_count ... ok
+test driver::safe::core::tests::test_primary_context_is_primary ... ok
+test driver::safe::core::tests::test_slice_is_freed_with_correct_context ... ok
+test driver::safe::core::tests::test_threading ... ok
+test driver::safe::core::tests::test_transmutes ... ok
+test driver::safe::graph::tests::test_end_capture_flags ... ok
+test driver::safe::graph::tests::test_end_capture_invalid_flags ... ok
+test fathomdb_lib_major::a_failed_load_is_memoized ... ok
+test fathomdb_lib_major::in_scope_candidates_never_name_another_major ... ok
+test fathomdb_lib_major::is_culib_present_agrees_with_try_culib ... ok
+test fathomdb_lib_major::load_error_names_library_major_and_tried_names ... ok
+test fathomdb_lib_major::out_of_scope_and_cuda11_candidates_equal_the_base ... ok
+test fathomdb_lib_major::report_address_symbols_are_bound_wherever_the_library_is ... ok
+test fathomdb_lib_major::the_report_says_linked_at_build_time_when_linked ... ok
+test fathomdb_lib_major::version_lines_accept_their_major_and_reject_neighbours ... ok
+test fathomdb_lib_major::versioned_names_come_before_unversioned_names ... ok
+test fathomdb_lib_major::windows_dll_names_match_nvidia_wheels ... ok
+
+failures:
+
+---- driver::safe::core::tests::test_pinned_copy_is_faster stdout ----
+
+thread 'driver::safe::core::tests::test_pinned_copy_is_faster' (2007361) panicked at src/driver/safe/core.rs:3300:9:
+747.363µs vs 709.84µs
+
+
+failures:
+    driver::safe::core::tests::test_pinned_copy_is_faster
+
+test result: FAILED. 77 passed; 1 failed; 9 ignored; 0 measured; 0 filtered out; finished in 51.48s
+
+error: test failed, to rerun pass `--lib`
+
+===== C/ign-test_post_alloc_memory-1.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+running 1 test
+test driver::safe::core::tests::test_post_alloc_memory ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 86 filtered out; finished in 0.26s
+
+
+===== C/ign-measure_max_size_semantics-1.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::measure_max_size_semantics ... M-2 cap=67108864 size=1048576 threshold=0 successes=64 limit=67108864 error=Some(DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")) reserved_at_failure=67108864 used_at_failure=67108864 max_size()=None
+M-2 cap=67108864 size=1048576 threshold=67108864 successes=64 limit=67108864 error=Some(DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")) reserved_at_failure=67108864 used_at_failure=67108864 max_size()=None
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 86 filtered out; finished in 0.42s
+
+
+===== C/ign-measure_reservation_steps-1.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::measure_reservation_steps ... M-1 size=1 empty=0 first_step=33554432 second_step=0 used_after_two=2 device_free=24983568384 device_total=25296044032
+M-1 size=1048576 empty=0 first_step=33554432 second_step=0 used_after_two=2097152 device_free=24983568384 device_total=25296044032
+M-1 size=33554432 empty=0 first_step=33554432 second_step=33554432 used_after_two=67108864 device_free=24950013952 device_total=25296044032
+M-1 size=268435456 empty=0 first_step=268435456 second_step=268435456 used_after_two=536870912 device_free=24480251904 device_total=25296044032
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 86 filtered out; finished in 0.74s
+
+
+===== C/ign-observe_new_attributes_on_driver_580-1.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::observe_new_attributes_on_driver_580 ... M-3 driver=13000 attribute=9 (CU_MEMPOOL_ATTR_ALLOCATION_TYPE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=10 (CU_MEMPOOL_ATTR_EXPORT_HANDLE_TYPES) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=11 (CU_MEMPOOL_ATTR_LOCATION_ID) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=12 (CU_MEMPOOL_ATTR_LOCATION_TYPE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=13 (CU_MEMPOOL_ATTR_MAX_POOL_SIZE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=14 (CU_MEMPOOL_ATTR_HW_DECOMPRESS_ENABLED) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 86 filtered out; finished in 0.08s
+
+
+===== C/timing-1.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+running 2 tests
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... default pinned host reads: 20.270135ms; write-combined host reads: 640.437603ms
+ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 85 filtered out; finished in 1.09s
+
+
+===== C/main-2.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+running 87 tests
+test driver::result::tests::peer_transfer_contexts ... ignored, must be executed with multiple gpus
+test driver::result::tests::peer_transfer_self ... ok
+test driver::result::tests::re_associate_context_for_memory_op ... ignored, must be executed with multiple gpus
+test driver::safe::core::fathomdb_alloc_fallback::a_failed_decision_is_not_remembered ... ok
+test driver::safe::core::fathomdb_alloc_fallback::async_alloc_requires_pool_support_and_an_obtainable_default_pool ... ok
+test driver::safe::core::fathomdb_alloc_fallback::concurrent_wrappers_of_a_device_agree ... ok
+test driver::safe::core::fathomdb_alloc_fallback::every_wrapper_of_a_device_reuses_the_first_decision ... ok
+test driver::safe::core::fathomdb_alloc_fallback::new_context_selection_matches_default_pool_availability ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_choice_equals_the_upstream_inline_rule ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_constructors_never_query_the_default_pool ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_selection_is_the_upstream_rule_whatever_the_pool_would_say ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_zero_length_sync_behaviour_matches_the_base ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_zero_length_sync_handling_is_upstream ... ok
+test driver::safe::core::fathomdb_alloc_fallback::on_target_zero_length_sync_buffers_are_null_and_never_freed ... ok
+test driver::safe::core::fathomdb_alloc_fallback::only_pool_unavailable_errors_select_the_synchronous_allocator ... ok
+test driver::safe::core::fathomdb_alloc_fallback::sync_context_round_trips_data ... ok
+test driver::safe::core::fathomdb_alloc_fallback::unrelated_pool_query_errors_are_propagated_not_downgraded ... ok
+test driver::safe::core::fathomdb_private_pool::a_buffer_freed_on_one_stream_is_not_reused_before_its_reader_finishes ... ok
+test driver::safe::core::fathomdb_private_pool::a_context_with_its_own_pool_is_private_whatever_the_device_decided ... ok
+test driver::safe::core::fathomdb_private_pool::a_created_pool_carries_its_release_threshold ... ok
+test driver::safe::core::fathomdb_private_pool::a_failed_max_pool_size_read_leaves_create_successful ... ok
+test driver::safe::core::fathomdb_private_pool::a_pool_create_out_of_memory_returns_the_error_and_no_pool ... ok
+test driver::safe::core::fathomdb_private_pool::a_pool_of_another_device_is_rejected ... ok
+test driver::safe::core::fathomdb_private_pool::a_pool_of_device_1_is_rejected_for_device_0 ... ignored, must be executed with multiple gpus
+test driver::safe::core::fathomdb_private_pool::a_private_context_allocates_from_its_pool_and_leaves_the_current_pool_alone ... ok
+test driver::safe::core::fathomdb_private_pool::a_private_pointer_freed_synchronously_releases_its_memory ... ok
+test driver::safe::core::fathomdb_private_pool::a_private_pointer_upgraded_onto_a_default_context_returns_to_its_pool ... ok
+test driver::safe::core::fathomdb_private_pool::a_request_over_the_cap_is_out_of_memory ... ok
+test driver::safe::core::fathomdb_private_pool::a_synchronous_pointer_upgraded_onto_a_private_context_frees_cleanly ... ok
+test driver::safe::core::fathomdb_private_pool::accounting_returns_to_zero_after_drop_and_sync ... ok
+test driver::safe::core::fathomdb_private_pool::attributes_newer_than_the_driver_are_never_requested ... ok
+test driver::safe::core::fathomdb_private_pool::capture_on_a_private_context_uses_graph_memory ... ok
+test driver::safe::core::fathomdb_private_pool::create_destroys_the_pool_when_setting_the_threshold_fails ... ok
+test driver::safe::core::fathomdb_private_pool::default_and_current_pool_are_untouched_while_live ... ok
+test driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred ... ok
+test driver::safe::core::fathomdb_private_pool::device_location_is_the_ordinal_on_every_binding ... ok
+test driver::safe::core::fathomdb_private_pool::exhaustion_under_two_threads_and_four_streams_fails_only_the_excess ... ok
+test driver::safe::core::fathomdb_private_pool::exit_with_a_live_pool_is_clean ... ok
+test driver::safe::core::fathomdb_private_pool::max_pool_size_read_back_uses_the_driver_value ... ok
+test driver::safe::core::fathomdb_private_pool::max_pool_size_reads_back_at_least_the_request ... ignored, needs a driver of 13020 or later (test plan G5b)
+test driver::safe::core::fathomdb_private_pool::max_size_on_a_driver_older_than_12020_is_not_supported ... ok
+test driver::safe::core::fathomdb_private_pool::measure_max_size_semantics ... ignored, measurement M-2 (test plan § 8); run alone with --nocapture
+test driver::safe::core::fathomdb_private_pool::measure_reservation_steps ... ignored, measurement M-1 (test plan § 8); run alone with --nocapture
+test driver::safe::core::fathomdb_private_pool::mem_pool_and_private_context_are_send_and_sync ... ok
+test driver::safe::core::fathomdb_private_pool::observe_new_attributes_on_driver_580 ... ignored, observation M-3 (test plan § 8); run alone with --nocapture
+test driver::safe::core::fathomdb_private_pool::ordinary_contexts_report_default_or_synchronous ... ok
+test driver::safe::core::fathomdb_private_pool::pool_model_property ... ok
+test driver::safe::core::fathomdb_private_pool::pool_props_are_pinned_device_memory_on_the_ordinal ... ok
+test driver::safe::core::fathomdb_private_pool::pool_props_are_zeroed_then_written ... ok
+test driver::safe::core::fathomdb_private_pool::release_threshold_bounds_reserved_after_sync ... ok
+test driver::safe::core::fathomdb_private_pool::requests_within_the_cap_succeed ... ok
+test driver::safe::core::fathomdb_private_pool::the_pool_is_destroyed_last_and_cleanly ... ok
+test driver::safe::core::fathomdb_private_pool::the_pool_outlives_its_context_while_slices_live ... ok
+test driver::safe::core::fathomdb_private_pool::trim_to_keeps_the_floor_and_releases_above_it ... ok
+test driver::safe::core::fathomdb_private_pool::two_pools_on_two_devices_are_independent ... ignored, must be executed with multiple gpus
+test driver::safe::core::fathomdb_private_pool::typed_reads_return_64_bit_values ... ok
+test driver::safe::core::fathomdb_private_pool::zero_length_private_allocations_are_null_and_free_cleanly ... ok
+test driver::safe::core::tests::test_alloc_pinned_panics_on_size_overflow - should panic ... ok
+test driver::safe::core::tests::test_borrowed_stream_is_not_destroyed_on_drop ... ok
+test driver::safe::core::tests::test_copy_uses_correct_context ... ok
+test driver::safe::core::tests::test_ctx_copy_to_views ... ok
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... ok
+test driver::safe::core::tests::test_event_try_is_complete ... ok
+test driver::safe::core::tests::test_event_try_is_complete_preserves_capture_error ... ok
+test driver::safe::core::tests::test_htod_copy_pinned ... ok
+test driver::safe::core::tests::test_htod_copy_pinned_with_default_flags ... ok
+test driver::safe::core::tests::test_leak_and_upgrade ... ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... FAILED
+test driver::safe::core::tests::test_post_alloc_arc_counts ... ok
+test driver::safe::core::tests::test_post_alloc_memory ... ignored, must be executed by itself
+test driver::safe::core::tests::test_post_build_arc_count ... ok
+test driver::safe::core::tests::test_primary_context_is_primary ... ok
+test driver::safe::core::tests::test_slice_is_freed_with_correct_context ... ok
+test driver::safe::core::tests::test_threading ... ok
+test driver::safe::core::tests::test_transmutes ... ok
+test driver::safe::graph::tests::test_end_capture_flags ... ok
+test driver::safe::graph::tests::test_end_capture_invalid_flags ... ok
+test fathomdb_lib_major::a_failed_load_is_memoized ... ok
+test fathomdb_lib_major::in_scope_candidates_never_name_another_major ... ok
+test fathomdb_lib_major::is_culib_present_agrees_with_try_culib ... ok
+test fathomdb_lib_major::load_error_names_library_major_and_tried_names ... ok
+test fathomdb_lib_major::out_of_scope_and_cuda11_candidates_equal_the_base ... ok
+test fathomdb_lib_major::report_address_symbols_are_bound_wherever_the_library_is ... ok
+test fathomdb_lib_major::the_report_says_linked_at_build_time_when_linked ... ok
+test fathomdb_lib_major::version_lines_accept_their_major_and_reject_neighbours ... ok
+test fathomdb_lib_major::versioned_names_come_before_unversioned_names ... ok
+test fathomdb_lib_major::windows_dll_names_match_nvidia_wheels ... ok
+
+failures:
+
+---- driver::safe::core::tests::test_pinned_copy_is_faster stdout ----
+
+thread 'driver::safe::core::tests::test_pinned_copy_is_faster' (2008388) panicked at src/driver/safe/core.rs:3300:9:
+735µs vs 710.49µs
+
+
+failures:
+    driver::safe::core::tests::test_pinned_copy_is_faster
+
+test result: FAILED. 77 passed; 1 failed; 9 ignored; 0 measured; 0 filtered out; finished in 52.02s
+
+error: test failed, to rerun pass `--lib`
+
+===== C/ign-test_post_alloc_memory-2.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+running 1 test
+test driver::safe::core::tests::test_post_alloc_memory ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 86 filtered out; finished in 0.26s
+
+
+===== C/ign-measure_max_size_semantics-2.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::measure_max_size_semantics ... M-2 cap=67108864 size=1048576 threshold=0 successes=64 limit=67108864 error=Some(DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")) reserved_at_failure=67108864 used_at_failure=67108864 max_size()=None
+M-2 cap=67108864 size=1048576 threshold=67108864 successes=64 limit=67108864 error=Some(DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")) reserved_at_failure=67108864 used_at_failure=67108864 max_size()=None
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 86 filtered out; finished in 0.42s
+
+
+===== C/ign-measure_reservation_steps-2.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::measure_reservation_steps ... M-1 size=1 empty=0 first_step=33554432 second_step=0 used_after_two=2 device_free=24983568384 device_total=25296044032
+M-1 size=1048576 empty=0 first_step=33554432 second_step=0 used_after_two=2097152 device_free=24983568384 device_total=25296044032
+M-1 size=33554432 empty=0 first_step=33554432 second_step=33554432 used_after_two=67108864 device_free=24950013952 device_total=25296044032
+M-1 size=268435456 empty=0 first_step=268435456 second_step=268435456 used_after_two=536870912 device_free=24480251904 device_total=25296044032
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 86 filtered out; finished in 0.74s
+
+
+===== C/ign-observe_new_attributes_on_driver_580-2.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::observe_new_attributes_on_driver_580 ... M-3 driver=13000 attribute=9 (CU_MEMPOOL_ATTR_ALLOCATION_TYPE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=10 (CU_MEMPOOL_ATTR_EXPORT_HANDLE_TYPES) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=11 (CU_MEMPOOL_ATTR_LOCATION_ID) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=12 (CU_MEMPOOL_ATTR_LOCATION_TYPE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=13 (CU_MEMPOOL_ATTR_MAX_POOL_SIZE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=14 (CU_MEMPOOL_ATTR_HW_DECOMPRESS_ENABLED) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 86 filtered out; finished in 0.08s
+
+
+===== C/timing-2.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+running 2 tests
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... default pinned host reads: 20.26802ms; write-combined host reads: 640.491951ms
+ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 85 filtered out; finished in 1.10s
+
+
+===== C/main-3.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+running 87 tests
+test driver::result::tests::peer_transfer_contexts ... ignored, must be executed with multiple gpus
+test driver::result::tests::peer_transfer_self ... ok
+test driver::result::tests::re_associate_context_for_memory_op ... ignored, must be executed with multiple gpus
+test driver::safe::core::fathomdb_alloc_fallback::a_failed_decision_is_not_remembered ... ok
+test driver::safe::core::fathomdb_alloc_fallback::async_alloc_requires_pool_support_and_an_obtainable_default_pool ... ok
+test driver::safe::core::fathomdb_alloc_fallback::concurrent_wrappers_of_a_device_agree ... ok
+test driver::safe::core::fathomdb_alloc_fallback::every_wrapper_of_a_device_reuses_the_first_decision ... ok
+test driver::safe::core::fathomdb_alloc_fallback::new_context_selection_matches_default_pool_availability ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_choice_equals_the_upstream_inline_rule ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_constructors_never_query_the_default_pool ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_selection_is_the_upstream_rule_whatever_the_pool_would_say ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_zero_length_sync_behaviour_matches_the_base ... ok
+test driver::safe::core::fathomdb_alloc_fallback::off_target_zero_length_sync_handling_is_upstream ... ok
+test driver::safe::core::fathomdb_alloc_fallback::on_target_zero_length_sync_buffers_are_null_and_never_freed ... ok
+test driver::safe::core::fathomdb_alloc_fallback::only_pool_unavailable_errors_select_the_synchronous_allocator ... ok
+test driver::safe::core::fathomdb_alloc_fallback::sync_context_round_trips_data ... ok
+test driver::safe::core::fathomdb_alloc_fallback::unrelated_pool_query_errors_are_propagated_not_downgraded ... ok
+test driver::safe::core::fathomdb_private_pool::a_buffer_freed_on_one_stream_is_not_reused_before_its_reader_finishes ... ok
+test driver::safe::core::fathomdb_private_pool::a_context_with_its_own_pool_is_private_whatever_the_device_decided ... ok
+test driver::safe::core::fathomdb_private_pool::a_created_pool_carries_its_release_threshold ... ok
+test driver::safe::core::fathomdb_private_pool::a_failed_max_pool_size_read_leaves_create_successful ... ok
+test driver::safe::core::fathomdb_private_pool::a_pool_create_out_of_memory_returns_the_error_and_no_pool ... ok
+test driver::safe::core::fathomdb_private_pool::a_pool_of_another_device_is_rejected ... ok
+test driver::safe::core::fathomdb_private_pool::a_pool_of_device_1_is_rejected_for_device_0 ... ignored, must be executed with multiple gpus
+test driver::safe::core::fathomdb_private_pool::a_private_context_allocates_from_its_pool_and_leaves_the_current_pool_alone ... ok
+test driver::safe::core::fathomdb_private_pool::a_private_pointer_freed_synchronously_releases_its_memory ... ok
+test driver::safe::core::fathomdb_private_pool::a_private_pointer_upgraded_onto_a_default_context_returns_to_its_pool ... ok
+test driver::safe::core::fathomdb_private_pool::a_request_over_the_cap_is_out_of_memory ... ok
+test driver::safe::core::fathomdb_private_pool::a_synchronous_pointer_upgraded_onto_a_private_context_frees_cleanly ... ok
+test driver::safe::core::fathomdb_private_pool::accounting_returns_to_zero_after_drop_and_sync ... ok
+test driver::safe::core::fathomdb_private_pool::attributes_newer_than_the_driver_are_never_requested ... ok
+test driver::safe::core::fathomdb_private_pool::capture_on_a_private_context_uses_graph_memory ... ok
+test driver::safe::core::fathomdb_private_pool::create_destroys_the_pool_when_setting_the_threshold_fails ... ok
+test driver::safe::core::fathomdb_private_pool::default_and_current_pool_are_untouched_while_live ... ok
+test driver::safe::core::fathomdb_private_pool::destroy_with_outstanding_allocations_is_deferred ... ok
+test driver::safe::core::fathomdb_private_pool::device_location_is_the_ordinal_on_every_binding ... ok
+test driver::safe::core::fathomdb_private_pool::exhaustion_under_two_threads_and_four_streams_fails_only_the_excess ... ok
+test driver::safe::core::fathomdb_private_pool::exit_with_a_live_pool_is_clean ... ok
+test driver::safe::core::fathomdb_private_pool::max_pool_size_read_back_uses_the_driver_value ... ok
+test driver::safe::core::fathomdb_private_pool::max_pool_size_reads_back_at_least_the_request ... ignored, needs a driver of 13020 or later (test plan G5b)
+test driver::safe::core::fathomdb_private_pool::max_size_on_a_driver_older_than_12020_is_not_supported ... ok
+test driver::safe::core::fathomdb_private_pool::measure_max_size_semantics ... ignored, measurement M-2 (test plan § 8); run alone with --nocapture
+test driver::safe::core::fathomdb_private_pool::measure_reservation_steps ... ignored, measurement M-1 (test plan § 8); run alone with --nocapture
+test driver::safe::core::fathomdb_private_pool::mem_pool_and_private_context_are_send_and_sync ... ok
+test driver::safe::core::fathomdb_private_pool::observe_new_attributes_on_driver_580 ... ignored, observation M-3 (test plan § 8); run alone with --nocapture
+test driver::safe::core::fathomdb_private_pool::ordinary_contexts_report_default_or_synchronous ... ok
+test driver::safe::core::fathomdb_private_pool::pool_model_property ... ok
+test driver::safe::core::fathomdb_private_pool::pool_props_are_pinned_device_memory_on_the_ordinal ... ok
+test driver::safe::core::fathomdb_private_pool::pool_props_are_zeroed_then_written ... ok
+test driver::safe::core::fathomdb_private_pool::release_threshold_bounds_reserved_after_sync ... ok
+test driver::safe::core::fathomdb_private_pool::requests_within_the_cap_succeed ... ok
+test driver::safe::core::fathomdb_private_pool::the_pool_is_destroyed_last_and_cleanly ... ok
+test driver::safe::core::fathomdb_private_pool::the_pool_outlives_its_context_while_slices_live ... ok
+test driver::safe::core::fathomdb_private_pool::trim_to_keeps_the_floor_and_releases_above_it ... ok
+test driver::safe::core::fathomdb_private_pool::two_pools_on_two_devices_are_independent ... ignored, must be executed with multiple gpus
+test driver::safe::core::fathomdb_private_pool::typed_reads_return_64_bit_values ... ok
+test driver::safe::core::fathomdb_private_pool::zero_length_private_allocations_are_null_and_free_cleanly ... ok
+test driver::safe::core::tests::test_alloc_pinned_panics_on_size_overflow - should panic ... ok
+test driver::safe::core::tests::test_borrowed_stream_is_not_destroyed_on_drop ... ok
+test driver::safe::core::tests::test_copy_uses_correct_context ... ok
+test driver::safe::core::tests::test_ctx_copy_to_views ... ok
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... ok
+test driver::safe::core::tests::test_event_try_is_complete ... ok
+test driver::safe::core::tests::test_event_try_is_complete_preserves_capture_error ... ok
+test driver::safe::core::tests::test_htod_copy_pinned ... ok
+test driver::safe::core::tests::test_htod_copy_pinned_with_default_flags ... ok
+test driver::safe::core::tests::test_leak_and_upgrade ... ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... FAILED
+test driver::safe::core::tests::test_post_alloc_arc_counts ... ok
+test driver::safe::core::tests::test_post_alloc_memory ... ignored, must be executed by itself
+test driver::safe::core::tests::test_post_build_arc_count ... ok
+test driver::safe::core::tests::test_primary_context_is_primary ... ok
+test driver::safe::core::tests::test_slice_is_freed_with_correct_context ... ok
+test driver::safe::core::tests::test_threading ... ok
+test driver::safe::core::tests::test_transmutes ... ok
+test driver::safe::graph::tests::test_end_capture_flags ... ok
+test driver::safe::graph::tests::test_end_capture_invalid_flags ... ok
+test fathomdb_lib_major::a_failed_load_is_memoized ... ok
+test fathomdb_lib_major::in_scope_candidates_never_name_another_major ... ok
+test fathomdb_lib_major::is_culib_present_agrees_with_try_culib ... ok
+test fathomdb_lib_major::load_error_names_library_major_and_tried_names ... ok
+test fathomdb_lib_major::out_of_scope_and_cuda11_candidates_equal_the_base ... ok
+test fathomdb_lib_major::report_address_symbols_are_bound_wherever_the_library_is ... ok
+test fathomdb_lib_major::the_report_says_linked_at_build_time_when_linked ... ok
+test fathomdb_lib_major::version_lines_accept_their_major_and_reject_neighbours ... ok
+test fathomdb_lib_major::versioned_names_come_before_unversioned_names ... ok
+test fathomdb_lib_major::windows_dll_names_match_nvidia_wheels ... ok
+
+failures:
+
+---- driver::safe::core::tests::test_pinned_copy_is_faster stdout ----
+
+thread 'driver::safe::core::tests::test_pinned_copy_is_faster' (2009411) panicked at src/driver/safe/core.rs:3300:9:
+730.257µs vs 710.652µs
+
+
+failures:
+    driver::safe::core::tests::test_pinned_copy_is_faster
+
+test result: FAILED. 77 passed; 1 failed; 9 ignored; 0 measured; 0 filtered out; finished in 51.17s
+
+error: test failed, to rerun pass `--lib`
+
+===== C/ign-test_post_alloc_memory-3.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+running 1 test
+test driver::safe::core::tests::test_post_alloc_memory ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 86 filtered out; finished in 0.27s
+
+
+===== C/ign-measure_max_size_semantics-3.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::measure_max_size_semantics ... M-2 cap=67108864 size=1048576 threshold=0 successes=64 limit=67108864 error=Some(DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")) reserved_at_failure=67108864 used_at_failure=67108864 max_size()=None
+M-2 cap=67108864 size=1048576 threshold=67108864 successes=64 limit=67108864 error=Some(DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")) reserved_at_failure=67108864 used_at_failure=67108864 max_size()=None
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 86 filtered out; finished in 0.43s
+
+
+===== C/ign-measure_reservation_steps-3.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::measure_reservation_steps ... M-1 size=1 empty=0 first_step=33554432 second_step=0 used_after_two=2 device_free=24983568384 device_total=25296044032
+M-1 size=1048576 empty=0 first_step=33554432 second_step=0 used_after_two=2097152 device_free=24983568384 device_total=25296044032
+M-1 size=33554432 empty=0 first_step=33554432 second_step=33554432 used_after_two=67108864 device_free=24950013952 device_total=25296044032
+M-1 size=268435456 empty=0 first_step=268435456 second_step=268435456 used_after_two=536870912 device_free=24480251904 device_total=25296044032
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 86 filtered out; finished in 0.75s
+
+
+===== C/ign-observe_new_attributes_on_driver_580-3.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::observe_new_attributes_on_driver_580 ... M-3 driver=13000 attribute=9 (CU_MEMPOOL_ATTR_ALLOCATION_TYPE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=10 (CU_MEMPOOL_ATTR_EXPORT_HANDLE_TYPES) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=11 (CU_MEMPOOL_ATTR_LOCATION_ID) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=12 (CU_MEMPOOL_ATTR_LOCATION_TYPE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=13 (CU_MEMPOOL_ATTR_MAX_POOL_SIZE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=14 (CU_MEMPOOL_ATTR_HW_DECOMPRESS_ENABLED) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 86 filtered out; finished in 0.08s
+
+
+===== C/timing-3.log =====
+warning: unused imports: `CudaContext` and `DriverError`
+   --> src/driver/safe/launch.rs:276:25
+    |
+276 |     use crate::driver::{CudaContext, DriverError};
+    |                         ^^^^^^^^^^^  ^^^^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `super::*`
+   --> src/driver/safe/launch.rs:280:9
+    |
+280 |     use super::*;
+    |         ^^^^^^^^
+
+warning: constant `SIN_CU` is never used
+   --> src/driver/safe/launch.rs:336:11
+    |
+336 |     const SIN_CU: &str = "
+    |           ^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: constant `TEST_KERNELS` is never used
+   --> src/driver/safe/launch.rs:452:11
+    |
+452 |     const TEST_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: constant `SLOW_KERNELS` is never used
+   --> src/driver/safe/launch.rs:627:11
+    |
+627 |     const SLOW_KERNELS: &str = "
+    |           ^^^^^^^^^^^^
+
+warning: `cudarc-fathomdb` (lib test) generated 5 warnings (run `cargo fix --lib -p cudarc-fathomdb --tests` to apply 2 suggestions)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-b7c792b5b3995afb)
+
+running 2 tests
+test driver::safe::core::tests::test_default_pinned_host_reads_are_faster_than_write_combined ... default pinned host reads: 20.263921ms; write-combined host reads: 640.386221ms
+ok
+test driver::safe::core::tests::test_pinned_copy_is_faster ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 85 filtered out; finished in 1.10s
+
