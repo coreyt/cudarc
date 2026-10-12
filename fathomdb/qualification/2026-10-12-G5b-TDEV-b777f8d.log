@@ -1,0 +1,1158 @@
+
+===== env/env.log =====
+started 2026-10-12T20:03:50+00:00
+host fdb-lab-g5b-3 Linux 7.0.0-1014-gcp x86_64
+os Ubuntu 24.04.5 LTS
+glibc ldd (Ubuntu GLIBC 2.39-0ubuntu8.9) 2.39
+rehearsal 0
+== nvidia-smi
+Mon Oct 12 20:03:50 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 615.71.09              KMD Version: 615.71.09     CUDA UMD Version: 13.4     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  Tesla T4                       Off |   00000000:00:04.0 Off |                    0 |
+| N/A   62C    P8             12W /   70W |       0MiB /  15360MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+== nvidia-smi -q (driver/cuda)
+Driver Version                                         : 615.71.09 [Deprecated; will be removed in CUDA 14.0. Use KMD Version instead]
+CUDA Version                                           : 13.4 [Deprecated; will be removed in CUDA 14.0. Use CUDA UMD Version instead]
+    Product Name                                       : Tesla T4
+        Bus Id                                         : 00000000:00:04.0
+    Conf Compute Protected Memory Usage
+    Compute Mode                                       : Default
+== /proc/driver/nvidia/version
+NVRM version: NVIDIA UNIX Open Kernel Module for x86_64  615.71.09  Release Build  (dvs-builder@U22-I3-F05-2-4)  Fri Sep  4 22:33:33 UTC 2026
+GCC version:  gcc version 13.3.0 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 
+== nvidia packages
+libnvidia-cfg1-615-server=615.71.09-0ubuntu0.24.04.2
+libnvidia-cfg1-any=
+libnvidia-compute=
+libnvidia-compute-615-server=615.71.09-0ubuntu0.24.04.2
+libnvidia-ml.so.1=
+libnvidia-ml1=
+linux-modules-nvidia-615-server-open-7.0.0-1014-gcp=7.0.0-1014.14~24.04.1+2
+nvidia-compute-utils=
+nvidia-compute-utils-615-server=615.71.09-0ubuntu0.24.04.2
+nvidia-driver-615-server=
+nvidia-firmware-615-615.71.09=
+nvidia-firmware-615-server-615.71.09=615.71.09-0ubuntu0.24.04.2
+nvidia-headless-no-dkms-615-server-open=615.71.09-0ubuntu0.24.04.2
+nvidia-kernel-common=
+nvidia-kernel-common-615-server=615.71.09-0ubuntu0.24.04.2
+nvidia-kernel-common-615-server-615.71.09=
+nvidia-kernel-source=
+nvidia-kernel-source-615-server-open=615.71.09-0ubuntu0.24.04.2
+nvidia-libopencl1-dev=
+nvidia-opencl-icd=
+nvidia-persistenced=
+nvidia-smi=
+nvidia-utils=
+nvidia-utils-615-server=615.71.09-0ubuntu0.24.04.2
+== bundle
+663b9e0c58f094a0639cb342545ecf8258737e18cdb1c0b9a8e99133268293a3  bin/C-13010
+811e28d2eda676c36b8ea51140b979124e0835712b09e56b8c9b729be6b9f371  bin/C-13020
+0b0e23b0fe28e7ea630db81765ea3f780d717a7bf4aba0809b57c046425849fa  bin/C-13030
+b140580b239adde3e5c9dbd21d91cd9cd7cf0587d8e3a140901bf931d41037e3  bin/C-13040
+6597bdfb732257545a6f80616c60010f4a7cda36ca51298a5b1d84d01993b649  bin/base-13010
+2e1eacbaa0195adbd228acaa0a4ba4bc364df87cf1c2c939ea4f821ad5740482  bin/base-13020
+92b38d5c5cf9d0e305f00b775e8b7f81ffa81ab7dfbccf5eb0aa165d88580634  bin/base-13030
+aa70396e5821927d2fe3520ed2470ce1be2b32fb39f29a62bb10ca3866720cfe  bin/base-13040
+c881f8e0a2cd6e2127bfa384f1aa4681561a492558160ffd2dfb4e98c6a3a7d0  bin/tdev-12060
+688d323d084181b8de9e4c88e67c8d0bbeef24cb1d1c52564951046afc56d4ab  fdbmaps.so
+934f733ed6d9cba960cd49256e5f9871f5cae393f27a25bd98f1c2c5c98a1823  m4probe.py
+00aead5b7c6610b9f52c7d46c6459fae9049361191b5a2db57c27d5f4d552c2e  remote-g5b.sh
+72d6f597ff57667a5efc7f5668c8cf28e55dcf64c92b3248d61a858e8a9725d0  packages.txt
+== M-4 (cuDriverGetVersion through libcuda.so.1)
+M-4 cuDriverGetVersion=13040 status=0
+CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=0 visible=1
+ordinal 0: Tesla T4 0000:00:04.0 sm_75
+== ldconfig -p (CUDA/NVIDIA), before packages
+	libnvme.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvme.so.1
+	libnvme-mi.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvme-mi.so.1
+	libnvidia-tileiras.so.615.71.09 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-tileiras.so.615.71.09
+	libnvidia-ptxjitcompiler.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.1
+	libnvidia-ptxjitcompiler.so (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so
+	libnvidia-pkcs11.so.615.71.09 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-pkcs11.so.615.71.09
+	libnvidia-pkcs11-openssl3.so.615.71.09 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-pkcs11-openssl3.so.615.71.09
+	libnvidia-opencl.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-opencl.so.1
+	libnvidia-nvvm70.so.4 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-nvvm70.so.4
+	libnvidia-nvvm70.so (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-nvvm70.so
+	libnvidia-nvvm.so.4 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-nvvm.so.4
+	libnvidia-nvvm.so (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-nvvm.so
+	libnvidia-ml.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-ml.so.1
+	libnvidia-ml.so (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-ml.so
+	libnvidia-imex.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-imex.so.1
+	libnvidia-fmdrv.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-fmdrv.so.1
+	libnvidia-cfg.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-cfg.so.1
+	libnvidia-cfg.so (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-cfg.so
+	libcurl.so.4 (libc6,x86-64) => /lib/x86_64-linux-gnu/libcurl.so.4
+	libcurl-gnutls.so.4 (libc6,x86-64) => /lib/x86_64-linux-gnu/libcurl-gnutls.so.4
+	libcudadebugger.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libcudadebugger.so.1
+	libcuda.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libcuda.so.1
+	libcuda.so (libc6,x86-64) => /lib/x86_64-linux-gnu/libcuda.so
+
+===== env/packages.log =====
+cuda-keyring.deb sha256 d2a6b11c096396d868758b86dab1823b25e14d70333f1dfa74da5ddaf6a06dba
+Selecting previously unselected package cuda-keyring.
+(Reading database ... 89050 files and directories currently installed.)
+Preparing to unpack .../cuda-keyring.deb ...
+Unpacking cuda-keyring (1.1-1) ...
+Setting up cuda-keyring (1.1-1) ...
+Hit:1 http://us-central1.gce.archive.ubuntu.com/ubuntu noble InRelease
+Hit:2 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-updates InRelease
+Hit:3 http://us-central1.gce.archive.ubuntu.com/ubuntu noble-backports InRelease
+Hit:4 http://security.ubuntu.com/ubuntu noble-security InRelease
+Get:5 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  InRelease [1578 B]
+Get:6 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  Packages [1912 kB]
+Fetched 1914 kB in 1s (3083 kB/s)
+Reading package lists...
+Inst cuda-toolkit-config-common (13.4.92-1 NVIDIA CUDA:developer.download.nvidia.com [all])
+Inst cuda-toolkit-13-config-common (13.4.92-1 NVIDIA CUDA:developer.download.nvidia.com [all])
+Inst cuda-toolkit-13-1-config-common (13.1.80-1 NVIDIA CUDA:developer.download.nvidia.com [all])
+Inst cuda-cudart-13-1 (13.1.80-1 NVIDIA CUDA:developer.download.nvidia.com [amd64])
+Inst cuda-toolkit-13-2-config-common (13.2.86-1 NVIDIA CUDA:developer.download.nvidia.com [all])
+Inst cuda-cudart-13-2 (13.2.86-1 NVIDIA CUDA:developer.download.nvidia.com [amd64])
+Inst cuda-toolkit-13-3-config-common (13.3.29-1 NVIDIA CUDA:developer.download.nvidia.com [all])
+Inst cuda-cudart-13-3 (13.3.29-1 NVIDIA CUDA:developer.download.nvidia.com [amd64])
+Inst cuda-toolkit-13-4-config-common (13.4.92-1 NVIDIA CUDA:developer.download.nvidia.com [all])
+Inst cuda-cudart-13-4 (13.4.92-1 NVIDIA CUDA:developer.download.nvidia.com [amd64])
+Inst cuda-nvrtc-13-1 (13.1.115-1 NVIDIA CUDA:developer.download.nvidia.com [amd64])
+Inst cuda-nvrtc-13-2 (13.2.86-1 NVIDIA CUDA:developer.download.nvidia.com [amd64])
+Inst cuda-nvrtc-13-3 (13.3.33-1 NVIDIA CUDA:developer.download.nvidia.com [amd64])
+Inst cuda-nvrtc-13-4 (13.4.92-1 NVIDIA CUDA:developer.download.nvidia.com [amd64])
+Inst libcublas-13-1 (13.2.2.2-1 NVIDIA CUDA:developer.download.nvidia.com [amd64])
+Inst libcublas-13-2 (13.4.1.3-1 NVIDIA CUDA:developer.download.nvidia.com [amd64])
+Inst libcublas-13-3 (13.6.0.2-1 NVIDIA CUDA:developer.download.nvidia.com [amd64])
+Inst libcublas-13-4 (13.8.0.4-1 NVIDIA CUDA:developer.download.nvidia.com [amd64])
+Inst libcurand-13-1 (10.4.1.81-1 NVIDIA CUDA:developer.download.nvidia.com [amd64])
+Inst libcurand-13-2 (10.4.2.66-1 NVIDIA CUDA:developer.download.nvidia.com [amd64])
+Inst libcurand-13-3 (10.4.3.29-1 NVIDIA CUDA:developer.download.nvidia.com [amd64])
+Inst libcurand-13-4 (10.4.4.72-1 NVIDIA CUDA:developer.download.nvidia.com [amd64])
+Reading package lists...
+Building dependency tree...
+Reading state information...
+The following additional packages will be installed:
+  cuda-toolkit-13-1-config-common cuda-toolkit-13-2-config-common
+  cuda-toolkit-13-3-config-common cuda-toolkit-13-4-config-common
+  cuda-toolkit-13-config-common cuda-toolkit-config-common
+The following NEW packages will be installed:
+  cuda-cudart-13-1 cuda-cudart-13-2 cuda-cudart-13-3 cuda-cudart-13-4
+  cuda-nvrtc-13-1 cuda-nvrtc-13-2 cuda-nvrtc-13-3 cuda-nvrtc-13-4
+  cuda-toolkit-13-1-config-common cuda-toolkit-13-2-config-common
+  cuda-toolkit-13-3-config-common cuda-toolkit-13-4-config-common
+  cuda-toolkit-13-config-common cuda-toolkit-config-common libcublas-13-1
+  libcublas-13-2 libcublas-13-3 libcublas-13-4 libcurand-13-1 libcurand-13-2
+  libcurand-13-3 libcurand-13-4
+0 upgraded, 22 newly installed, 0 to remove and 38 not upgraded.
+Need to get 1852 MB of archives.
+After this operation, 3328 MB of additional disk space will be used.
+Get:1 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  cuda-toolkit-config-common 13.4.92-1 [17.4 kB]
+Get:2 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  cuda-toolkit-13-config-common 13.4.92-1 [17.4 kB]
+Get:3 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  cuda-toolkit-13-1-config-common 13.1.80-1 [17.3 kB]
+Get:4 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  cuda-cudart-13-1 13.1.80-1 [176 kB]
+Get:5 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  cuda-toolkit-13-2-config-common 13.2.86-1 [17.4 kB]
+Get:6 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  cuda-cudart-13-2 13.2.86-1 [179 kB]
+Get:7 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  cuda-toolkit-13-3-config-common 13.3.29-1 [17.4 kB]
+Get:8 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  cuda-cudart-13-3 13.3.29-1 [182 kB]
+Get:9 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  cuda-toolkit-13-4-config-common 13.4.92-1 [17.4 kB]
+Get:10 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  cuda-cudart-13-4 13.4.92-1 [186 kB]
+Get:11 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  cuda-nvrtc-13-1 13.1.115-1 [33.2 MB]
+Get:12 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  cuda-nvrtc-13-2 13.2.86-1 [33.5 MB]
+Get:13 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  cuda-nvrtc-13-3 13.3.33-1 [37.1 MB]
+Get:14 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  cuda-nvrtc-13-4 13.4.92-1 [38.6 MB]
+Get:15 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  libcublas-13-1 13.2.2.2-1 [372 MB]
+Get:16 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  libcublas-13-2 13.4.1.3-1 [375 MB]
+Get:17 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  libcublas-13-3 13.6.0.2-1 [380 MB]
+Get:18 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  libcublas-13-4 13.8.0.4-1 [408 MB]
+Get:19 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  libcurand-13-1 10.4.1.81-1 [43.4 MB]
+Get:20 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  libcurand-13-2 10.4.2.66-1 [43.4 MB]
+Get:21 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  libcurand-13-3 10.4.3.29-1 [43.4 MB]
+Get:22 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64  libcurand-13-4 10.4.4.72-1 [43.5 MB]
+debconf: unable to initialize frontend: Dialog
+debconf: (Dialog frontend will not work on a dumb terminal, an emacs shell buffer, or without a controlling terminal.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Teletype
+dpkg-preconfigure: unable to re-open stdin: 
+Fetched 1852 MB in 30s (61.8 MB/s)
+Selecting previously unselected package cuda-toolkit-config-common.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 89055 files and directories currently installed.)
+Preparing to unpack .../00-cuda-toolkit-config-common_13.4.92-1_all.deb ...
+Unpacking cuda-toolkit-config-common (13.4.92-1) ...
+Selecting previously unselected package cuda-toolkit-13-config-common.
+Preparing to unpack .../01-cuda-toolkit-13-config-common_13.4.92-1_all.deb ...
+Unpacking cuda-toolkit-13-config-common (13.4.92-1) ...
+Selecting previously unselected package cuda-toolkit-13-1-config-common.
+Preparing to unpack .../02-cuda-toolkit-13-1-config-common_13.1.80-1_all.deb ...
+Unpacking cuda-toolkit-13-1-config-common (13.1.80-1) ...
+Selecting previously unselected package cuda-cudart-13-1.
+Preparing to unpack .../03-cuda-cudart-13-1_13.1.80-1_amd64.deb ...
+Unpacking cuda-cudart-13-1 (13.1.80-1) ...
+Selecting previously unselected package cuda-toolkit-13-2-config-common.
+Preparing to unpack .../04-cuda-toolkit-13-2-config-common_13.2.86-1_all.deb ...
+Unpacking cuda-toolkit-13-2-config-common (13.2.86-1) ...
+Selecting previously unselected package cuda-cudart-13-2.
+Preparing to unpack .../05-cuda-cudart-13-2_13.2.86-1_amd64.deb ...
+Unpacking cuda-cudart-13-2 (13.2.86-1) ...
+Selecting previously unselected package cuda-toolkit-13-3-config-common.
+Preparing to unpack .../06-cuda-toolkit-13-3-config-common_13.3.29-1_all.deb ...
+Unpacking cuda-toolkit-13-3-config-common (13.3.29-1) ...
+Selecting previously unselected package cuda-cudart-13-3.
+Preparing to unpack .../07-cuda-cudart-13-3_13.3.29-1_amd64.deb ...
+Unpacking cuda-cudart-13-3 (13.3.29-1) ...
+Selecting previously unselected package cuda-toolkit-13-4-config-common.
+Preparing to unpack .../08-cuda-toolkit-13-4-config-common_13.4.92-1_all.deb ...
+Unpacking cuda-toolkit-13-4-config-common (13.4.92-1) ...
+Selecting previously unselected package cuda-cudart-13-4.
+Preparing to unpack .../09-cuda-cudart-13-4_13.4.92-1_amd64.deb ...
+Unpacking cuda-cudart-13-4 (13.4.92-1) ...
+Selecting previously unselected package cuda-nvrtc-13-1.
+Preparing to unpack .../10-cuda-nvrtc-13-1_13.1.115-1_amd64.deb ...
+Unpacking cuda-nvrtc-13-1 (13.1.115-1) ...
+Selecting previously unselected package cuda-nvrtc-13-2.
+Preparing to unpack .../11-cuda-nvrtc-13-2_13.2.86-1_amd64.deb ...
+Unpacking cuda-nvrtc-13-2 (13.2.86-1) ...
+Selecting previously unselected package cuda-nvrtc-13-3.
+Preparing to unpack .../12-cuda-nvrtc-13-3_13.3.33-1_amd64.deb ...
+Unpacking cuda-nvrtc-13-3 (13.3.33-1) ...
+Selecting previously unselected package cuda-nvrtc-13-4.
+Preparing to unpack .../13-cuda-nvrtc-13-4_13.4.92-1_amd64.deb ...
+Unpacking cuda-nvrtc-13-4 (13.4.92-1) ...
+Selecting previously unselected package libcublas-13-1.
+Preparing to unpack .../14-libcublas-13-1_13.2.2.2-1_amd64.deb ...
+Unpacking libcublas-13-1 (13.2.2.2-1) ...
+Selecting previously unselected package libcublas-13-2.
+Preparing to unpack .../15-libcublas-13-2_13.4.1.3-1_amd64.deb ...
+Unpacking libcublas-13-2 (13.4.1.3-1) ...
+Selecting previously unselected package libcublas-13-3.
+Preparing to unpack .../16-libcublas-13-3_13.6.0.2-1_amd64.deb ...
+Unpacking libcublas-13-3 (13.6.0.2-1) ...
+Selecting previously unselected package libcublas-13-4.
+Preparing to unpack .../17-libcublas-13-4_13.8.0.4-1_amd64.deb ...
+Unpacking libcublas-13-4 (13.8.0.4-1) ...
+Selecting previously unselected package libcurand-13-1.
+Preparing to unpack .../18-libcurand-13-1_10.4.1.81-1_amd64.deb ...
+Unpacking libcurand-13-1 (10.4.1.81-1) ...
+Selecting previously unselected package libcurand-13-2.
+Preparing to unpack .../19-libcurand-13-2_10.4.2.66-1_amd64.deb ...
+Unpacking libcurand-13-2 (10.4.2.66-1) ...
+Selecting previously unselected package libcurand-13-3.
+Preparing to unpack .../20-libcurand-13-3_10.4.3.29-1_amd64.deb ...
+Unpacking libcurand-13-3 (10.4.3.29-1) ...
+Selecting previously unselected package libcurand-13-4.
+Preparing to unpack .../21-libcurand-13-4_10.4.4.72-1_amd64.deb ...
+Unpacking libcurand-13-4 (10.4.4.72-1) ...
+Setting up cuda-toolkit-config-common (13.4.92-1) ...
+Setting up cuda-nvrtc-13-4 (13.4.92-1) ...
+Setting up cuda-toolkit-13-config-common (13.4.92-1) ...
+Setting up cuda-toolkit-13-1-config-common (13.1.80-1) ...
+Setting alternatives
+update-alternatives: using /usr/local/cuda-13.1 to provide /usr/local/cuda (cuda) in auto mode
+update-alternatives: using /usr/local/cuda-13.1 to provide /usr/local/cuda-13 (cuda-13) in auto mode
+Setting up cuda-nvrtc-13-2 (13.2.86-1) ...
+Setting up cuda-nvrtc-13-3 (13.3.33-1) ...
+Setting up cuda-toolkit-13-4-config-common (13.4.92-1) ...
+Setting alternatives
+update-alternatives: using /usr/local/cuda-13.4 to provide /usr/local/cuda (cuda) in auto mode
+update-alternatives: using /usr/local/cuda-13.4 to provide /usr/local/cuda-13 (cuda-13) in auto mode
+Setting up cuda-nvrtc-13-1 (13.1.115-1) ...
+Setting up cuda-toolkit-13-3-config-common (13.3.29-1) ...
+Setting alternatives
+Setting up cuda-toolkit-13-2-config-common (13.2.86-1) ...
+Setting alternatives
+Setting up cuda-cudart-13-4 (13.4.92-1) ...
+Setting up libcublas-13-1 (13.2.2.2-1) ...
+Setting up libcurand-13-4 (10.4.4.72-1) ...
+Setting up libcublas-13-2 (13.4.1.3-1) ...
+Setting up cuda-cudart-13-2 (13.2.86-1) ...
+Setting up libcublas-13-3 (13.6.0.2-1) ...
+Setting up cuda-cudart-13-3 (13.3.29-1) ...
+Setting up libcublas-13-4 (13.8.0.4-1) ...
+Setting up libcurand-13-1 (10.4.1.81-1) ...
+Setting up cuda-cudart-13-1 (13.1.80-1) ...
+Setting up libcurand-13-3 (10.4.3.29-1) ...
+Setting up libcurand-13-2 (10.4.2.66-1) ...
+Processing triggers for libc-bin (2.39-0ubuntu8.9) ...
+debconf: unable to initialize frontend: Dialog
+debconf: (Dialog frontend will not work on a dumb terminal, an emacs shell buffer, or without a controlling terminal.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Teletype
+
+Running kernel seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+== installed
+cuda-cudart-11-2=
+cuda-cudart-13-1=13.1.80-1
+cuda-cudart-13-2=13.2.86-1
+cuda-cudart-13-3=13.3.29-1
+cuda-cudart-13-4=13.4.92-1
+cuda-keyring=1.1-1
+cuda-nvrtc-13-1=13.1.115-1
+cuda-nvrtc-13-2=13.2.86-1
+cuda-nvrtc-13-3=13.3.33-1
+cuda-nvrtc-13-4=13.4.92-1
+cuda-toolkit-13-1-config-common=13.1.80-1
+cuda-toolkit-13-2-config-common=13.2.86-1
+cuda-toolkit-13-3-config-common=13.3.29-1
+cuda-toolkit-13-4-config-common=13.4.92-1
+cuda-toolkit-13-config-common=13.4.92-1
+cuda-toolkit-config-common=13.4.92-1
+libcublas-13-1=13.2.2.2-1
+libcublas-13-2=13.4.1.3-1
+libcublas-13-3=13.6.0.2-1
+libcublas-13-4=13.8.0.4-1
+libcublas.so.13=
+libcurand-13-1=10.4.1.81-1
+libcurand-13-2=10.4.2.66-1
+libcurand-13-3=10.4.3.29-1
+libcurand-13-4=10.4.4.72-1
+libcurand.so.10=
+
+===== env/layout.log =====
+== /usr/local/cuda-13.1
+total 12
+drwxr-xr-x  3 root root 4096 Oct 12 20:04 .
+drwxr-xr-x 14 root root 4096 Oct 12 20:05 ..
+lrwxrwxrwx  1 root root   24 Nov  8  2025 lib64 -> targets/x86_64-linux/lib
+drwxr-xr-x  3 root root 4096 Oct 12 20:04 targets
+total 790936
+drwxr-xr-x 2 root root      4096 Oct 12 20:05 .
+drwxr-xr-x 3 root root      4096 Oct 12 20:04 ..
+lrwxrwxrwx 1 root root        21 Mar 20  2026 libcublas.so.13 -> libcublas.so.13.2.2.2
+-rw-r--r-- 1 root root  54190264 Mar 20  2026 libcublas.so.13.2.2.2
+lrwxrwxrwx 1 root root        23 Mar 20  2026 libcublasLt.so.13 -> libcublasLt.so.13.2.2.2
+-rw-r--r-- 1 root root 502605048 Mar 20  2026 libcublasLt.so.13.2.2.2
+lrwxrwxrwx 1 root root        20 Nov  8  2025 libcudart.so.13 -> libcudart.so.13.1.80
+-rw-r--r-- 1 root root    757536 Nov  8  2025 libcudart.so.13.1.80
+lrwxrwxrwx 1 root root        22 Dec 17  2025 libcurand.so.10 -> libcurand.so.10.4.1.81
+-rw-r--r-- 1 root root 133042392 Dec 17  2025 libcurand.so.10.4.1.81
+lrwxrwxrwx 1 root root        21 Mar 20  2026 libnvblas.so.13 -> libnvblas.so.13.2.2.2
+-rw-r--r-- 1 root root    737504 Mar 20  2026 libnvblas.so.13.2.2.2
+lrwxrwxrwx 1 root root        29 Dec 17  2025 libnvrtc-builtins.so.13.1 -> libnvrtc-builtins.so.13.1.115
+-rw-r--r-- 1 root root   4384712 Dec 17  2025 libnvrtc-builtins.so.13.1.115
+lrwxrwxrwx 1 root root        20 Dec 17  2025 libnvrtc.so.13 -> libnvrtc.so.13.1.115
+-rw-r--r-- 1 root root 114175856 Dec 17  2025 libnvrtc.so.13.1.115
+== /usr/local/cuda-13.2
+total 12
+drwxr-xr-x  3 root root 4096 Oct 12 20:04 .
+drwxr-xr-x 14 root root 4096 Oct 12 20:05 ..
+lrwxrwxrwx  1 root root   24 May  8 18:50 lib64 -> targets/x86_64-linux/lib
+drwxr-xr-x  3 root root 4096 Oct 12 20:04 targets
+total 798532
+drwxr-xr-x 2 root root      4096 Oct 12 20:05 .
+drwxr-xr-x 3 root root      4096 Oct 12 20:04 ..
+lrwxrwxrwx 1 root root        21 May  8 20:54 libcublas.so.13 -> libcublas.so.13.4.1.3
+-rw-r--r-- 1 root root  54198912 May  8 20:54 libcublas.so.13.4.1.3
+lrwxrwxrwx 1 root root        23 May  8 20:54 libcublasLt.so.13 -> libcublasLt.so.13.4.1.3
+-rw-r--r-- 1 root root 508260928 May  8 20:54 libcublasLt.so.13.4.1.3
+lrwxrwxrwx 1 root root        20 May  8 18:50 libcudart.so.13 -> libcudart.so.13.2.86
+-rw-r--r-- 1 root root    773920 May  8 18:50 libcudart.so.13.2.86
+lrwxrwxrwx 1 root root        22 May  8 18:57 libcurand.so.10 -> libcurand.so.10.4.2.66
+-rw-r--r-- 1 root root 133931224 May  8 18:57 libcurand.so.10.4.2.66
+lrwxrwxrwx 1 root root        21 May  8 20:54 libnvblas.so.13 -> libnvblas.so.13.4.1.3
+-rw-r--r-- 1 root root    737960 May  8 20:54 libnvblas.so.13.4.1.3
+lrwxrwxrwx 1 root root        28 May  8 18:48 libnvrtc-builtins.so.13.2 -> libnvrtc-builtins.so.13.2.86
+-rw-r--r-- 1 root root   4442056 May  8 18:48 libnvrtc-builtins.so.13.2.86
+lrwxrwxrwx 1 root root        19 May  8 18:48 libnvrtc.so.13 -> libnvrtc.so.13.2.86
+-rw-r--r-- 1 root root 115324240 May  8 18:48 libnvrtc.so.13.2.86
+== /usr/local/cuda-13.3
+total 12
+drwxr-xr-x  3 root root 4096 Oct 12 20:04 .
+drwxr-xr-x 14 root root 4096 Oct 12 20:05 ..
+lrwxrwxrwx  1 root root   24 Apr 18 04:00 lib64 -> targets/x86_64-linux/lib
+drwxr-xr-x  3 root root 4096 Oct 12 20:04 targets
+total 814512
+drwxr-xr-x 2 root root      4096 Oct 12 20:05 .
+drwxr-xr-x 3 root root      4096 Oct 12 20:04 ..
+lrwxrwxrwx 1 root root        21 Jun 10 00:48 libcublas.so.13 -> libcublas.so.13.6.0.2
+-rw-r--r-- 1 root root  55354008 Jun 10 00:48 libcublas.so.13.6.0.2
+lrwxrwxrwx 1 root root        23 Jun 10 00:48 libcublasLt.so.13 -> libcublasLt.so.13.6.0.2
+-rw-r--r-- 1 root root 516598272 Jun 10 00:48 libcublasLt.so.13.6.0.2
+lrwxrwxrwx 1 root root        20 Apr 18 04:00 libcudart.so.13 -> libcudart.so.13.3.29
+-rw-r--r-- 1 root root    782080 Apr 18 04:00 libcudart.so.13.3.29
+lrwxrwxrwx 1 root root        22 Apr 18 04:26 libcurand.so.10 -> libcurand.so.10.4.3.29
+-rw-r--r-- 1 root root 133935320 Apr 18 04:26 libcurand.so.10.4.3.29
+lrwxrwxrwx 1 root root        21 Jun 10 00:48 libnvblas.so.13 -> libnvblas.so.13.6.0.2
+-rw-r--r-- 1 root root    737960 Jun 10 00:48 libnvblas.so.13.6.0.2
+lrwxrwxrwx 1 root root        28 Apr 25 03:43 libnvrtc-builtins.so.13.3 -> libnvrtc-builtins.so.13.3.33
+-rw-r--r-- 1 root root   6555592 Apr 25 03:43 libnvrtc-builtins.so.13.3.33
+lrwxrwxrwx 1 root root        19 Apr 25 03:43 libnvrtc.so.13 -> libnvrtc.so.13.3.33
+-rw-r--r-- 1 root root 120072328 Apr 25 03:43 libnvrtc.so.13.3.33
+== /usr/local/cuda-13.4
+total 12
+drwxr-xr-x  3 root root 4096 Oct 12 20:04 .
+drwxr-xr-x 14 root root 4096 Oct 12 20:05 ..
+lrwxrwxrwx  1 root root   24 Sep  1 16:24 lib64 -> targets/x86_64-linux/lib
+drwxr-xr-x  3 root root 4096 Oct 12 20:04 targets
+total 844416
+drwxr-xr-x 2 root root      4096 Oct 12 20:05 .
+drwxr-xr-x 3 root root      4096 Oct 12 20:04 ..
+lrwxrwxrwx 1 root root        21 Sep  1 19:28 libcublas.so.13 -> libcublas.so.13.8.0.4
+-rw-r--r-- 1 root root  57594520 Sep  1 19:28 libcublas.so.13.8.0.4
+lrwxrwxrwx 1 root root        23 Sep  1 19:28 libcublasLt.so.13 -> libcublasLt.so.13.8.0.4
+-rw-r--r-- 1 root root 545528240 Sep  1 19:28 libcublasLt.so.13.8.0.4
+lrwxrwxrwx 1 root root        20 Sep  1 16:24 libcudart.so.13 -> libcudart.so.13.4.92
+-rw-r--r-- 1 root root    798496 Sep  1 16:24 libcudart.so.13.4.92
+lrwxrwxrwx 1 root root        22 Sep  1 16:32 libcurand.so.10 -> libcurand.so.10.4.4.72
+-rw-r--r-- 1 root root 126468312 Sep  1 16:32 libcurand.so.10.4.4.72
+lrwxrwxrwx 1 root root        21 Sep  1 19:28 libnvblas.so.13 -> libnvblas.so.13.8.0.4
+-rw-r--r-- 1 root root    737960 Sep  1 19:28 libnvblas.so.13.8.0.4
+lrwxrwxrwx 1 root root        28 Sep  1 16:25 libnvrtc-builtins.so.13.4 -> libnvrtc-builtins.so.13.4.92
+-rw-r--r-- 1 root root   7108552 Sep  1 16:25 libnvrtc-builtins.so.13.4.92
+lrwxrwxrwx 1 root root        19 Sep  1 16:25 libnvrtc.so.13 -> libnvrtc.so.13.4.92
+-rw-r--r-- 1 root root 126417024 Sep  1 16:25 libnvrtc.so.13.4.92
+== /etc/ld.so.conf.d
+/etc/ld.so.conf.d/000_cuda.conf:/usr/local/cuda/targets/x86_64-linux/lib
+/etc/ld.so.conf.d/987_cuda-13.conf:/usr/local/cuda-13/targets/x86_64-linux/lib
+/etc/ld.so.conf.d/libc.conf:# libc default configuration
+/etc/ld.so.conf.d/libc.conf:/usr/local/lib
+/etc/ld.so.conf.d/x86_64-linux-gnu.conf:# Multiarch support
+/etc/ld.so.conf.d/x86_64-linux-gnu.conf:/usr/local/lib/x86_64-linux-gnu
+/etc/ld.so.conf.d/x86_64-linux-gnu.conf:/lib/x86_64-linux-gnu
+/etc/ld.so.conf.d/x86_64-linux-gnu.conf:/usr/lib/x86_64-linux-gnu
+== update-alternatives cuda
+cuda - auto mode
+  link best version is /usr/local/cuda-13.4
+  link currently points to /usr/local/cuda-13.4
+  link cuda is /usr/local/cuda
+/usr/local/cuda-13.1 - priority 131
+/usr/local/cuda-13.2 - priority 132
+/usr/local/cuda-13.3 - priority 133
+/usr/local/cuda-13.4 - priority 134
+== ldconfig -p (CUDA/NVIDIA), after packages
+	libnvrtc.so.13 (libc6,x86-64) => /usr/local/cuda/targets/x86_64-linux/lib/libnvrtc.so.13
+	libnvrtc-builtins.so.13.4 (libc6,x86-64) => /usr/local/cuda/targets/x86_64-linux/lib/libnvrtc-builtins.so.13.4
+	libnvme.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvme.so.1
+	libnvme-mi.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvme-mi.so.1
+	libnvidia-tileiras.so.615.71.09 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-tileiras.so.615.71.09
+	libnvidia-ptxjitcompiler.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.1
+	libnvidia-ptxjitcompiler.so (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so
+	libnvidia-pkcs11.so.615.71.09 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-pkcs11.so.615.71.09
+	libnvidia-pkcs11-openssl3.so.615.71.09 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-pkcs11-openssl3.so.615.71.09
+	libnvidia-opencl.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-opencl.so.1
+	libnvidia-nvvm70.so.4 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-nvvm70.so.4
+	libnvidia-nvvm70.so (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-nvvm70.so
+	libnvidia-nvvm.so.4 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-nvvm.so.4
+	libnvidia-nvvm.so (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-nvvm.so
+	libnvidia-ml.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-ml.so.1
+	libnvidia-ml.so (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-ml.so
+	libnvidia-imex.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-imex.so.1
+	libnvidia-fmdrv.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-fmdrv.so.1
+	libnvidia-cfg.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-cfg.so.1
+	libnvidia-cfg.so (libc6,x86-64) => /lib/x86_64-linux-gnu/libnvidia-cfg.so
+	libnvblas.so.13 (libc6,x86-64) => /usr/local/cuda/targets/x86_64-linux/lib/libnvblas.so.13
+	libcurl.so.4 (libc6,x86-64) => /lib/x86_64-linux-gnu/libcurl.so.4
+	libcurl-gnutls.so.4 (libc6,x86-64) => /lib/x86_64-linux-gnu/libcurl-gnutls.so.4
+	libcurand.so.10 (libc6,x86-64) => /usr/local/cuda/targets/x86_64-linux/lib/libcurand.so.10
+	libcudart.so.13 (libc6,x86-64) => /usr/local/cuda/targets/x86_64-linux/lib/libcudart.so.13
+	libcudadebugger.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libcudadebugger.so.1
+	libcuda.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libcuda.so.1
+	libcuda.so (libc6,x86-64) => /lib/x86_64-linux-gnu/libcuda.so
+	libcublasLt.so.13 (libc6,x86-64) => /usr/local/cuda/targets/x86_64-linux/lib/libcublasLt.so.13
+	libcublas.so.13 (libc6,x86-64) => /usr/local/cuda/targets/x86_64-linux/lib/libcublas.so.13
+
+===== out/guard.log =====
+2026-10-12T20:03:50+00:00 GUARD before env gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda
+2026-10-12T20:03:52+00:00 GUARD after env gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda
+2026-10-12T20:03:52+00:00 GUARD before packages gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda
+2026-10-12T20:05:13+00:00 GUARD after packages gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:13+00:00 GUARD before layout gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:13+00:00 GUARD after layout gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:14+00:00 GUARD before tdev-e-precondition gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:14+00:00 GUARD after tdev-e-precondition gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:14+00:00 GUARD before runs/C-13010/main-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:21+00:00 GUARD after runs/C-13010/main-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:22+00:00 GUARD before runs/C-13010/ign-drops_after_a_sticky_error_neither_panic_nor_abort-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:23+00:00 GUARD after runs/C-13010/ign-drops_after_a_sticky_error_neither_panic_nor_abort-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:24+00:00 GUARD before runs/C-13010/ign-measure_max_size_semantics-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:25+00:00 GUARD after runs/C-13010/ign-measure_max_size_semantics-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:25+00:00 GUARD before runs/C-13010/ign-measure_reservation_steps-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:26+00:00 GUARD after runs/C-13010/ign-measure_reservation_steps-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:26+00:00 GUARD before runs/C-13010/ign-test_post_alloc_memory-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:27+00:00 GUARD after runs/C-13010/ign-test_post_alloc_memory-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:27+00:00 GUARD before runs/C-13010/ign-test_device_side_assert-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:29+00:00 GUARD after runs/C-13010/ign-test_device_side_assert-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:29+00:00 GUARD before runs/C-13010/timing-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:30+00:00 GUARD after runs/C-13010/timing-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:30+00:00 GUARD before runs/base-13010/main-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:34+00:00 GUARD after runs/base-13010/main-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:34+00:00 GUARD before runs/base-13010/ign-test_post_alloc_memory-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:34+00:00 GUARD after runs/base-13010/ign-test_post_alloc_memory-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:34+00:00 GUARD before runs/base-13010/ign-test_device_side_assert-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:36+00:00 GUARD after runs/base-13010/ign-test_device_side_assert-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:36+00:00 GUARD before runs/base-13010/timing-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:37+00:00 GUARD after runs/base-13010/timing-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:38+00:00 GUARD before runs/C-13020/main-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:43+00:00 GUARD after runs/C-13020/main-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:43+00:00 GUARD before runs/C-13020/ign-drops_after_a_sticky_error_neither_panic_nor_abort-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:45+00:00 GUARD after runs/C-13020/ign-drops_after_a_sticky_error_neither_panic_nor_abort-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:45+00:00 GUARD before runs/C-13020/ign-max_pool_size_reads_back_at_least_the_request-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:46+00:00 GUARD after runs/C-13020/ign-max_pool_size_reads_back_at_least_the_request-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:46+00:00 GUARD before runs/C-13020/ign-measure_max_size_semantics-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:47+00:00 GUARD after runs/C-13020/ign-measure_max_size_semantics-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:47+00:00 GUARD before runs/C-13020/ign-measure_reservation_steps-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:48+00:00 GUARD after runs/C-13020/ign-measure_reservation_steps-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:49+00:00 GUARD before runs/C-13020/ign-observe_new_attributes_on_driver_580-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:49+00:00 GUARD after runs/C-13020/ign-observe_new_attributes_on_driver_580-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:49+00:00 GUARD before runs/C-13020/ign-test_post_alloc_memory-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:50+00:00 GUARD after runs/C-13020/ign-test_post_alloc_memory-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:50+00:00 GUARD before runs/C-13020/ign-test_device_side_assert-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:52+00:00 GUARD after runs/C-13020/ign-test_device_side_assert-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:52+00:00 GUARD before runs/C-13020/timing-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:53+00:00 GUARD after runs/C-13020/timing-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:53+00:00 GUARD before runs/base-13020/main-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:56+00:00 GUARD after runs/base-13020/main-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:56+00:00 GUARD before runs/base-13020/ign-test_post_alloc_memory-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:56+00:00 GUARD after runs/base-13020/ign-test_post_alloc_memory-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:56+00:00 GUARD before runs/base-13020/ign-test_device_side_assert-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:58+00:00 GUARD after runs/base-13020/ign-test_device_side_assert-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:58+00:00 GUARD before runs/base-13020/timing-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:05:59+00:00 GUARD after runs/base-13020/timing-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:00+00:00 GUARD before runs/C-13030/main-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:05+00:00 GUARD after runs/C-13030/main-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:05+00:00 GUARD before runs/C-13030/ign-drops_after_a_sticky_error_neither_panic_nor_abort-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:07+00:00 GUARD after runs/C-13030/ign-drops_after_a_sticky_error_neither_panic_nor_abort-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:07+00:00 GUARD before runs/C-13030/ign-max_pool_size_reads_back_at_least_the_request-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:07+00:00 GUARD after runs/C-13030/ign-max_pool_size_reads_back_at_least_the_request-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:08+00:00 GUARD before runs/C-13030/ign-measure_max_size_semantics-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:09+00:00 GUARD after runs/C-13030/ign-measure_max_size_semantics-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:09+00:00 GUARD before runs/C-13030/ign-measure_reservation_steps-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:10+00:00 GUARD after runs/C-13030/ign-measure_reservation_steps-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:10+00:00 GUARD before runs/C-13030/ign-observe_new_attributes_on_driver_580-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:11+00:00 GUARD after runs/C-13030/ign-observe_new_attributes_on_driver_580-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:11+00:00 GUARD before runs/C-13030/ign-test_post_alloc_memory-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:11+00:00 GUARD after runs/C-13030/ign-test_post_alloc_memory-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:12+00:00 GUARD before runs/C-13030/ign-test_device_side_assert-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:13+00:00 GUARD after runs/C-13030/ign-test_device_side_assert-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:13+00:00 GUARD before runs/C-13030/timing-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:14+00:00 GUARD after runs/C-13030/timing-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:15+00:00 GUARD before runs/base-13030/main-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:17+00:00 GUARD after runs/base-13030/main-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:17+00:00 GUARD before runs/base-13030/ign-test_post_alloc_memory-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:18+00:00 GUARD after runs/base-13030/ign-test_post_alloc_memory-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:18+00:00 GUARD before runs/base-13030/ign-test_device_side_assert-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:20+00:00 GUARD after runs/base-13030/ign-test_device_side_assert-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:20+00:00 GUARD before runs/base-13030/timing-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:21+00:00 GUARD after runs/base-13030/timing-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:21+00:00 GUARD before runs/C-13040/main-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:27+00:00 GUARD after runs/C-13040/main-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:27+00:00 GUARD before runs/C-13040/ign-drops_after_a_sticky_error_neither_panic_nor_abort-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:29+00:00 GUARD after runs/C-13040/ign-drops_after_a_sticky_error_neither_panic_nor_abort-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:29+00:00 GUARD before runs/C-13040/ign-max_pool_size_reads_back_at_least_the_request-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:29+00:00 GUARD after runs/C-13040/ign-max_pool_size_reads_back_at_least_the_request-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:29+00:00 GUARD before runs/C-13040/ign-measure_max_size_semantics-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:30+00:00 GUARD after runs/C-13040/ign-measure_max_size_semantics-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:31+00:00 GUARD before runs/C-13040/ign-measure_reservation_steps-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:32+00:00 GUARD after runs/C-13040/ign-measure_reservation_steps-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:32+00:00 GUARD before runs/C-13040/ign-observe_new_attributes_on_driver_580-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:33+00:00 GUARD after runs/C-13040/ign-observe_new_attributes_on_driver_580-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:33+00:00 GUARD before runs/C-13040/ign-test_post_alloc_memory-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:33+00:00 GUARD after runs/C-13040/ign-test_post_alloc_memory-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:34+00:00 GUARD before runs/C-13040/ign-test_device_side_assert-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:35+00:00 GUARD after runs/C-13040/ign-test_device_side_assert-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:36+00:00 GUARD before runs/C-13040/timing-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:37+00:00 GUARD after runs/C-13040/timing-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:37+00:00 GUARD before runs/base-13040/main-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:39+00:00 GUARD after runs/base-13040/main-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:39+00:00 GUARD before runs/base-13040/ign-test_post_alloc_memory-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:40+00:00 GUARD after runs/base-13040/ign-test_post_alloc_memory-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:40+00:00 GUARD before runs/base-13040/ign-test_device_side_assert-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:42+00:00 GUARD after runs/base-13040/ign-test_device_side_assert-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:42+00:00 GUARD before runs/base-13040/timing-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:43+00:00 GUARD after runs/base-13040/timing-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:43+00:00 GUARD before runs/C-13010/main-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:50+00:00 GUARD after runs/C-13010/main-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:50+00:00 GUARD before runs/C-13010/ign-drops_after_a_sticky_error_neither_panic_nor_abort-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:52+00:00 GUARD after runs/C-13010/ign-drops_after_a_sticky_error_neither_panic_nor_abort-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:52+00:00 GUARD before runs/C-13010/ign-measure_max_size_semantics-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:53+00:00 GUARD after runs/C-13010/ign-measure_max_size_semantics-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:53+00:00 GUARD before runs/C-13010/ign-measure_reservation_steps-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:55+00:00 GUARD after runs/C-13010/ign-measure_reservation_steps-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:55+00:00 GUARD before runs/C-13010/ign-test_post_alloc_memory-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:56+00:00 GUARD after runs/C-13010/ign-test_post_alloc_memory-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:56+00:00 GUARD before runs/C-13010/ign-test_device_side_assert-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:57+00:00 GUARD after runs/C-13010/ign-test_device_side_assert-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:58+00:00 GUARD before runs/C-13010/timing-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:59+00:00 GUARD after runs/C-13010/timing-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:06:59+00:00 GUARD before runs/base-13010/main-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:02+00:00 GUARD after runs/base-13010/main-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:03+00:00 GUARD before runs/base-13010/ign-test_post_alloc_memory-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:03+00:00 GUARD after runs/base-13010/ign-test_post_alloc_memory-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:03+00:00 GUARD before runs/base-13010/ign-test_device_side_assert-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:05+00:00 GUARD after runs/base-13010/ign-test_device_side_assert-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:05+00:00 GUARD before runs/base-13010/timing-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:06+00:00 GUARD after runs/base-13010/timing-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:06+00:00 GUARD before runs/C-13020/main-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:12+00:00 GUARD after runs/C-13020/main-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:12+00:00 GUARD before runs/C-13020/ign-drops_after_a_sticky_error_neither_panic_nor_abort-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:13+00:00 GUARD after runs/C-13020/ign-drops_after_a_sticky_error_neither_panic_nor_abort-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:14+00:00 GUARD before runs/C-13020/ign-max_pool_size_reads_back_at_least_the_request-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:14+00:00 GUARD after runs/C-13020/ign-max_pool_size_reads_back_at_least_the_request-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:14+00:00 GUARD before runs/C-13020/ign-measure_max_size_semantics-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:15+00:00 GUARD after runs/C-13020/ign-measure_max_size_semantics-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:15+00:00 GUARD before runs/C-13020/ign-measure_reservation_steps-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:17+00:00 GUARD after runs/C-13020/ign-measure_reservation_steps-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:17+00:00 GUARD before runs/C-13020/ign-observe_new_attributes_on_driver_580-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:17+00:00 GUARD after runs/C-13020/ign-observe_new_attributes_on_driver_580-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:17+00:00 GUARD before runs/C-13020/ign-test_post_alloc_memory-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:18+00:00 GUARD after runs/C-13020/ign-test_post_alloc_memory-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:18+00:00 GUARD before runs/C-13020/ign-test_device_side_assert-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:20+00:00 GUARD after runs/C-13020/ign-test_device_side_assert-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:20+00:00 GUARD before runs/C-13020/timing-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:21+00:00 GUARD after runs/C-13020/timing-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:21+00:00 GUARD before runs/base-13020/main-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:23+00:00 GUARD after runs/base-13020/main-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:24+00:00 GUARD before runs/base-13020/ign-test_post_alloc_memory-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:24+00:00 GUARD after runs/base-13020/ign-test_post_alloc_memory-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:24+00:00 GUARD before runs/base-13020/ign-test_device_side_assert-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:26+00:00 GUARD after runs/base-13020/ign-test_device_side_assert-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:26+00:00 GUARD before runs/base-13020/timing-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:27+00:00 GUARD after runs/base-13020/timing-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:28+00:00 GUARD before runs/C-13030/main-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:33+00:00 GUARD after runs/C-13030/main-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:33+00:00 GUARD before runs/C-13030/ign-drops_after_a_sticky_error_neither_panic_nor_abort-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:35+00:00 GUARD after runs/C-13030/ign-drops_after_a_sticky_error_neither_panic_nor_abort-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:35+00:00 GUARD before runs/C-13030/ign-max_pool_size_reads_back_at_least_the_request-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:35+00:00 GUARD after runs/C-13030/ign-max_pool_size_reads_back_at_least_the_request-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:35+00:00 GUARD before runs/C-13030/ign-measure_max_size_semantics-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:36+00:00 GUARD after runs/C-13030/ign-measure_max_size_semantics-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:37+00:00 GUARD before runs/C-13030/ign-measure_reservation_steps-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:38+00:00 GUARD after runs/C-13030/ign-measure_reservation_steps-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:38+00:00 GUARD before runs/C-13030/ign-observe_new_attributes_on_driver_580-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:38+00:00 GUARD after runs/C-13030/ign-observe_new_attributes_on_driver_580-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:39+00:00 GUARD before runs/C-13030/ign-test_post_alloc_memory-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:39+00:00 GUARD after runs/C-13030/ign-test_post_alloc_memory-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:39+00:00 GUARD before runs/C-13030/ign-test_device_side_assert-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:41+00:00 GUARD after runs/C-13030/ign-test_device_side_assert-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:41+00:00 GUARD before runs/C-13030/timing-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:42+00:00 GUARD after runs/C-13030/timing-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:43+00:00 GUARD before runs/base-13030/main-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:45+00:00 GUARD after runs/base-13030/main-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:45+00:00 GUARD before runs/base-13030/ign-test_post_alloc_memory-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:46+00:00 GUARD after runs/base-13030/ign-test_post_alloc_memory-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:46+00:00 GUARD before runs/base-13030/ign-test_device_side_assert-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:48+00:00 GUARD after runs/base-13030/ign-test_device_side_assert-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:48+00:00 GUARD before runs/base-13030/timing-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:49+00:00 GUARD after runs/base-13030/timing-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:49+00:00 GUARD before runs/C-13040/main-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:54+00:00 GUARD after runs/C-13040/main-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:55+00:00 GUARD before runs/C-13040/ign-drops_after_a_sticky_error_neither_panic_nor_abort-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:56+00:00 GUARD after runs/C-13040/ign-drops_after_a_sticky_error_neither_panic_nor_abort-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:56+00:00 GUARD before runs/C-13040/ign-max_pool_size_reads_back_at_least_the_request-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:57+00:00 GUARD after runs/C-13040/ign-max_pool_size_reads_back_at_least_the_request-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:57+00:00 GUARD before runs/C-13040/ign-measure_max_size_semantics-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:58+00:00 GUARD after runs/C-13040/ign-measure_max_size_semantics-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:58+00:00 GUARD before runs/C-13040/ign-measure_reservation_steps-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:07:59+00:00 GUARD after runs/C-13040/ign-measure_reservation_steps-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:00+00:00 GUARD before runs/C-13040/ign-observe_new_attributes_on_driver_580-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:00+00:00 GUARD after runs/C-13040/ign-observe_new_attributes_on_driver_580-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:00+00:00 GUARD before runs/C-13040/ign-test_post_alloc_memory-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:01+00:00 GUARD after runs/C-13040/ign-test_post_alloc_memory-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:01+00:00 GUARD before runs/C-13040/ign-test_device_side_assert-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:02+00:00 GUARD after runs/C-13040/ign-test_device_side_assert-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:03+00:00 GUARD before runs/C-13040/timing-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:04+00:00 GUARD after runs/C-13040/timing-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:04+00:00 GUARD before runs/base-13040/main-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:06+00:00 GUARD after runs/base-13040/main-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:07+00:00 GUARD before runs/base-13040/ign-test_post_alloc_memory-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:07+00:00 GUARD after runs/base-13040/ign-test_post_alloc_memory-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:07+00:00 GUARD before runs/base-13040/ign-test_device_side_assert-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:09+00:00 GUARD after runs/base-13040/ign-test_device_side_assert-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:09+00:00 GUARD before runs/base-13040/timing-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:10+00:00 GUARD after runs/base-13040/timing-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:10+00:00 GUARD before runs/C-13010/main-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:17+00:00 GUARD after runs/C-13010/main-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:17+00:00 GUARD before runs/C-13010/ign-drops_after_a_sticky_error_neither_panic_nor_abort-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:19+00:00 GUARD after runs/C-13010/ign-drops_after_a_sticky_error_neither_panic_nor_abort-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:19+00:00 GUARD before runs/C-13010/ign-measure_max_size_semantics-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:20+00:00 GUARD after runs/C-13010/ign-measure_max_size_semantics-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:20+00:00 GUARD before runs/C-13010/ign-measure_reservation_steps-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:22+00:00 GUARD after runs/C-13010/ign-measure_reservation_steps-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:22+00:00 GUARD before runs/C-13010/ign-test_post_alloc_memory-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:23+00:00 GUARD after runs/C-13010/ign-test_post_alloc_memory-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:23+00:00 GUARD before runs/C-13010/ign-test_device_side_assert-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:24+00:00 GUARD after runs/C-13010/ign-test_device_side_assert-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:25+00:00 GUARD before runs/C-13010/timing-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:26+00:00 GUARD after runs/C-13010/timing-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:26+00:00 GUARD before runs/base-13010/main-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:29+00:00 GUARD after runs/base-13010/main-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:29+00:00 GUARD before runs/base-13010/ign-test_post_alloc_memory-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:30+00:00 GUARD after runs/base-13010/ign-test_post_alloc_memory-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:30+00:00 GUARD before runs/base-13010/ign-test_device_side_assert-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:32+00:00 GUARD after runs/base-13010/ign-test_device_side_assert-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:32+00:00 GUARD before runs/base-13010/timing-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:33+00:00 GUARD after runs/base-13010/timing-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:33+00:00 GUARD before runs/C-13020/main-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:39+00:00 GUARD after runs/C-13020/main-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:39+00:00 GUARD before runs/C-13020/ign-drops_after_a_sticky_error_neither_panic_nor_abort-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:40+00:00 GUARD after runs/C-13020/ign-drops_after_a_sticky_error_neither_panic_nor_abort-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:41+00:00 GUARD before runs/C-13020/ign-max_pool_size_reads_back_at_least_the_request-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:41+00:00 GUARD after runs/C-13020/ign-max_pool_size_reads_back_at_least_the_request-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:41+00:00 GUARD before runs/C-13020/ign-measure_max_size_semantics-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:42+00:00 GUARD after runs/C-13020/ign-measure_max_size_semantics-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:42+00:00 GUARD before runs/C-13020/ign-measure_reservation_steps-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:44+00:00 GUARD after runs/C-13020/ign-measure_reservation_steps-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:44+00:00 GUARD before runs/C-13020/ign-observe_new_attributes_on_driver_580-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:44+00:00 GUARD after runs/C-13020/ign-observe_new_attributes_on_driver_580-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:44+00:00 GUARD before runs/C-13020/ign-test_post_alloc_memory-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:45+00:00 GUARD after runs/C-13020/ign-test_post_alloc_memory-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:45+00:00 GUARD before runs/C-13020/ign-test_device_side_assert-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:47+00:00 GUARD after runs/C-13020/ign-test_device_side_assert-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:47+00:00 GUARD before runs/C-13020/timing-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:48+00:00 GUARD after runs/C-13020/timing-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:48+00:00 GUARD before runs/base-13020/main-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:51+00:00 GUARD after runs/base-13020/main-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:51+00:00 GUARD before runs/base-13020/ign-test_post_alloc_memory-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:51+00:00 GUARD after runs/base-13020/ign-test_post_alloc_memory-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:52+00:00 GUARD before runs/base-13020/ign-test_device_side_assert-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:53+00:00 GUARD after runs/base-13020/ign-test_device_side_assert-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:53+00:00 GUARD before runs/base-13020/timing-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:55+00:00 GUARD after runs/base-13020/timing-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:08:55+00:00 GUARD before runs/C-13030/main-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:00+00:00 GUARD after runs/C-13030/main-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:00+00:00 GUARD before runs/C-13030/ign-drops_after_a_sticky_error_neither_panic_nor_abort-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:02+00:00 GUARD after runs/C-13030/ign-drops_after_a_sticky_error_neither_panic_nor_abort-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:02+00:00 GUARD before runs/C-13030/ign-max_pool_size_reads_back_at_least_the_request-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:02+00:00 GUARD after runs/C-13030/ign-max_pool_size_reads_back_at_least_the_request-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:03+00:00 GUARD before runs/C-13030/ign-measure_max_size_semantics-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:04+00:00 GUARD after runs/C-13030/ign-measure_max_size_semantics-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:04+00:00 GUARD before runs/C-13030/ign-measure_reservation_steps-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:05+00:00 GUARD after runs/C-13030/ign-measure_reservation_steps-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:05+00:00 GUARD before runs/C-13030/ign-observe_new_attributes_on_driver_580-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:06+00:00 GUARD after runs/C-13030/ign-observe_new_attributes_on_driver_580-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:06+00:00 GUARD before runs/C-13030/ign-test_post_alloc_memory-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:06+00:00 GUARD after runs/C-13030/ign-test_post_alloc_memory-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:07+00:00 GUARD before runs/C-13030/ign-test_device_side_assert-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:08+00:00 GUARD after runs/C-13030/ign-test_device_side_assert-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:09+00:00 GUARD before runs/C-13030/timing-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:10+00:00 GUARD after runs/C-13030/timing-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:10+00:00 GUARD before runs/base-13030/main-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:12+00:00 GUARD after runs/base-13030/main-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:13+00:00 GUARD before runs/base-13030/ign-test_post_alloc_memory-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:13+00:00 GUARD after runs/base-13030/ign-test_post_alloc_memory-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:13+00:00 GUARD before runs/base-13030/ign-test_device_side_assert-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:15+00:00 GUARD after runs/base-13030/ign-test_device_side_assert-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:15+00:00 GUARD before runs/base-13030/timing-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:16+00:00 GUARD after runs/base-13030/timing-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:16+00:00 GUARD before runs/C-13040/main-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:22+00:00 GUARD after runs/C-13040/main-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:22+00:00 GUARD before runs/C-13040/ign-drops_after_a_sticky_error_neither_panic_nor_abort-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:24+00:00 GUARD after runs/C-13040/ign-drops_after_a_sticky_error_neither_panic_nor_abort-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:24+00:00 GUARD before runs/C-13040/ign-max_pool_size_reads_back_at_least_the_request-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:24+00:00 GUARD after runs/C-13040/ign-max_pool_size_reads_back_at_least_the_request-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:24+00:00 GUARD before runs/C-13040/ign-measure_max_size_semantics-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:25+00:00 GUARD after runs/C-13040/ign-measure_max_size_semantics-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:25+00:00 GUARD before runs/C-13040/ign-measure_reservation_steps-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:27+00:00 GUARD after runs/C-13040/ign-measure_reservation_steps-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:27+00:00 GUARD before runs/C-13040/ign-observe_new_attributes_on_driver_580-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:27+00:00 GUARD after runs/C-13040/ign-observe_new_attributes_on_driver_580-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:28+00:00 GUARD before runs/C-13040/ign-test_post_alloc_memory-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:28+00:00 GUARD after runs/C-13040/ign-test_post_alloc_memory-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:28+00:00 GUARD before runs/C-13040/ign-test_device_side_assert-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:30+00:00 GUARD after runs/C-13040/ign-test_device_side_assert-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:30+00:00 GUARD before runs/C-13040/timing-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:31+00:00 GUARD after runs/C-13040/timing-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:32+00:00 GUARD before runs/base-13040/main-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:34+00:00 GUARD after runs/base-13040/main-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:34+00:00 GUARD before runs/base-13040/ign-test_post_alloc_memory-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:35+00:00 GUARD after runs/base-13040/ign-test_post_alloc_memory-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:35+00:00 GUARD before runs/base-13040/ign-test_device_side_assert-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:37+00:00 GUARD after runs/base-13040/ign-test_device_side_assert-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:37+00:00 GUARD before runs/base-13040/timing-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:09:38+00:00 GUARD after runs/base-13040/timing-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:11:44+00:00 GUARD before tdev-e-precondition gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:11:44+00:00 GUARD after tdev-e-precondition gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:11:44+00:00 GUARD before runs/tdev-e/tdev-e-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:11:45+00:00 GUARD after runs/tdev-e/tdev-e-1 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:11:45+00:00 GUARD before runs/tdev-e/tdev-e-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:11:45+00:00 GUARD after runs/tdev-e/tdev-e-2 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:11:46+00:00 GUARD before runs/tdev-e/tdev-e-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+2026-10-12T20:11:46+00:00 GUARD after runs/tdev-e/tdev-e-3 gpu=Tesla T4, 615.71.09, 7.5; kernel=7.0.0-1014-gcp smi_cuda= usr_local_cuda=/usr/local/cuda-13.4
+
+===== out/manifest.tsv =====
+2026-10-12T20:03:50+00:00	runner	START	pid=1430 rehearsal=0 k=3 builds=13010 13020 13030 13040 sides=C base
+2026-10-12T20:03:52+00:00	env	DONE	exit=0
+2026-10-12T20:05:13+00:00	packages	DONE	exit=0
+2026-10-12T20:05:13+00:00	layout	DONE	exit=0
+2026-10-12T20:05:14+00:00	tdev-e-precondition	DONE	exit=0
+2026-10-12T20:05:22+00:00	runs/C-13010/main-1	DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 10 ignored; 0 measured; 0 filtered out; finished in 6.97s
+2026-10-12T20:05:23+00:00	runs/C-13010/ign-drops_after_a_sticky_error_neither_panic_nor_abort-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.48s
+2026-10-12T20:05:25+00:00	runs/C-13010/ign-measure_max_size_semantics-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.79s
+2026-10-12T20:05:26+00:00	runs/C-13010/ign-measure_reservation_steps-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.37s
+2026-10-12T20:05:27+00:00	runs/C-13010/ign-test_post_alloc_memory-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.38s
+2026-10-12T20:05:29+00:00	runs/C-13010/ign-test_device_side_assert-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.42s
+2026-10-12T20:05:30+00:00	runs/C-13010/timing-1	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 131 filtered out; finished in 0.79s
+2026-10-12T20:05:34+00:00	runs/base-13010/main-1	DONE	exit=101 test result: FAILED. 66 passed; 2 failed; 5 ignored; 0 measured; 0 filtered out; finished in 3.06s
+2026-10-12T20:05:34+00:00	runs/base-13010/ign-test_post_alloc_memory-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 72 filtered out; finished in 0.35s
+2026-10-12T20:05:36+00:00	runs/base-13010/ign-test_device_side_assert-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 72 filtered out; finished in 1.42s
+2026-10-12T20:05:37+00:00	runs/base-13010/timing-1	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 71 filtered out; finished in 0.89s
+2026-10-12T20:05:43+00:00	runs/C-13020/main-1	DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 11 ignored; 0 measured; 0 filtered out; finished in 5.26s
+2026-10-12T20:05:45+00:00	runs/C-13020/ign-drops_after_a_sticky_error_neither_panic_nor_abort-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.47s
+2026-10-12T20:05:46+00:00	runs/C-13020/ign-max_pool_size_reads_back_at_least_the_request-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.06s
+2026-10-12T20:05:47+00:00	runs/C-13020/ign-measure_max_size_semantics-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.75s
+2026-10-12T20:05:48+00:00	runs/C-13020/ign-measure_reservation_steps-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.35s
+2026-10-12T20:05:49+00:00	runs/C-13020/ign-observe_new_attributes_on_driver_580-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.05s
+2026-10-12T20:05:50+00:00	runs/C-13020/ign-test_post_alloc_memory-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.39s
+2026-10-12T20:05:52+00:00	runs/C-13020/ign-test_device_side_assert-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.45s
+2026-10-12T20:05:53+00:00	runs/C-13020/timing-1	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.86s
+2026-10-12T20:05:56+00:00	runs/base-13020/main-1	DONE	exit=101 test result: FAILED. 63 passed; 2 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.17s
+2026-10-12T20:05:56+00:00	runs/base-13020/ign-test_post_alloc_memory-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.35s
+2026-10-12T20:05:58+00:00	runs/base-13020/ign-test_device_side_assert-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.42s
+2026-10-12T20:05:59+00:00	runs/base-13020/timing-1	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.87s
+2026-10-12T20:06:05+00:00	runs/C-13030/main-1	DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 11 ignored; 0 measured; 0 filtered out; finished in 5.24s
+2026-10-12T20:06:07+00:00	runs/C-13030/ign-drops_after_a_sticky_error_neither_panic_nor_abort-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.48s
+2026-10-12T20:06:07+00:00	runs/C-13030/ign-max_pool_size_reads_back_at_least_the_request-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.06s
+2026-10-12T20:06:09+00:00	runs/C-13030/ign-measure_max_size_semantics-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.73s
+2026-10-12T20:06:10+00:00	runs/C-13030/ign-measure_reservation_steps-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.33s
+2026-10-12T20:06:11+00:00	runs/C-13030/ign-observe_new_attributes_on_driver_580-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.04s
+2026-10-12T20:06:11+00:00	runs/C-13030/ign-test_post_alloc_memory-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.37s
+2026-10-12T20:06:13+00:00	runs/C-13030/ign-test_device_side_assert-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.42s
+2026-10-12T20:06:14+00:00	runs/C-13030/timing-1	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.79s
+2026-10-12T20:06:17+00:00	runs/base-13030/main-1	DONE	exit=101 test result: FAILED. 63 passed; 2 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.08s
+2026-10-12T20:06:18+00:00	runs/base-13030/ign-test_post_alloc_memory-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.34s
+2026-10-12T20:06:20+00:00	runs/base-13030/ign-test_device_side_assert-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.42s
+2026-10-12T20:06:21+00:00	runs/base-13030/timing-1	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.93s
+2026-10-12T20:06:27+00:00	runs/C-13040/main-1	DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 11 ignored; 0 measured; 0 filtered out; finished in 5.42s
+2026-10-12T20:06:29+00:00	runs/C-13040/ign-drops_after_a_sticky_error_neither_panic_nor_abort-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.49s
+2026-10-12T20:06:29+00:00	runs/C-13040/ign-max_pool_size_reads_back_at_least_the_request-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.06s
+2026-10-12T20:06:30+00:00	runs/C-13040/ign-measure_max_size_semantics-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.77s
+2026-10-12T20:06:32+00:00	runs/C-13040/ign-measure_reservation_steps-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.38s
+2026-10-12T20:06:33+00:00	runs/C-13040/ign-observe_new_attributes_on_driver_580-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.05s
+2026-10-12T20:06:33+00:00	runs/C-13040/ign-test_post_alloc_memory-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.39s
+2026-10-12T20:06:35+00:00	runs/C-13040/ign-test_device_side_assert-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.46s
+2026-10-12T20:06:37+00:00	runs/C-13040/timing-1	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.84s
+2026-10-12T20:06:39+00:00	runs/base-13040/main-1	DONE	exit=101 test result: FAILED. 63 passed; 2 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.20s
+2026-10-12T20:06:40+00:00	runs/base-13040/ign-test_post_alloc_memory-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.35s
+2026-10-12T20:06:42+00:00	runs/base-13040/ign-test_device_side_assert-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.42s
+2026-10-12T20:06:43+00:00	runs/base-13040/timing-1	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.88s
+2026-10-12T20:06:43+00:00	runs/tdev-e/tdev-e-1	PRECONDITION-NOT-MET	see env/tdev-e-precondition.log; test not run
+2026-10-12T20:06:50+00:00	runs/C-13010/main-2	DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 10 ignored; 0 measured; 0 filtered out; finished in 6.34s
+2026-10-12T20:06:52+00:00	runs/C-13010/ign-drops_after_a_sticky_error_neither_panic_nor_abort-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.46s
+2026-10-12T20:06:53+00:00	runs/C-13010/ign-measure_max_size_semantics-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.76s
+2026-10-12T20:06:55+00:00	runs/C-13010/ign-measure_reservation_steps-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.34s
+2026-10-12T20:06:56+00:00	runs/C-13010/ign-test_post_alloc_memory-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.39s
+2026-10-12T20:06:57+00:00	runs/C-13010/ign-test_device_side_assert-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.46s
+2026-10-12T20:06:59+00:00	runs/C-13010/timing-2	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 131 filtered out; finished in 0.88s
+2026-10-12T20:07:02+00:00	runs/base-13010/main-2	DONE	exit=101 test result: FAILED. 66 passed; 2 failed; 5 ignored; 0 measured; 0 filtered out; finished in 3.23s
+2026-10-12T20:07:03+00:00	runs/base-13010/ign-test_post_alloc_memory-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 72 filtered out; finished in 0.34s
+2026-10-12T20:07:05+00:00	runs/base-13010/ign-test_device_side_assert-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 72 filtered out; finished in 1.41s
+2026-10-12T20:07:06+00:00	runs/base-13010/timing-2	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 71 filtered out; finished in 0.85s
+2026-10-12T20:07:12+00:00	runs/C-13020/main-2	DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 11 ignored; 0 measured; 0 filtered out; finished in 4.97s
+2026-10-12T20:07:13+00:00	runs/C-13020/ign-drops_after_a_sticky_error_neither_panic_nor_abort-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.45s
+2026-10-12T20:07:14+00:00	runs/C-13020/ign-max_pool_size_reads_back_at_least_the_request-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.06s
+2026-10-12T20:07:15+00:00	runs/C-13020/ign-measure_max_size_semantics-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.73s
+2026-10-12T20:07:17+00:00	runs/C-13020/ign-measure_reservation_steps-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.34s
+2026-10-12T20:07:17+00:00	runs/C-13020/ign-observe_new_attributes_on_driver_580-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.05s
+2026-10-12T20:07:18+00:00	runs/C-13020/ign-test_post_alloc_memory-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.39s
+2026-10-12T20:07:20+00:00	runs/C-13020/ign-test_device_side_assert-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.41s
+2026-10-12T20:07:21+00:00	runs/C-13020/timing-2	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.78s
+2026-10-12T20:07:23+00:00	runs/base-13020/main-2	DONE	exit=101 test result: FAILED. 63 passed; 2 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.15s
+2026-10-12T20:07:24+00:00	runs/base-13020/ign-test_post_alloc_memory-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.35s
+2026-10-12T20:07:26+00:00	runs/base-13020/ign-test_device_side_assert-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.42s
+2026-10-12T20:07:27+00:00	runs/base-13020/timing-2	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.89s
+2026-10-12T20:07:33+00:00	runs/C-13030/main-2	DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 11 ignored; 0 measured; 0 filtered out; finished in 5.07s
+2026-10-12T20:07:35+00:00	runs/C-13030/ign-drops_after_a_sticky_error_neither_panic_nor_abort-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.46s
+2026-10-12T20:07:35+00:00	runs/C-13030/ign-max_pool_size_reads_back_at_least_the_request-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.06s
+2026-10-12T20:07:36+00:00	runs/C-13030/ign-measure_max_size_semantics-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.74s
+2026-10-12T20:07:38+00:00	runs/C-13030/ign-measure_reservation_steps-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.35s
+2026-10-12T20:07:38+00:00	runs/C-13030/ign-observe_new_attributes_on_driver_580-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.04s
+2026-10-12T20:07:39+00:00	runs/C-13030/ign-test_post_alloc_memory-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.37s
+2026-10-12T20:07:41+00:00	runs/C-13030/ign-test_device_side_assert-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.44s
+2026-10-12T20:07:42+00:00	runs/C-13030/timing-2	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.90s
+2026-10-12T20:07:45+00:00	runs/base-13030/main-2	DONE	exit=101 test result: FAILED. 63 passed; 2 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.17s
+2026-10-12T20:07:46+00:00	runs/base-13030/ign-test_post_alloc_memory-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.34s
+2026-10-12T20:07:48+00:00	runs/base-13030/ign-test_device_side_assert-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.41s
+2026-10-12T20:07:49+00:00	runs/base-13030/timing-2	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.90s
+2026-10-12T20:07:54+00:00	runs/C-13040/main-2	DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 11 ignored; 0 measured; 0 filtered out; finished in 5.02s
+2026-10-12T20:07:56+00:00	runs/C-13040/ign-drops_after_a_sticky_error_neither_panic_nor_abort-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.45s
+2026-10-12T20:07:57+00:00	runs/C-13040/ign-max_pool_size_reads_back_at_least_the_request-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.06s
+2026-10-12T20:07:58+00:00	runs/C-13040/ign-measure_max_size_semantics-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.71s
+2026-10-12T20:08:00+00:00	runs/C-13040/ign-measure_reservation_steps-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.35s
+2026-10-12T20:08:00+00:00	runs/C-13040/ign-observe_new_attributes_on_driver_580-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.05s
+2026-10-12T20:08:01+00:00	runs/C-13040/ign-test_post_alloc_memory-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.38s
+2026-10-12T20:08:03+00:00	runs/C-13040/ign-test_device_side_assert-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.44s
+2026-10-12T20:08:04+00:00	runs/C-13040/timing-2	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.86s
+2026-10-12T20:08:06+00:00	runs/base-13040/main-2	DONE	exit=101 test result: FAILED. 63 passed; 2 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.21s
+2026-10-12T20:08:07+00:00	runs/base-13040/ign-test_post_alloc_memory-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.34s
+2026-10-12T20:08:09+00:00	runs/base-13040/ign-test_device_side_assert-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.42s
+2026-10-12T20:08:10+00:00	runs/base-13040/timing-2	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.83s
+2026-10-12T20:08:10+00:00	runs/tdev-e/tdev-e-2	PRECONDITION-NOT-MET	see env/tdev-e-precondition.log; test not run
+2026-10-12T20:08:17+00:00	runs/C-13010/main-3	DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 10 ignored; 0 measured; 0 filtered out; finished in 6.39s
+2026-10-12T20:08:19+00:00	runs/C-13010/ign-drops_after_a_sticky_error_neither_panic_nor_abort-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.46s
+2026-10-12T20:08:20+00:00	runs/C-13010/ign-measure_max_size_semantics-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.79s
+2026-10-12T20:08:22+00:00	runs/C-13010/ign-measure_reservation_steps-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.37s
+2026-10-12T20:08:23+00:00	runs/C-13010/ign-test_post_alloc_memory-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.39s
+2026-10-12T20:08:24+00:00	runs/C-13010/ign-test_device_side_assert-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.42s
+2026-10-12T20:08:26+00:00	runs/C-13010/timing-3	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 131 filtered out; finished in 0.80s
+2026-10-12T20:08:29+00:00	runs/base-13010/main-3	DONE	exit=101 test result: FAILED. 66 passed; 2 failed; 5 ignored; 0 measured; 0 filtered out; finished in 3.01s
+2026-10-12T20:08:30+00:00	runs/base-13010/ign-test_post_alloc_memory-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 72 filtered out; finished in 0.35s
+2026-10-12T20:08:32+00:00	runs/base-13010/ign-test_device_side_assert-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 72 filtered out; finished in 1.41s
+2026-10-12T20:08:33+00:00	runs/base-13010/timing-3	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 71 filtered out; finished in 0.90s
+2026-10-12T20:08:39+00:00	runs/C-13020/main-3	DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 11 ignored; 0 measured; 0 filtered out; finished in 5.12s
+2026-10-12T20:08:40+00:00	runs/C-13020/ign-drops_after_a_sticky_error_neither_panic_nor_abort-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.46s
+2026-10-12T20:08:41+00:00	runs/C-13020/ign-max_pool_size_reads_back_at_least_the_request-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.06s
+2026-10-12T20:08:42+00:00	runs/C-13020/ign-measure_max_size_semantics-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.80s
+2026-10-12T20:08:44+00:00	runs/C-13020/ign-measure_reservation_steps-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.44s
+2026-10-12T20:08:44+00:00	runs/C-13020/ign-observe_new_attributes_on_driver_580-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.05s
+2026-10-12T20:08:45+00:00	runs/C-13020/ign-test_post_alloc_memory-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.38s
+2026-10-12T20:08:47+00:00	runs/C-13020/ign-test_device_side_assert-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.44s
+2026-10-12T20:08:48+00:00	runs/C-13020/timing-3	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.84s
+2026-10-12T20:08:51+00:00	runs/base-13020/main-3	DONE	exit=101 test result: FAILED. 63 passed; 2 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.14s
+2026-10-12T20:08:51+00:00	runs/base-13020/ign-test_post_alloc_memory-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.35s
+2026-10-12T20:08:53+00:00	runs/base-13020/ign-test_device_side_assert-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.42s
+2026-10-12T20:08:55+00:00	runs/base-13020/timing-3	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.91s
+2026-10-12T20:09:00+00:00	runs/C-13030/main-3	DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 11 ignored; 0 measured; 0 filtered out; finished in 4.97s
+2026-10-12T20:09:02+00:00	runs/C-13030/ign-drops_after_a_sticky_error_neither_panic_nor_abort-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.45s
+2026-10-12T20:09:02+00:00	runs/C-13030/ign-max_pool_size_reads_back_at_least_the_request-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.06s
+2026-10-12T20:09:04+00:00	runs/C-13030/ign-measure_max_size_semantics-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.75s
+2026-10-12T20:09:05+00:00	runs/C-13030/ign-measure_reservation_steps-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.38s
+2026-10-12T20:09:06+00:00	runs/C-13030/ign-observe_new_attributes_on_driver_580-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.05s
+2026-10-12T20:09:06+00:00	runs/C-13030/ign-test_post_alloc_memory-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.39s
+2026-10-12T20:09:08+00:00	runs/C-13030/ign-test_device_side_assert-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.46s
+2026-10-12T20:09:10+00:00	runs/C-13030/timing-3	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.92s
+2026-10-12T20:09:12+00:00	runs/base-13030/main-3	DONE	exit=101 test result: FAILED. 63 passed; 2 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.20s
+2026-10-12T20:09:13+00:00	runs/base-13030/ign-test_post_alloc_memory-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.35s
+2026-10-12T20:09:15+00:00	runs/base-13030/ign-test_device_side_assert-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.42s
+2026-10-12T20:09:16+00:00	runs/base-13030/timing-3	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.90s
+2026-10-12T20:09:22+00:00	runs/C-13040/main-3	DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 11 ignored; 0 measured; 0 filtered out; finished in 5.00s
+2026-10-12T20:09:24+00:00	runs/C-13040/ign-drops_after_a_sticky_error_neither_panic_nor_abort-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.46s
+2026-10-12T20:09:24+00:00	runs/C-13040/ign-max_pool_size_reads_back_at_least_the_request-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.06s
+2026-10-12T20:09:25+00:00	runs/C-13040/ign-measure_max_size_semantics-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.75s
+2026-10-12T20:09:27+00:00	runs/C-13040/ign-measure_reservation_steps-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.39s
+2026-10-12T20:09:27+00:00	runs/C-13040/ign-observe_new_attributes_on_driver_580-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.05s
+2026-10-12T20:09:28+00:00	runs/C-13040/ign-test_post_alloc_memory-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.39s
+2026-10-12T20:09:30+00:00	runs/C-13040/ign-test_device_side_assert-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.42s
+2026-10-12T20:09:31+00:00	runs/C-13040/timing-3	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.91s
+2026-10-12T20:09:34+00:00	runs/base-13040/main-3	DONE	exit=101 test result: FAILED. 63 passed; 2 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.21s
+2026-10-12T20:09:35+00:00	runs/base-13040/ign-test_post_alloc_memory-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.35s
+2026-10-12T20:09:37+00:00	runs/base-13040/ign-test_device_side_assert-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.42s
+2026-10-12T20:09:38+00:00	runs/base-13040/timing-3	DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.92s
+2026-10-12T20:09:38+00:00	runs/tdev-e/tdev-e-3	PRECONDITION-NOT-MET	see env/tdev-e-precondition.log; test not run
+2026-10-12T20:09:38+00:00	runner	FINISH	all units done
+2026-10-12T20:11:43+00:00	runner	START	pid=13918 rehearsal=0 k=3 builds=13010 13020 13030 13040 sides=C base
+2026-10-12T20:11:43+00:00	env	SKIP-DONE	exit=0
+2026-10-12T20:11:43+00:00	packages	SKIP-DONE	exit=0
+2026-10-12T20:11:43+00:00	layout	SKIP-DONE	exit=0
+2026-10-12T20:11:43+00:00	tdev-e-precondition	RERUN	earlier attempt did not finish; partial log kept
+2026-10-12T20:11:44+00:00	tdev-e-precondition	DONE	exit=0
+2026-10-12T20:11:44+00:00	runs/C-13010/main-1	SKIP-DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 10 ignored; 0 measured; 0 filtered out; finished in 6.97s
+2026-10-12T20:11:44+00:00	runs/C-13010/ign-drops_after_a_sticky_error_neither_panic_nor_abort-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.48s
+2026-10-12T20:11:44+00:00	runs/C-13010/ign-measure_max_size_semantics-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.79s
+2026-10-12T20:11:44+00:00	runs/C-13010/ign-measure_reservation_steps-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.37s
+2026-10-12T20:11:44+00:00	runs/C-13010/ign-test_post_alloc_memory-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.38s
+2026-10-12T20:11:44+00:00	runs/C-13010/ign-test_device_side_assert-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.42s
+2026-10-12T20:11:44+00:00	runs/C-13010/timing-1	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 131 filtered out; finished in 0.79s
+2026-10-12T20:11:44+00:00	runs/base-13010/main-1	SKIP-DONE	exit=101 test result: FAILED. 66 passed; 2 failed; 5 ignored; 0 measured; 0 filtered out; finished in 3.06s
+2026-10-12T20:11:44+00:00	runs/base-13010/ign-test_post_alloc_memory-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 72 filtered out; finished in 0.35s
+2026-10-12T20:11:44+00:00	runs/base-13010/ign-test_device_side_assert-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 72 filtered out; finished in 1.42s
+2026-10-12T20:11:44+00:00	runs/base-13010/timing-1	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 71 filtered out; finished in 0.89s
+2026-10-12T20:11:44+00:00	runs/C-13020/main-1	SKIP-DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 11 ignored; 0 measured; 0 filtered out; finished in 5.26s
+2026-10-12T20:11:44+00:00	runs/C-13020/ign-drops_after_a_sticky_error_neither_panic_nor_abort-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.47s
+2026-10-12T20:11:44+00:00	runs/C-13020/ign-max_pool_size_reads_back_at_least_the_request-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.06s
+2026-10-12T20:11:44+00:00	runs/C-13020/ign-measure_max_size_semantics-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.75s
+2026-10-12T20:11:44+00:00	runs/C-13020/ign-measure_reservation_steps-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.35s
+2026-10-12T20:11:44+00:00	runs/C-13020/ign-observe_new_attributes_on_driver_580-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.05s
+2026-10-12T20:11:44+00:00	runs/C-13020/ign-test_post_alloc_memory-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.39s
+2026-10-12T20:11:44+00:00	runs/C-13020/ign-test_device_side_assert-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.45s
+2026-10-12T20:11:44+00:00	runs/C-13020/timing-1	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.86s
+2026-10-12T20:11:44+00:00	runs/base-13020/main-1	SKIP-DONE	exit=101 test result: FAILED. 63 passed; 2 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.17s
+2026-10-12T20:11:44+00:00	runs/base-13020/ign-test_post_alloc_memory-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.35s
+2026-10-12T20:11:44+00:00	runs/base-13020/ign-test_device_side_assert-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.42s
+2026-10-12T20:11:44+00:00	runs/base-13020/timing-1	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.87s
+2026-10-12T20:11:44+00:00	runs/C-13030/main-1	SKIP-DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 11 ignored; 0 measured; 0 filtered out; finished in 5.24s
+2026-10-12T20:11:44+00:00	runs/C-13030/ign-drops_after_a_sticky_error_neither_panic_nor_abort-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.48s
+2026-10-12T20:11:44+00:00	runs/C-13030/ign-max_pool_size_reads_back_at_least_the_request-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.06s
+2026-10-12T20:11:44+00:00	runs/C-13030/ign-measure_max_size_semantics-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.73s
+2026-10-12T20:11:44+00:00	runs/C-13030/ign-measure_reservation_steps-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.33s
+2026-10-12T20:11:44+00:00	runs/C-13030/ign-observe_new_attributes_on_driver_580-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.04s
+2026-10-12T20:11:44+00:00	runs/C-13030/ign-test_post_alloc_memory-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.37s
+2026-10-12T20:11:44+00:00	runs/C-13030/ign-test_device_side_assert-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.42s
+2026-10-12T20:11:44+00:00	runs/C-13030/timing-1	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.79s
+2026-10-12T20:11:44+00:00	runs/base-13030/main-1	SKIP-DONE	exit=101 test result: FAILED. 63 passed; 2 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.08s
+2026-10-12T20:11:44+00:00	runs/base-13030/ign-test_post_alloc_memory-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.34s
+2026-10-12T20:11:44+00:00	runs/base-13030/ign-test_device_side_assert-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.42s
+2026-10-12T20:11:44+00:00	runs/base-13030/timing-1	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.93s
+2026-10-12T20:11:44+00:00	runs/C-13040/main-1	SKIP-DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 11 ignored; 0 measured; 0 filtered out; finished in 5.42s
+2026-10-12T20:11:44+00:00	runs/C-13040/ign-drops_after_a_sticky_error_neither_panic_nor_abort-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.49s
+2026-10-12T20:11:44+00:00	runs/C-13040/ign-max_pool_size_reads_back_at_least_the_request-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.06s
+2026-10-12T20:11:44+00:00	runs/C-13040/ign-measure_max_size_semantics-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.77s
+2026-10-12T20:11:44+00:00	runs/C-13040/ign-measure_reservation_steps-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.38s
+2026-10-12T20:11:44+00:00	runs/C-13040/ign-observe_new_attributes_on_driver_580-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.05s
+2026-10-12T20:11:44+00:00	runs/C-13040/ign-test_post_alloc_memory-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.39s
+2026-10-12T20:11:44+00:00	runs/C-13040/ign-test_device_side_assert-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.46s
+2026-10-12T20:11:44+00:00	runs/C-13040/timing-1	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.84s
+2026-10-12T20:11:44+00:00	runs/base-13040/main-1	SKIP-DONE	exit=101 test result: FAILED. 63 passed; 2 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.20s
+2026-10-12T20:11:44+00:00	runs/base-13040/ign-test_post_alloc_memory-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.35s
+2026-10-12T20:11:44+00:00	runs/base-13040/ign-test_device_side_assert-1	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.42s
+2026-10-12T20:11:44+00:00	runs/base-13040/timing-1	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.88s
+2026-10-12T20:11:45+00:00	runs/tdev-e/tdev-e-1	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.01s
+2026-10-12T20:11:45+00:00	runs/C-13010/main-2	SKIP-DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 10 ignored; 0 measured; 0 filtered out; finished in 6.34s
+2026-10-12T20:11:45+00:00	runs/C-13010/ign-drops_after_a_sticky_error_neither_panic_nor_abort-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.46s
+2026-10-12T20:11:45+00:00	runs/C-13010/ign-measure_max_size_semantics-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.76s
+2026-10-12T20:11:45+00:00	runs/C-13010/ign-measure_reservation_steps-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.34s
+2026-10-12T20:11:45+00:00	runs/C-13010/ign-test_post_alloc_memory-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.39s
+2026-10-12T20:11:45+00:00	runs/C-13010/ign-test_device_side_assert-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.46s
+2026-10-12T20:11:45+00:00	runs/C-13010/timing-2	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 131 filtered out; finished in 0.88s
+2026-10-12T20:11:45+00:00	runs/base-13010/main-2	SKIP-DONE	exit=101 test result: FAILED. 66 passed; 2 failed; 5 ignored; 0 measured; 0 filtered out; finished in 3.23s
+2026-10-12T20:11:45+00:00	runs/base-13010/ign-test_post_alloc_memory-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 72 filtered out; finished in 0.34s
+2026-10-12T20:11:45+00:00	runs/base-13010/ign-test_device_side_assert-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 72 filtered out; finished in 1.41s
+2026-10-12T20:11:45+00:00	runs/base-13010/timing-2	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 71 filtered out; finished in 0.85s
+2026-10-12T20:11:45+00:00	runs/C-13020/main-2	SKIP-DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 11 ignored; 0 measured; 0 filtered out; finished in 4.97s
+2026-10-12T20:11:45+00:00	runs/C-13020/ign-drops_after_a_sticky_error_neither_panic_nor_abort-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.45s
+2026-10-12T20:11:45+00:00	runs/C-13020/ign-max_pool_size_reads_back_at_least_the_request-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.06s
+2026-10-12T20:11:45+00:00	runs/C-13020/ign-measure_max_size_semantics-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.73s
+2026-10-12T20:11:45+00:00	runs/C-13020/ign-measure_reservation_steps-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.34s
+2026-10-12T20:11:45+00:00	runs/C-13020/ign-observe_new_attributes_on_driver_580-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.05s
+2026-10-12T20:11:45+00:00	runs/C-13020/ign-test_post_alloc_memory-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.39s
+2026-10-12T20:11:45+00:00	runs/C-13020/ign-test_device_side_assert-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.41s
+2026-10-12T20:11:45+00:00	runs/C-13020/timing-2	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.78s
+2026-10-12T20:11:45+00:00	runs/base-13020/main-2	SKIP-DONE	exit=101 test result: FAILED. 63 passed; 2 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.15s
+2026-10-12T20:11:45+00:00	runs/base-13020/ign-test_post_alloc_memory-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.35s
+2026-10-12T20:11:45+00:00	runs/base-13020/ign-test_device_side_assert-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.42s
+2026-10-12T20:11:45+00:00	runs/base-13020/timing-2	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.89s
+2026-10-12T20:11:45+00:00	runs/C-13030/main-2	SKIP-DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 11 ignored; 0 measured; 0 filtered out; finished in 5.07s
+2026-10-12T20:11:45+00:00	runs/C-13030/ign-drops_after_a_sticky_error_neither_panic_nor_abort-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.46s
+2026-10-12T20:11:45+00:00	runs/C-13030/ign-max_pool_size_reads_back_at_least_the_request-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.06s
+2026-10-12T20:11:45+00:00	runs/C-13030/ign-measure_max_size_semantics-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.74s
+2026-10-12T20:11:45+00:00	runs/C-13030/ign-measure_reservation_steps-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.35s
+2026-10-12T20:11:45+00:00	runs/C-13030/ign-observe_new_attributes_on_driver_580-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.04s
+2026-10-12T20:11:45+00:00	runs/C-13030/ign-test_post_alloc_memory-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.37s
+2026-10-12T20:11:45+00:00	runs/C-13030/ign-test_device_side_assert-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.44s
+2026-10-12T20:11:45+00:00	runs/C-13030/timing-2	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.90s
+2026-10-12T20:11:45+00:00	runs/base-13030/main-2	SKIP-DONE	exit=101 test result: FAILED. 63 passed; 2 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.17s
+2026-10-12T20:11:45+00:00	runs/base-13030/ign-test_post_alloc_memory-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.34s
+2026-10-12T20:11:45+00:00	runs/base-13030/ign-test_device_side_assert-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.41s
+2026-10-12T20:11:45+00:00	runs/base-13030/timing-2	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.90s
+2026-10-12T20:11:45+00:00	runs/C-13040/main-2	SKIP-DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 11 ignored; 0 measured; 0 filtered out; finished in 5.02s
+2026-10-12T20:11:45+00:00	runs/C-13040/ign-drops_after_a_sticky_error_neither_panic_nor_abort-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.45s
+2026-10-12T20:11:45+00:00	runs/C-13040/ign-max_pool_size_reads_back_at_least_the_request-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.06s
+2026-10-12T20:11:45+00:00	runs/C-13040/ign-measure_max_size_semantics-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.71s
+2026-10-12T20:11:45+00:00	runs/C-13040/ign-measure_reservation_steps-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.35s
+2026-10-12T20:11:45+00:00	runs/C-13040/ign-observe_new_attributes_on_driver_580-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.05s
+2026-10-12T20:11:45+00:00	runs/C-13040/ign-test_post_alloc_memory-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.38s
+2026-10-12T20:11:45+00:00	runs/C-13040/ign-test_device_side_assert-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.44s
+2026-10-12T20:11:45+00:00	runs/C-13040/timing-2	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.86s
+2026-10-12T20:11:45+00:00	runs/base-13040/main-2	SKIP-DONE	exit=101 test result: FAILED. 63 passed; 2 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.21s
+2026-10-12T20:11:45+00:00	runs/base-13040/ign-test_post_alloc_memory-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.34s
+2026-10-12T20:11:45+00:00	runs/base-13040/ign-test_device_side_assert-2	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.42s
+2026-10-12T20:11:45+00:00	runs/base-13040/timing-2	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.83s
+2026-10-12T20:11:45+00:00	runs/tdev-e/tdev-e-2	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.01s
+2026-10-12T20:11:46+00:00	runs/C-13010/main-3	SKIP-DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 10 ignored; 0 measured; 0 filtered out; finished in 6.39s
+2026-10-12T20:11:46+00:00	runs/C-13010/ign-drops_after_a_sticky_error_neither_panic_nor_abort-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.46s
+2026-10-12T20:11:46+00:00	runs/C-13010/ign-measure_max_size_semantics-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.79s
+2026-10-12T20:11:46+00:00	runs/C-13010/ign-measure_reservation_steps-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.37s
+2026-10-12T20:11:46+00:00	runs/C-13010/ign-test_post_alloc_memory-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.39s
+2026-10-12T20:11:46+00:00	runs/C-13010/ign-test_device_side_assert-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 132 filtered out; finished in 1.42s
+2026-10-12T20:11:46+00:00	runs/C-13010/timing-3	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 131 filtered out; finished in 0.80s
+2026-10-12T20:11:46+00:00	runs/base-13010/main-3	SKIP-DONE	exit=101 test result: FAILED. 66 passed; 2 failed; 5 ignored; 0 measured; 0 filtered out; finished in 3.01s
+2026-10-12T20:11:46+00:00	runs/base-13010/ign-test_post_alloc_memory-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 72 filtered out; finished in 0.35s
+2026-10-12T20:11:46+00:00	runs/base-13010/ign-test_device_side_assert-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 72 filtered out; finished in 1.41s
+2026-10-12T20:11:46+00:00	runs/base-13010/timing-3	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 71 filtered out; finished in 0.90s
+2026-10-12T20:11:46+00:00	runs/C-13020/main-3	SKIP-DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 11 ignored; 0 measured; 0 filtered out; finished in 5.12s
+2026-10-12T20:11:46+00:00	runs/C-13020/ign-drops_after_a_sticky_error_neither_panic_nor_abort-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.46s
+2026-10-12T20:11:46+00:00	runs/C-13020/ign-max_pool_size_reads_back_at_least_the_request-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.06s
+2026-10-12T20:11:46+00:00	runs/C-13020/ign-measure_max_size_semantics-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.80s
+2026-10-12T20:11:46+00:00	runs/C-13020/ign-measure_reservation_steps-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.44s
+2026-10-12T20:11:46+00:00	runs/C-13020/ign-observe_new_attributes_on_driver_580-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.05s
+2026-10-12T20:11:46+00:00	runs/C-13020/ign-test_post_alloc_memory-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.38s
+2026-10-12T20:11:46+00:00	runs/C-13020/ign-test_device_side_assert-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.44s
+2026-10-12T20:11:46+00:00	runs/C-13020/timing-3	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.84s
+2026-10-12T20:11:46+00:00	runs/base-13020/main-3	SKIP-DONE	exit=101 test result: FAILED. 63 passed; 2 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.14s
+2026-10-12T20:11:46+00:00	runs/base-13020/ign-test_post_alloc_memory-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.35s
+2026-10-12T20:11:46+00:00	runs/base-13020/ign-test_device_side_assert-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.42s
+2026-10-12T20:11:46+00:00	runs/base-13020/timing-3	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.91s
+2026-10-12T20:11:46+00:00	runs/C-13030/main-3	SKIP-DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 11 ignored; 0 measured; 0 filtered out; finished in 4.97s
+2026-10-12T20:11:46+00:00	runs/C-13030/ign-drops_after_a_sticky_error_neither_panic_nor_abort-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.45s
+2026-10-12T20:11:46+00:00	runs/C-13030/ign-max_pool_size_reads_back_at_least_the_request-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.06s
+2026-10-12T20:11:46+00:00	runs/C-13030/ign-measure_max_size_semantics-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.75s
+2026-10-12T20:11:46+00:00	runs/C-13030/ign-measure_reservation_steps-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.38s
+2026-10-12T20:11:46+00:00	runs/C-13030/ign-observe_new_attributes_on_driver_580-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.05s
+2026-10-12T20:11:46+00:00	runs/C-13030/ign-test_post_alloc_memory-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.39s
+2026-10-12T20:11:46+00:00	runs/C-13030/ign-test_device_side_assert-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.46s
+2026-10-12T20:11:46+00:00	runs/C-13030/timing-3	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.92s
+2026-10-12T20:11:46+00:00	runs/base-13030/main-3	SKIP-DONE	exit=101 test result: FAILED. 63 passed; 2 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.20s
+2026-10-12T20:11:46+00:00	runs/base-13030/ign-test_post_alloc_memory-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.35s
+2026-10-12T20:11:46+00:00	runs/base-13030/ign-test_device_side_assert-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.42s
+2026-10-12T20:11:46+00:00	runs/base-13030/timing-3	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.90s
+2026-10-12T20:11:46+00:00	runs/C-13040/main-3	SKIP-DONE	exit=101 test result: FAILED. 121 passed; 2 failed; 11 ignored; 0 measured; 0 filtered out; finished in 5.00s
+2026-10-12T20:11:46+00:00	runs/C-13040/ign-drops_after_a_sticky_error_neither_panic_nor_abort-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.46s
+2026-10-12T20:11:46+00:00	runs/C-13040/ign-max_pool_size_reads_back_at_least_the_request-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.06s
+2026-10-12T20:11:46+00:00	runs/C-13040/ign-measure_max_size_semantics-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.75s
+2026-10-12T20:11:46+00:00	runs/C-13040/ign-measure_reservation_steps-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.39s
+2026-10-12T20:11:46+00:00	runs/C-13040/ign-observe_new_attributes_on_driver_580-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.05s
+2026-10-12T20:11:46+00:00	runs/C-13040/ign-test_post_alloc_memory-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 0.39s
+2026-10-12T20:11:46+00:00	runs/C-13040/ign-test_device_side_assert-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 133 filtered out; finished in 1.42s
+2026-10-12T20:11:46+00:00	runs/C-13040/timing-3	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 132 filtered out; finished in 0.91s
+2026-10-12T20:11:46+00:00	runs/base-13040/main-3	SKIP-DONE	exit=101 test result: FAILED. 63 passed; 2 failed; 4 ignored; 0 measured; 0 filtered out; finished in 2.21s
+2026-10-12T20:11:46+00:00	runs/base-13040/ign-test_post_alloc_memory-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 0.35s
+2026-10-12T20:11:46+00:00	runs/base-13040/ign-test_device_side_assert-3	SKIP-DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 68 filtered out; finished in 1.42s
+2026-10-12T20:11:46+00:00	runs/base-13040/timing-3	SKIP-DONE	exit=101 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 67 filtered out; finished in 0.92s
+2026-10-12T20:11:46+00:00	runs/tdev-e/tdev-e-3	DONE	exit=0 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.01s
+2026-10-12T20:11:47+00:00	runner	FINISH	all units done
+
+===== env/tdev-e-precondition.log =====
+ldconfig -p entries named libcuda.so: none
+files named libcuda.so: none
+== ldconfig -p libcuda
+	libcudart.so.13 (libc6,x86-64) => /usr/local/cuda/targets/x86_64-linux/lib/libcudart.so.13
+	libcudadebugger.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libcudadebugger.so.1
+	libcuda.so.1 (libc6,x86-64) => /lib/x86_64-linux-gnu/libcuda.so.1
+PRECONDITION MET
+
+===== tdev-e/tdev-e-1.log =====
+
+running 1 test
+test driver_loads_with_only_libcuda_so_1 ... MAPS e /usr/lib/x86_64-linux-gnu/libcuda.so.615.71.09
+REPORT e cuda: opened as libcuda.so.1, path /usr/lib/x86_64-linux-gnu/libcuda.so.615.71.09, version 13.4, checked against CUDA 12
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.01s
+
+
+===== tdev-e/tdev-e-2.log =====
+
+running 1 test
+test driver_loads_with_only_libcuda_so_1 ... MAPS e /usr/lib/x86_64-linux-gnu/libcuda.so.615.71.09
+REPORT e cuda: opened as libcuda.so.1, path /usr/lib/x86_64-linux-gnu/libcuda.so.615.71.09, version 13.4, checked against CUDA 12
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.01s
+
+
+===== tdev-e/tdev-e-3.log =====
+
+running 1 test
+test driver_loads_with_only_libcuda_so_1 ... MAPS e /usr/lib/x86_64-linux-gnu/libcuda.so.615.71.09
+REPORT e cuda: opened as libcuda.so.1, path /usr/lib/x86_64-linux-gnu/libcuda.so.615.71.09, version 13.4, checked against CUDA 12
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.01s
+
+
+===== tdev-e/runs.tsv =====
+tdev-e-1	0	2026-10-12T20:11:44+00:00	2026-10-12T20:11:44+00:00	env CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=0 CUDARC_CUDA_VERSION=12060 LD_PRELOAD=/home/coreyt/fdb-g5b/fdbmaps.so FDB_MAPS_DIR=/home/coreyt/fdb-g5b/out/runs/tdev-e/maps/tdev-e-1 /home/coreyt/fdb-g5b/bin/tdev-12060 --ignored --exact driver_loads_with_only_libcuda_so_1 --nocapture --test-threads=1
+tdev-e-2	0	2026-10-12T20:11:45+00:00	2026-10-12T20:11:45+00:00	env CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=0 CUDARC_CUDA_VERSION=12060 LD_PRELOAD=/home/coreyt/fdb-g5b/fdbmaps.so FDB_MAPS_DIR=/home/coreyt/fdb-g5b/out/runs/tdev-e/maps/tdev-e-2 /home/coreyt/fdb-g5b/bin/tdev-12060 --ignored --exact driver_loads_with_only_libcuda_so_1 --nocapture --test-threads=1
+tdev-e-3	0	2026-10-12T20:11:46+00:00	2026-10-12T20:11:46+00:00	env CUDA_DEVICE_ORDER=PCI_BUS_ID CUDA_VISIBLE_DEVICES=0 CUDARC_CUDA_VERSION=12060 LD_PRELOAD=/home/coreyt/fdb-g5b/fdbmaps.so FDB_MAPS_DIR=/home/coreyt/fdb-g5b/out/runs/tdev-e/maps/tdev-e-3 /home/coreyt/fdb-g5b/bin/tdev-12060 --ignored --exact driver_loads_with_only_libcuda_so_1 --nocapture --test-threads=1
