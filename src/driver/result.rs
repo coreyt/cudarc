@@ -1599,6 +1599,8 @@ pub mod mem_pool {
         attr: sys::CUmemPool_attribute,
         value: *mut core::ffi::c_void,
     ) -> Result<(), DriverError> {
+        #[cfg(test)]
+        seams::count_request(attr);
         sys::cuMemPoolGetAttribute(pool, attr, value).result()
     }
 
@@ -1614,7 +1616,29 @@ pub mod mem_pool {
         attr: sys::CUmemPool_attribute,
         value: *mut core::ffi::c_void,
     ) -> Result<(), DriverError> {
+        #[cfg(test)]
+        seams::count_request(attr);
         sys::cuMemPoolSetAttribute(pool, attr, value).result()
+    }
+
+    /// Test-only counter of attribute requests that a 13.0 driver does not
+    /// know. Thread-local, like the seams of `CudaMemPool::create`.
+    #[cfg(test)]
+    pub(crate) mod seams {
+        use super::sys;
+        use core::cell::Cell;
+
+        std::thread_local! {
+            /// `cuMemPoolGetAttribute` / `cuMemPoolSetAttribute` calls for an
+            /// attribute above `CU_MEMPOOL_ATTR_USED_MEM_HIGH` (8).
+            pub(crate) static NEWER_ATTRIBUTE_REQUESTS: Cell<u32> = const { Cell::new(0) };
+        }
+
+        pub(crate) fn count_request(attr: sys::CUmemPool_attribute) {
+            if attr as u32 > sys::CUmemPool_attribute::CU_MEMPOOL_ATTR_USED_MEM_HIGH as u32 {
+                NEWER_ATTRIBUTE_REQUESTS.set(NEWER_ATTRIBUTE_REQUESTS.get() + 1);
+            }
+        }
     }
 
     /// Allocate memory from a pool with stream-ordered semantics.

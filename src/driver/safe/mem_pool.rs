@@ -329,6 +329,9 @@ pub(crate) mod seams {
         pub(crate) static DRIVER_VERSION: Cell<Option<i32>> = const { Cell::new(None) };
         /// Times `create` called `cuMemPoolCreate`.
         pub(crate) static POOL_CREATES: Cell<u32> = const { Cell::new(0) };
+        /// Times `create` skipped the `MAX_POOL_SIZE` read-back because the
+        /// driver is older than 13020.
+        pub(crate) static READ_BACK_SKIPS: Cell<u32> = const { Cell::new(0) };
     }
 
     pub(crate) fn enter_driver() -> Result<(), DriverError> {
@@ -361,6 +364,8 @@ pub(crate) mod seams {
         FAIL_DRIVER_ENTRY.set(None);
         DRIVER_VERSION.set(None);
         POOL_CREATES.set(0);
+        READ_BACK_SKIPS.set(0);
+        crate::driver::result::mem_pool::seams::NEWER_ATTRIBUTE_REQUESTS.set(0);
     }
 }
 

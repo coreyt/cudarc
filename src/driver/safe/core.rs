@@ -3993,6 +3993,62 @@ mod fathomdb_private_pool {
         assert_eq!(seams::POOL_CREATES.get(), 0, "pools created");
     }
 
+    /// CF-AC-04b, design D-4: a `cuda-13020`+ build on a driver older than
+    /// 13020 never requests an attribute the driver does not know (9-14),
+    /// because the read-back is gated on `cuDriverGetVersion`.
+    #[cfg(not(any(
+        feature = "cuda-11040",
+        feature = "cuda-11050",
+        feature = "cuda-11060",
+        feature = "cuda-11070",
+        feature = "cuda-11080",
+        feature = "cuda-12000",
+        feature = "cuda-12010",
+        feature = "cuda-12020",
+        feature = "cuda-12030",
+        feature = "cuda-12040",
+        feature = "cuda-12050",
+        feature = "cuda-12060",
+        feature = "cuda-12080",
+        feature = "cuda-12090",
+        feature = "cuda-13000",
+        feature = "cuda-13010"
+    )))]
+    #[test]
+    fn attributes_newer_than_the_driver_are_never_requested() {
+        if !have_device() {
+            return;
+        }
+        let _reset = seams::Reset::new();
+        let newer = &result::mem_pool::seams::NEWER_ATTRIBUTE_REQUESTS;
+        let mut driver = 0;
+        unsafe { sys::cuDriverGetVersion(&mut driver) }
+            .result()
+            .unwrap();
+        if driver >= 13020 {
+            std::eprintln!(
+                "SKIP attributes_newer_than_the_driver_are_never_requested: driver {driver} knows attributes 9-14"
+            );
+            return;
+        }
+
+        // Positive control: with the version forced to 13020 the read-back
+        // goes through the counted result-layer call (the real driver may
+        // reject it; only the request matters here).
+        seams::DRIVER_VERSION.set(Some(13020));
+        let _ = CudaMemPool::create(0, &SMALL_POOL);
+        assert!(newer.get() > 0, "the counter was never reached");
+        seams::DRIVER_VERSION.set(None);
+        newer.set(0);
+        seams::READ_BACK_SKIPS.set(0);
+
+        let pool = CudaMemPool::create(0, &SMALL_POOL);
+        assert_eq!(newer.get(), 0, "requests for attributes above 8");
+        assert_eq!(seams::READ_BACK_SKIPS.get(), 1, "gate branch runs");
+        let pool = pool.unwrap();
+        assert_eq!(pool.max_size(), None);
+    }
+
     /// Design D-8: one helper builds the location from zeroed memory on every
     /// binding, the union's `id` included.
     #[test]
