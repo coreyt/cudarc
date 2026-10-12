@@ -9,6 +9,17 @@ reviewer re-runs each RED; the last column holds that result.
 | 2026-10-12 | FC4-0 `names --with-binary` | `9f2bd1c` | 1 of 36 errors: `python3 -m unittest: error: unrecognized arguments: --with-binary` | `cafb294` (36 pass) | pending (R-FC-CODE) |
 | 2026-10-12 | FC4-W fork CI | — (test plan § 10: no RED) | — | `4869fab` | — |
 | 2026-10-12 | FC4-port items 1–6 | not committed (plan § 9 FC4 exception; see below) | vendored tests on bare `ec1cac71`: 37 compile errors | `9f02c3a`, `ce0b56e`, `3fbccda` (19 of 19 on RTX 3090) | pending (R-FC-CODE) |
+| 2026-10-12 | FC5-a `device_location_is_the_ordinal_on_every_binding` | `dfff1a1` | cuda-13020+: crate does not build, `error[E0560]` no field `id` (the D-8 defect) | `6f4c67a` | pending (R-FC-CODE) |
+| 2026-10-12 | FC5-a `pool_props_are_zeroed_then_written` | `49ef889` | cuda-13030/13040: `maxSize` left 0, right 4096 | `e37097d` | pending (R-FC-CODE) |
+| 2026-10-12 | FC5-a `in_fresh_process` dead code | — (warning fix; no behaviour) | — | `cf5d145` | — |
+| 2026-10-12 | FC5-b `max_size_without_binding_support_is_not_supported` | `536ec11` | cuda-12010: left `Err(CUDA_ERROR_UNKNOWN)`, right `Err(CUDA_ERROR_NOT_SUPPORTED)` | `4dc1ec7` | pending (R-FC-CODE) |
+| 2026-10-12 | FC5-b `max_size_on_a_driver_older_than_12020_is_not_supported` | `536ec11` | cuda-12060, RTX 3090: left `Ok(())`, right `Err(CUDA_ERROR_NOT_SUPPORTED)` | `4dc1ec7` | pending (R-FC-CODE) |
+| 2026-10-12 | FC5-b `attributes_newer_than_the_driver_are_never_requested` | `5a342fe` (after the ungated read-back `7889643`) | G3 cuda-13020, driver 580: attribute requests above 8, left 1, right 0 | `2f936a5` | pending (R-FC-CODE) |
+| 2026-10-12 | FC5-b `max_pool_size_read_back_uses_the_driver_value` | `0314e34` | cuda-13020: left `Ok(())`, right `Err(CUDA_ERROR_INVALID_VALUE)` | `f0e72b3` | pending (R-FC-CODE) |
+| 2026-10-12 | FC5-b `a_failed_max_pool_size_read_leaves_create_successful` | `0314e34` | cuda-13020: `unwrap()` on `Err(CUDA_ERROR_INVALID_VALUE)` | `f0e72b3` | pending (R-FC-CODE) |
+| 2026-10-12 | FC5-b `max_pool_size_reads_back_at_least_the_request` | — (no RED at FC5: needs a driver ≥ 13020; ignored, G5b) | — | `c44d3b7` | — |
+| 2026-10-12 | FC5-c typed reads; 3 characterization tests | — (no RED: the vendored code already behaves) | — | `75f13fa`, `a11a045` | — |
+| 2026-10-12 | FC5-d `# Safety` text; 2 of 3 § 3.2 tests | — (no RED: doc and characterization) | — | `9602202` | — |
 
 ## FC4-0 (class D)
 
@@ -218,6 +229,176 @@ pushes.
   - Not run here: 13020+ (FC5-a), the aarch64-only tests (G6), and k = 3
     or baseline comparisons (FC8).
 
+## FC5 (classes U and D)
+
+Host `windchill3`. Every GPU run used `CUDA_DEVICE_ORDER=PCI_BUS_ID
+CUDA_VISIBLE_DEVICES=0` (index 0 = NVIDIA GeForce RTX 3090,
+00000000:41:00.0), `CUDARC_CUDA_VERSION` = the feature,
+`Cargo.lock.baseline` in place and `--locked`. The guard was taken before
+and after every GPU run (first 2026-10-12T07:53:19-05:00, last
+2026-10-12T08:05:49-05:00): driver `580.178.04` on all three GPUs,
+`/usr/local/cuda` → `/usr/local/cuda-12.6`, never changed. Logs are kept on
+the host in the session scratchpad.
+
+### FC5-a (D-8)
+
+- **RED `dfff1a1`.** `device_location_is_the_ordinal_on_every_binding`;
+  the vendored `pool_props_are_pinned_device_memory_on_the_ordinal` now
+  reads the id through a union-aware test helper and compares the
+  location's bytes with `device_location(3)` (the edit test plan § 10
+  names). Driver-only `cargo test --no-run`:
+  - cuda-13020: `` error[E0560]: struct `CUmemLocation_st` has no field
+    named `id` `` at `src/driver/safe/mem_pool.rs:31:9`, the D-8 defect,
+    plus `` error[E0432]: unresolved import
+    `crate::driver::safe::mem_pool::device_location` ``;
+  - cuda-12060: only the E0432 import error (new API, not counted as RED).
+- **GREEN `6f4c67a`.** `device_location(ordinal)` from `zeroed()`; the
+  union is written under `cfg(not(any(cuda-11040 … cuda-13010)))`.
+- **RED `49ef889`.** `pool_props_are_zeroed_then_written`, behavioural
+  (pure, no GPU): at cuda-13030 and cuda-13040,
+  `` assertion `left == right` failed: maxSize  left: 0  right: 4096 ``;
+  passes at 12010, 12060 and 13020.
+- **GREEN `e37097d`.** `maxSize` written under
+  `cfg(not(any(cuda-11040 … cuda-12010)))`.
+- **`cf5d145`.** `in_fresh_process` gets its callers' cfg
+  (`all(target_os = "linux", target_arch = "aarch64")`), which removes
+  the x86_64 `function in_fresh_process is never used` error under
+  `-D warnings`. Nothing it checks changes.
+
+### FC5-b (D-4)
+
+- **`cfg(test)` seams** (thread-local, cleared by a guard at the start and
+  end of each test): a counter and forced error at `create`'s first
+  driver call; a `cuDriverGetVersion` override; `cuMemPoolCreate` and
+  `cuMemPoolDestroy` counters; forced `cuMemPoolCreate` and threshold
+  failures; forced read-back value and error; a gate-skip counter; and,
+  in `result::mem_pool`, a counter of `get_attribute`/`set_attribute`
+  requests for attributes above 8. Each counter test has a positive
+  control. Seams are added in the RED commit of the test that first
+  uses them; they do not exist in non-test builds.
+- **RED `536ec11` / GREEN `4dc1ec7`.** Both REDs are behavioural (table
+  above). GREEN: `max_size > 0` returns `CUDA_ERROR_NOT_SUPPORTED` before
+  any driver call when the bindings predate cuda-12020, and before
+  `cuMemPoolCreate` when `cuDriverGetVersion` < 12020.
+- **Staged gate.** `7889643` reads `MAX_POOL_SIZE` after every create on
+  cuda-13020+ bindings, ungated, propagating errors. On driver 580 that
+  fails every create of a cuda-13020 build with
+  `CUDA_ERROR_INVALID_VALUE` (5 of 11 pool tests failed), which also
+  answers design § 14 item 3 for attribute 13: driver 580 rejects it.
+  RED `5a342fe` then fails on G3 cuda-13020 with
+  `requests for attributes above 8  left: 1  right: 0`. GREEN `2f936a5`
+  reads the attribute only when `cuDriverGetVersion` ≥ 13020.
+  Attribute 15 is never requested.
+- **RED `0314e34` / GREEN `f0e72b3`.** Read-back handling: a failed read
+  leaves `create` Ok and `max_size()` `None`; a value below a nonzero
+  request fails `create` with `CUDA_ERROR_INVALID_VALUE` after the pool is
+  destroyed (destroy counter 1); otherwise `max_size()` is the driver's
+  value.
+- **`c44d3b7`.** `max_pool_size_reads_back_at_least_the_request`,
+  `#[ignore]`d, compiled from cuda-13020. No RED at FC5. Run by hand on
+  driver 580 it fails its precondition (`driver 13000 cannot report
+  MAX_POOL_SIZE`), so it can never pass on the wrong driver.
+
+### FC5-c (typed reads)
+
+- **`75f13fa`.** `reserved_current`, `reserved_high`, `used_current`,
+  `used_high`, `release_threshold` replace `attribute()`; no setters, no
+  `ordinal()`. This removes `attribute()` from the vendored API (design § 1
+  change table). The vendored tests call the typed read of the same
+  attribute instead; what they check is unchanged.
+- **`a11a045`.** `typed_reads_return_64_bit_values`,
+  `create_destroys_the_pool_when_setting_the_threshold_fails`,
+  `a_pool_create_out_of_memory_returns_the_error_and_no_pool`. No RED:
+  characterization, the vendored code already behaves. Mutation check,
+  not committed: forgetting the owned pool on the threshold failure made
+  the second test fail with `pools destroyed  left: 0  right: 1`.
+
+### FC5-d (CF-REQ-03)
+
+- **`9602202`.** The `upgrade_device_ptr` `# Safety` list states the four
+  preconditions of design § 2 and cites CUDA 12.6 `cuda.h` (`cuMemFree`)
+  and the CUDA Programming Guide (stream-ordered memory allocation). The
+  vendored "matching allocator" bullet is removed. Behaviour unchanged.
+  Tests `a_private_pointer_upgraded_onto_a_default_context_returns_to_its_pool`
+  and `a_synchronous_pointer_upgraded_onto_a_private_context_frees_cleanly`:
+  no RED (characterization), pass.
+- **Finding, test not landed.**
+  `a_private_pointer_freed_synchronously_returns_to_its_pool` fails as
+  specified on driver 580.178.04: after `result::free_sync` (`cuMemFree`)
+  of a private-pool pointer and a synchronize, `USED_MEM_CURRENT` stays at
+  the freed size (`left: Ok(1048576)  right: Ok(0)`, cuda-12060 and
+  cuda-13040). Probe runs, not committed:
+  - private pool, 48 MiB + 1 MiB live: used 51380224, reserved 67108864;
+    after `cuMemFree` of each and a context synchronize, reserved fell to
+    33554432 and then 0, and `cuMemGetInfo` free memory rose by 32 MiB
+    per step, but used stayed 51380224;
+  - polling for 1 s and a later allocate/free cycle did not change it;
+  - the default pool behaves the same: used 0 → 1048576 after the
+    allocation, still 1048576 after `cuMemFree`.
+
+  So `cuMemFree` does release the memory, as design § 2 and NVIDIA say,
+  but this driver does not decrement the pool's `USED_MEM_CURRENT`. The
+  test's assertion (requirements CF-AC-03, test plan § 3.2: "same, after
+  `result::free_sync`") cannot hold here. The catalogue row stays
+  `landed = false`. Needs a design and test-plan disposition (for example
+  asserting reserved and `cuMemGetInfo` instead, and documenting the
+  counter). Possibly related: a context of a device without async
+  allocation frees an upgraded pool pointer with `cuMemFree` too.
+
+### Deviations
+
+- The two read-back seam tests
+  (`max_pool_size_read_back_uses_the_driver_value`,
+  `a_failed_max_pool_size_read_leaves_create_successful`) compile only
+  from cuda-13020, so the catalogue lists cell G3, not the test plan's G1:
+  G1 builds cuda-12060, whose bindings have no `MAX_POOL_SIZE`, so the
+  read-back they test does not exist there. Test plan § 3.1 needs the
+  same edit.
+- Adding `max_size` to `CudaMemPool` made the vendored test
+  `a_pool_of_another_device_is_rejected` add `max_size: None` to its
+  struct literal (`7889643`).
+- `attributes_newer_than_the_driver_are_never_requested` uses the real
+  driver version and prints SKIP on a driver ≥ 13020, where the gate opens.
+
+### Verification at `265ce42`
+
+- `cargo fmt --check`: clean.
+- 19 features, driver-only (`--no-default-features -F
+  std,driver,dynamic-loading,cuda-<v>`): `cargo check --locked --lib`
+  passes with no warnings; `cargo clippy --locked --lib -- -D warnings`
+  passes; `cargo clippy --locked --lib --tests -- -D warnings` fails at
+  every feature with exactly the five upstream errors in
+  `src/driver/safe/launch.rs` (unused imports at 276 and 280, unused
+  `SIN_CU`, `TEST_KERNELS`, `SLOW_KERNELS`). The base `ec1cac71` gives the
+  same five at 12060 and 13040 (checked from a `git archive` copy), so
+  they are upstream, not fork. Fork CI's clippy command
+  (`--all-targets` with `CLIPPY_FEATURES`) passes at cuda-13040, 12060 and
+  11040 on x86_64.
+- Default features, cuda-12060 and cuda-13040: `cargo check --locked
+  --lib` and `cargo clippy --locked --lib --tests -- -D warnings` pass.
+- Pure-test job, simulated locally for all 19 features (both steps,
+  `CUDA_VISIBLE_DEVICES=` empty): every listing passes `unlanded` and
+  `check --mode list` (16 tests in `fathomdb_private_pool` up to
+  cuda-13010, 20 from cuda-13020); the cell-`pure` run passes with 3
+  names up to cuda-12010 and 2 from cuda-12020, `count-tests: PASS`.
+- Hosted-test job, simulated at cuda-12060 without a GPU: 27 passed, 28
+  filtered out, `count-tests: PASS`, `unlanded: PASS`.
+- GPU, `-- fathomdb_ --test-threads=1 --nocapture`, each checked by
+  `count-tests.py check` against `expect --filter fathomdb_`; no SKIP line
+  in any run:
+
+  | Build | alloc_fallback | private_pool | Summary | count-tests |
+  | --- | --- | --- | --- | --- |
+  | default 12060 | 11/11 | 16/16 | 27 passed; 0 ignored; 75 filtered out | PASS |
+  | driver-only 12060 | 11/11 | 16/16 | 27 passed; 0 ignored; 28 filtered out | PASS |
+  | driver-only 13000 | 11/11 | 16/16 | 27 passed; 0 ignored; 26 filtered out | PASS |
+  | driver-only 13020 | 11/11 | 20/20 | 30 passed; 1 ignored; 23 filtered out | PASS |
+  | driver-only 13040 | 11/11 | 20/20 | 30 passed; 1 ignored; 23 filtered out | PASS |
+
+  The ignored test is `max_pool_size_reads_back_at_least_the_request`.
+  The FC4-W "expected CI failures" (13020+ compile error, x86_64
+  `in_fresh_process`) are fixed.
+
 ## Code commits since `ec1cac71` (CF-AC-01)
 
 | Commit | Class | Purpose |
@@ -226,3 +407,20 @@ pushes.
 | `9f02c3a` | L | items 1–4 (allocator fallback and its tests) |
 | `ce0b56e` | U | item 5 (private memory pool and its tests) |
 | `3fbccda` | L | item 6 (marker feature); last item commit, equal to tree A |
+| `dfff1a1` | U | FC5-a RED: `device_location` test |
+| `6f4c67a` | U | FC5-a GREEN: `device_location` helper (D-8) |
+| `49ef889` | U | FC5-a RED: `pool_props_are_zeroed_then_written` |
+| `e37097d` | U | FC5-a GREEN: `maxSize` cfg names the old bindings |
+| `cf5d145` | U | `in_fresh_process` cfg-gated to aarch64 Linux |
+| `536ec11` | U | FC5-b RED: unsupported `max_size` tests and seams |
+| `4dc1ec7` | U | FC5-b GREEN: `NOT_SUPPORTED` paths |
+| `7889643` | U | FC5-b staging: ungated `MAX_POOL_SIZE` read-back, `max_size()` |
+| `5a342fe` | U | FC5-b RED: gate test and attribute counter |
+| `2f936a5` | U | FC5-b GREEN: driver-version gate |
+| `0314e34` | U | FC5-b RED: read-back handling tests |
+| `f0e72b3` | U | FC5-b GREEN: read-back handling |
+| `c44d3b7` | U | G5b read-back test (ignored) |
+| `75f13fa` | U | FC5-c typed reads replace `attribute()` |
+| `a11a045` | U | FC5-c characterization tests |
+| `9602202` | U | FC5-d `# Safety` text and two § 3.2 tests |
+| `265ce42` | U | seam modules moved last (clippy `items_after_test_module`) |
