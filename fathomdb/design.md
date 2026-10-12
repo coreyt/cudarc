@@ -1,0 +1,613 @@
+# cudarc-fathomdb design (FC2)
+
+- Status: FC2 draft for review R-FC-DES, 2026-10-12.
+- Inputs:
+  - [requirements](requirements.md) revision 3 (this commit; § 13 lists what
+    changed from revision 2);
+  - [plan](plan.md) § 5 design topics;
+  - the vendored delta at FathomDB `third_party/cudarc-0.19.7/`
+    (`FATHOMDB-PATCH.md` and its two patches);
+  - FathomDB Slice 30 design (`dev/plans/0.8.28/features/slice-30/design.md`
+    § 3.1, § 4.5).
+- Base: `ec1cac71` (v0.19.10). Upstream `main` equals that tag on 2026-10-12.
+
+## 0. Sources
+
+Primary NVIDIA sources, cited below by tag:
+
+| Tag | Source |
+| --- | --- |
+| H12.6 | `/usr/local/cuda-12.6/include/cuda.h` (CUDA 12.6 header on `windchill3`) |
+| DRV13.4 | CUDA Driver API 13.4, Stream Ordered Memory Allocator: <https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MALLOC__ASYNC.html> |
+| TYPES13.4 | CUDA Driver API 13.4, data types: <https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html> |
+| PG13.4 | CUDA Programming Guide 13.4.2, stream-ordered memory allocation: <https://docs.nvidia.com/cuda/cuda-programming-guide/04-special-topics/stream-ordered-memory-allocation.html> |
+| MVC | CUDA minor-version compatibility: <https://docs.nvidia.com/deploy/cuda-compatibility/minor-version-compatibility.html> |
+| RN13.0 | CUDA 13.0 release notes: <https://docs.nvidia.com/cuda/archive/13.0.0/cuda-toolkit-release-notes/index.html> |
+| PROPS12.2 | `CUmemPoolProps` 12.2.1: <https://docs.nvidia.com/cuda/archive/12.2.1/cuda-driver-api/structCUmemPoolProps__v1.html> (12.1.1 has no `maxSize`) |
+| PATHFINDER | NVIDIA cuda-pathfinder library catalog: <https://github.com/NVIDIA/cuda-python/blob/main/cuda_pathfinder/cuda/pathfinder/_dynamic_libs/descriptor_catalog.py> |
+
+Local measurements (2026-10-12, read-only):
+
+- `nm -D` of `libcuda.so.580.178.04`;
+- `objdump -p` sonames;
+- version queries called via ctypes, without creating a CUDA context, on
+  the CUDA 12.6 apt libraries, the cu12 12.8 wheels and the cu13 wheels;
+- `size_of`/`offset_of` of the bindings for every `cuda-*` feature.
+
+Upstream context: issue #536 (asks for safe `cuMemPool*` wrappers, open);
+PR #558 (a safe `CudaMemPool`, closed unmerged); PR #594 and PR #595 (open);
+issue #603 (dynamic loading picks the unversioned system `libcublas.so` over
+a loaded `libcublas.so.13`, open).
+
+## 1. D-1 API shape
+
+The pool lives at context level, not slice level. `CudaSlice` gains no
+field, because the maintainer resisted new `CudaSlice` ownership variants
+in #594. Names follow upstream conventions and the #536/#558 precedent.
+
+```rust
+// src/driver/safe/mem_pool.rs
+pub struct MemPoolProps {        // Default: max_size 0, release_threshold 0
+    pub max_size: usize,         // 0 = driver default (H12.6, PROPS12.2)
+    pub release_threshold: u64,  // bytes kept at synchronize
+}
+pub struct CudaMemPool { /* cu_device, pool: CUmemoryPool */ }
+impl CudaMemPool {
+    pub fn create(ordinal: usize, props: &MemPoolProps) -> Result<Self, DriverError>;
+    pub fn ordinal(&self) -> usize;
+    pub fn raw(&self) -> sys::CUmemoryPool;
+    pub fn reserved_current(&self) -> Result<u64, DriverError>;
+    pub fn reserved_high(&self) -> Result<u64, DriverError>;
+    pub fn used_current(&self) -> Result<u64, DriverError>;
+    pub fn used_high(&self) -> Result<u64, DriverError>;
+    pub fn release_threshold(&self) -> Result<u64, DriverError>;
+    pub fn set_release_threshold(&self, bytes: u64) -> Result<(), DriverError>;
+    pub fn reset_high_watermarks(&self) -> Result<(), DriverError>;
+    pub fn max_size(&self) -> Result<Option<u64>, DriverError>; // D-4
+    pub fn trim_to(&self, min_bytes_to_keep: usize) -> Result<(), DriverError>;
+}
+// src/driver/safe/core.rs
+pub enum AllocMode { Default, Synchronous, Private }
+impl CudaContext {
+    pub fn new_with_mem_pool(ordinal: usize, pool: Arc<CudaMemPool>)
+        -> Result<Arc<Self>, DriverError>;
+    pub fn alloc_mode(&self) -> AllocMode;
+    pub fn mem_pool(&self) -> Option<&Arc<CudaMemPool>>;
+}
+```
+
+Decisions:
+
+- **Typed reads replace the vendored `attribute(CUmemPool_attribute)`.**
+  Callers never pass a raw enum, so:
+  - no exhaustive match on `CUmemPool_attribute` is needed (D-8);
+  - every value is read into a 64-bit integer (D-4);
+  - an attribute the loaded driver does not know is never requested.
+- **`AllocMode` stays.** FathomDB's `doctor cuda-allocator` reports it
+  (Slice 30 § 4.5). For the proposal (FC9) it is optional surface, and R-PROP
+  decides whether to keep it.
+- **`new_with_mem_pool` retains the primary context,** like
+  `CudaContext::new`, and returns a new `Arc<CudaContext>`. It rejects a pool
+  of another device with `CUDA_ERROR_INVALID_VALUE`, as the vendored code
+  does. It needs no `cuCtxCreate_v4` (D-8).
+- **IPC, managed pools, multi-location access and `cuMemPoolSetAccess`**
+  are not exposed (D-13).
+- **The marker feature `fathomdb-private-pool`** (item 6) is a no-op feature,
+  class `L`.
+
+## 2. D-2 Lifetime, destruction and leaked pointers
+
+- **Ownership chain:** `CudaSlice` → `Arc<CudaStream>` → `Arc<CudaContext>` →
+  `Option<Arc<CudaMemPool>>`. A slice therefore keeps the pool alive by
+  construction.
+- **Drop:** `CudaMemPool::drop` calls `cuMemPoolDestroy` and ignores its
+  result, as upstream drops ignore driver results. If allocations or frees
+  are still outstanding, the call returns at once and the pool is released
+  "automatically once there are no more outstanding allocations" (DRV13.4,
+  `cuMemPoolDestroy`). A pool that a `static` holds is never dropped, and the
+  OS reclaims it at exit. T-TEARDOWN covers exit with pools alive.
+- **Creation failure:** `create` builds the owning value right after
+  `cuMemPoolCreate` succeeds. A failure from any later `set_attribute`
+  therefore drops it and destroys the pool. T-FAULT covers this with a
+  `cfg(test)` seam.
+
+**Leaked pointers (CF-REQ-03).**
+
+- `cuMemFreeAsync` returns memory to whichever pool owns it. A private-pool
+  pointer upgraded onto a context whose mode is `Default` or `Private` is
+  therefore freed correctly.
+- The hazard is the synchronous family. A pool pointer upgraded onto a
+  `Synchronous` context would reach `cuMemFree`, and a `cuMemAlloc` pointer
+  upgraded onto a pool context would reach `cuMemFreeAsync`.
+- Design:
+  - **Doc:** the `# Safety` list of `upgrade_device_ptr` gains: "the
+    allocation must come from the same allocator family as this stream's
+    context: stream-ordered (`AllocMode::Default` or `AllocMode::Private`)
+    or synchronous (`AllocMode::Synchronous`)."
+  - **Debug check:** in debug builds, `upgrade_device_ptr` queries
+    `CU_POINTER_ATTRIBUTE_MEMPOOL_HANDLE` (17). It `debug_assert!`s that the
+    result is non-null exactly when the context allocates stream-ordered.
+    Release builds add no driver call.
+  - **CF-AC-03 RED:** a `#[should_panic]` debug-build test upgrades a
+    private-pool pointer onto a synchronous context. On aarch64 it uses the
+    item-2 decision table seeded through a `cfg(test)` hook. On x86_64 it
+    uses a `cfg(test)` constructor flag that forces `has_async_alloc =
+    false`. The test fails at the item-5 port (no assertion yet) and passes
+    after the fix.
+
+## 3. D-3 Stream ordering and reuse
+
+- **Frees are stream-ordered:** `CudaSlice::drop` frees with `cuMemFreeAsync`
+  on the slice's stream.
+- **Cross-stream use:** cudarc's event tracking makes the freeing stream
+  wait on the slice's recorded read and write events before the free, as
+  PG13.4 requires ("Events and/or stream synchronizing operations should be
+  used"). With event tracking off, or after #591's unmanaged-sync case, the
+  caller owns that ordering. This is upstream's existing contract, which the
+  fork does not change.
+- **Reuse policy:** the three `REUSE_*` attributes keep their driver
+  defaults (all enabled; H12.6). Disabling opportunistic reuse adds run-to-run
+  variance (PG13.4), and nothing needs it.
+- **T-CONC:** N ≥ 2 streams allocate and free with cross-stream events, and
+  the CF-AC-02 stream-order clause checks the result.
+
+## 4. D-4 Capacity and exhaustion
+
+- **`maxSize` exists in `CUmemPoolProps` from CUDA 12.2** (PROPS12.2; 12.1.1
+  has no field). A nonzero value bounds the pool, and 0 means "a system
+  dependent value" (DRV13.4, `cuMemPoolCreate`). NVIDIA does not say whether
+  the bound applies to reserved or used bytes, or which error an excess
+  returns. The only listed allocation failure is
+  `CUDA_ERROR_OUT_OF_MEMORY`. The test plan measures this on G1 (UNCONFIRMED
+  until measured).
+- **Rule for `create`** (CF-REQ-04):
+  - `max_size == 0`: no check.
+  - `max_size > 0` with bindings older than 12020: return
+    `DriverError(CUDA_ERROR_NOT_SUPPORTED)` and create nothing.
+  - `max_size > 0` with 12020+ bindings: read `cuDriverGetVersion` first.
+    Below 12020 return `CUDA_ERROR_NOT_SUPPORTED`, because an older driver
+    reads those bytes as `reserved`, which must be 0.
+  - Driver ≥ 13020 and bindings ≥ 13020: after creation, read
+    `CU_MEMPOOL_ATTR_MAX_POOL_SIZE` (13, a `cuuint64_t`). The value "may be
+    higher than what was initially passed" (TYPES13.4); a value lower than
+    requested is an error.
+  - `max_size()` returns that read-back value, or `None` where it cannot be
+    read.
+- **The driver-version gate:** attributes 9–15 are requested only when
+  `cuDriverGetVersion` ≥ 13020. The 13.2 and 13.3 Driver API pages list only
+  attributes 1–8 for `cuMemPoolGetAttribute`, and 13.4 lists 9–15. The gate
+  is proved on G3 by a `cfg(test)` counter (CF-AC-04b), and on G5b by a real
+  read-back (CF-AC-04c).
+- **64-bit values:** attributes 4–8 and 13 are `cuuint64_t`; the others are
+  `int` (H12.6, TYPES13.4). Typed reads use the matching width.
+- **Concurrent exhaustion:** each failing `cuMemAllocFromPoolAsync` returns
+  `CUDA_ERROR_OUT_OF_MEMORY` to its caller and poisons no other stream. The
+  fork surfaces the error unchanged, and T-CONC checks it with N ≥ 2 streams.
+
+## 5. D-5 Release threshold and trimming
+
+- **Release threshold:** at a stream, event or context synchronize, "the
+  allocator will try to release memory back to the OS" down to the threshold
+  (H12.6; PG13.4 says "device synchronize"). The default is 0, meaning all
+  unused memory is released at every synchronize. That is the lowest
+  footprint but adds re-reservation latency. FathomDB picks its own value
+  (FathomDB D-14); the fork's default stays 0, as the driver's is.
+- **`trim_to(k)` sets a floor:** "Releases memory back to the OS until the
+  pool contains fewer than minBytesToKeep reserved bytes, or there is no
+  more memory that the allocator can safely release". If more than k was
+  reserved, the pool keeps "at least minBytesToKeep bytes reserved" (DRV13.4,
+  `cuMemPoolTrimTo`). Frees whose completion the host has not observed count
+  as outstanding.
+- **The CF-AC-02 trim criterion, after a synchronize,** with reserved
+  memory above max(k, used) before the call: k ≤ `RESERVED_MEM_CURRENT` ≤
+  max(k, `USED_MEM_CURRENT`) + one granule. Requirements revision 3 records
+  that change (§ 13).
+- **Granularity:** NVIDIA gives none ("may happen at different granularity",
+  H12.6). The test plan measures the granule on G1, G5b and G6 as the step
+  of `RESERVED_MEM_CURRENT` after a one-byte allocation, and uses that
+  value.
+
+## 6. D-6 Thread safety
+
+- **`CudaMemPool` is `Send + Sync`.** It holds an immutable `CUmemoryPool`
+  handle and a `CUdevice`. Every method calls a driver pool function that
+  takes the handle by value, and the Driver API is thread-safe for distinct
+  calls. `set_release_threshold` and `reset_high_watermarks` are
+  last-writer-wins driver state, as with any shared pool.
+- **`CudaContext` keeps upstream's `Send + Sync`.** The new
+  `Option<Arc<CudaMemPool>>` field is immutable after construction.
+- A compile-time test asserts exactly these impls (CF-AC-02).
+
+## 7. D-7 Observability
+
+The typed reads of § 1 cover:
+
+- reserved and used, current and high-water;
+- the release threshold;
+- the maximum size.
+
+`reset_high_watermarks` sets attributes 6 and 8 to 0, the only value the
+driver allows (H12.6). FathomDB's `doctor cuda-allocator` and its receipts
+read these.
+
+## 8. D-8 CUDA 11.4 to 13.4
+
+**cfg form.** Every version gate the fork adds names the old versions that
+lack a feature. It never lists the new versions that have it, so a future
+`cuda-13050` falls on the "new" side automatically:
+
+```rust
+#[cfg(not(any(feature = "cuda-11040", /* … */ feature = "cuda-13010")))]
+//   → CUmemLocation has the union (13020+), and any later version
+```
+
+Upstream's pattern lists the new versions instead
+(`src/driver/safe/unified_memory.rs:186-221` names 13020, 13030 and 13040).
+That pattern, and the vendored `set_max_size` list ending at 13020, rot as
+versions are added. The vendored list silently drops `maxSize` at 13030 and
+13040.
+
+**Layouts** (measured; identical byte layout in every version):
+
+- **`CUmemLocation`** is 8 bytes: `type_` at 0 and `id` at 4. From 13020 the
+  `id` field is inside an anonymous union, and in 13040 that union also
+  holds `localized { deviceId: u8, localityDomainId: u8 }`.
+- **`CUmemPoolProps`** is 88 bytes:
+
+  | Bindings | Fields added | `reserved` |
+  | --- | --- | --- |
+  | 11040–12010 | — | `[64]` |
+  | 12020+ | `maxSize` (offset 24) | `[56]` |
+  | 12060+ | `usage` (u16, offset 32) | `[54]` |
+  | 13040 | `gpuDirectRDMACapable` (u8, offset 34) | `[53]` |
+
+  The byte that 13040 adds lies in what a 13.0 driver reads as `reserved`.
+  `zeroed()` fills it with 0, so the layouts are compatible.
+
+**Construction:**
+
+- one helper `fn device_location(ordinal: i32) -> sys::CUmemLocation`,
+  starting from `zeroed()` and writing `type_` and `id` (or the union's `id`)
+  under the cfg form above;
+- `CUmemPoolProps` from `zeroed()` plus field writes, never a struct literal
+  (H12.6: `reserved` "must be 0"; #558's review hit the literal problem);
+- `maxSize` written under `cfg(not(any(11040…12010)))`.
+
+**Bindings and matches:**
+
+- no derive is relied on that the 13020+ bindings lack (`Hash` and `Eq` on
+  `CUmemLocation`);
+- no exhaustive match on `CUmemLocationType` or `CUmemPool_attribute`;
+- typed reads (§ 1) name only the attributes they need.
+
+**Removed APIs:**
+
+- **Between bindings:** sixteen functions are declared in the 12090 bindings
+  and absent from 13000; upstream cfg-switches the three it uses. The fork
+  calls none of them.
+- **In the vendored patches:** no deprecated function. None of the patches'
+  functions carries `__CUDA_DEPRECATED` in H12.6.
+- **Still to verify:** the 13.4 Driver API reference status of each fork
+  function. FC3 records it, and R-FC-CODE greps for it (CF-AC-04a).
+
+**Context creation:** not needed, because private contexts retain the
+primary context.
+
+**Upstream cfg gaps (recorded, not fixed):**
+
+- `new_non_primary`, `new_cig` and the `create_v4` wrapper stop at 13010.
+- The `from_raw_context` test helper stops at 12090.
+
+FathomDB needs none of these, and fixing them would grow the delta beyond
+items 1–9. The proposals may mention them. Test accounting lists those tests
+as "not compiled (upstream cfg)" (CF-REQ-12).
+
+## 9. D-9 Graph capture and PR #594
+
+- **NVIDIA rule:** "During stream capture, this function results in the
+  creation of an allocation node. In this case, the allocation is owned by
+  the graph instead of the memory pool. The memory pool's properties are
+  used to set the node's creation parameters" (H12.6, DRV13.4,
+  `cuMemAllocFromPoolAsync`).
+- **Consequences:**
+  - a private-pool context that allocates on a capturing stream records a
+    graph allocation node;
+  - `maxSize` and the release threshold do not bound graph-owned memory;
+  - a free during capture must name a graph allocation.
+- **Decision:** document this on `new_with_mem_pool`. Graph memory is outside
+  the pool's budget, and callers who need a bound on captured memory must
+  size their graphs. No capture-specific code is added.
+- **T-CAPTURE** checks three things:
+  - alloc and free inside a capture on a private context instantiate and
+    launch;
+  - `USED_MEM_CURRENT` of the private pool does not change from graph
+    allocations;
+  - the default pool is untouched.
+
+**PR #594** (open, "capture-scoped CUDA graph memory pool"):
+
+- **Conflict:** merged with items 1–6 in a scratch clone, it conflicts in
+  exactly two hunks, the `CudaStream::null` and `CudaStream::alloc` bodies.
+  Resolved in the order `route_allocation` → private pool → `has_async_alloc`
+  → synchronous, it compiles.
+- **Hazard:** its arena uses `malloc_async` on the device's current pool, so
+  on a private context it escapes `maxSize`.
+- **Status:** the maintainer called #594's shape into question
+  (2026-09-22), and its author proposed a smaller owner field instead, with
+  real pool support as a separate PR following #536.
+- **Effect on FC9:**
+  - **Timing:** FC9 must check #594's state when it starts. If an owner-field
+    primitive has landed, D-1 is revisited for the proposal only: a pool
+    slice could hold its pool through that field.
+  - **Coordination with the #536 author** is an owner decision at FC9. It is
+    recorded, not acted on.
+
+## 10. D-12 Tegra (fork part)
+
+- **Items 1–4 keep the predicate
+  `cfg(all(target_os = "linux", target_arch = "aarch64"))`.**
+  - The fallback acts only when `cuDeviceGetDefaultMemPool` returns
+    `CUDA_ERROR_OUT_OF_MEMORY` or `CUDA_ERROR_NOT_SUPPORTED`.
+  - On Grace, GB10 and other SBSA hosts the query succeeds, so their
+    behaviour equals upstream apart from one query per device per process.
+  - Narrowing with `CU_DEVICE_ATTRIBUTE_INTEGRATED` (18) would add a second
+    runtime decision and still need the probe on Tegra, so it is not done.
+- **Not measured:** non-Tegra aarch64 CUDA hosts. This is recorded in
+  `FATHOMDB.md`.
+- **Tegra P2P:** NVIDIA's Tegra app note says P2P calls are not supported,
+  so D-13's multi-device tests are x86 only.
+- **Early `cuInit`:** NVIDIA's Tegra app note and PG13.4 say nothing on
+  ordering. The precondition stays FathomDB's (Slice 30 § 3.1): call
+  `cuInit` before the address space fragments. Every fork constructor calls
+  `result::init()` first, as upstream does.
+
+## 11. D-13 Multi-device
+
+- **One pool per device.** `new_with_mem_pool` rejects a pool of another
+  device.
+- **Access:** pool allocations "are accessible only from the device where
+  the allocations are located", and peer access does not follow
+  `cuCtxEnablePeerAccess` (PG13.4). The fork exposes no
+  `cuMemPoolSetAccess`, so private-pool memory is single-device by design.
+  The doc on `CudaMemPool` says so.
+- **T-MULTI (G2, two RTX 3090s):** two pools on devices 0 and 1 are
+  independent (their attributes do not interact), and a pool of device 1 is
+  rejected for device 0. Upstream's ignored multi-GPU tests run with
+  `--ignored --exact` (CF-REQ-12).
+
+## 12. Fork-specific topics
+
+### 12.1 D-F1 What a newer-binding build can test on driver 580
+
+- **Functions:** every driver function the upstream driver tests and the
+  fork call (97 symbols, plus `cuDriverGetVersion` and `cuPointerGetAttribute`)
+  is exported by `libcuda.so.580.178.04` under its exact load name. Symbols
+  load lazily, on first call.
+- **Values:** every enum and attribute value the tests pass exists in CUDA
+  13.0, except attributes 9–15 and location types 5 and 6, which only the
+  gated code (§ 4) can request.
+- **Layouts:** compatible (§ 8).
+- **Test counts:** the full RUN/UNMEASURED map, and the per-module counts
+  at `ec1cac71`, go into `test-plan.md`. Upstream `--lib` totals, ignored
+  tests included:
+
+  | Feature set | 12060 | 13000/13010 | 13020–13040 |
+  | --- | --- | --- | --- |
+  | default | 75 | 73 | 69 |
+  | driver-only | 28 | 26 | 23 |
+
+- **G3:** every compiled test is RUN at all six binding versions on driver
+  580. Tests missing at 13020+ are "not compiled (upstream cfg)".
+- **G5a** (default features, 13.x wheels, driver 580):
+  - RUN: the driver, NVRTC, cuBLAS, cuBLASLt and cuRAND tests;
+  - UNMEASURED ("PTX JIT of 13.1+ output needs a newer driver";
+    MVC: "Applications that compile device code to PTX will not work on
+    older drivers"): upstream's `launch` and `unified_memory` tests, because
+    they JIT PTX with no target architecture.
+
+  Editing those tests to use CUBIN is forbidden (CF-REQ-12). The fork's own
+  NVRTC-dependent tests compile to CUBIN for the device and run in G5a.
+- **G5b:** runs all of them.
+
+### 12.2 D-F2 Fork CI
+
+- **Workflow:** `.github/workflows/fathomdb-ci.yaml` (class `W`), triggered
+  on push to `fathomdb/**` and `ci/**`, and on `workflow_dispatch`. It
+  mirrors upstream's four workflows.
+- **aarch64:** the hosted `ubuntu-24.04-arm` runner (free for public
+  repositories) runs check (both feature sets) and clippy for 19 features.
+- **T-UNIT job:** Linux x86_64 and Windows, per CF-AC-11.
+- **Hosted test job:** runs the `fathomdb_` modules with the default lock,
+  then again with FathomDB's `Cargo.lock`. That lock is fetched from the
+  FathomDB pin commit recorded in the workflow (`FATHOMDB_LOCK_SHA`), from
+  the public repository by exact sha.
+- **CI receipt:** `gh api` export of the run (run id, `head_sha`, each job's
+  conclusion) into `fathomdb/qualification/`.
+- **Baseline lock (CF-REQ-12):** FC4 generates one `Cargo.lock` at
+  `ec1cac71` and commits it as `fathomdb/qualification/Cargo.lock.baseline`
+  (class `D`). Every baseline and `C` run copies it into place, and receipts
+  record its SHA-256. Upstream ships no lock.
+
+### 12.3 D-F3 cuBLAS workspace and PR #595
+
+- **#595** (open) lets a `CudaBlas` own a caller-supplied `CudaSlice<u8>` as
+  its workspace and re-binds it after `set_stream`. Its context check is
+  `Arc::ptr_eq`. A workspace from a private context works only with a
+  `CudaBlas` on a stream of that same `Arc<CudaContext>`, which is the
+  desired behaviour.
+- **Hazards** (input to FathomDB D-14 and Candle DK-4):
+  - `CudaBlas` drop does not synchronize, and no write event is recorded on
+    the workspace, so the workspace free can overtake in-flight GEMMs;
+  - a captured graph bakes in the workspace address;
+  - sizing is the caller's job.
+- **Decision:** the fork does not carry #595. A pool-allocated cuBLAS
+  workspace is possible and worthwhile once #595 lands. FathomDB D-14
+  decides whether to measure it.
+
+### 12.4 D-F4 Built-major library loading (item 9)
+
+**Defects at `ec1cac71`:**
+
+- the unversioned name comes first;
+- other-major names are tried. A 12.x build tries `libcufft.so.12` (CUDA
+  13's) before `libcufft.so.11`, and on Windows `cufft64_12.dll` before
+  `cufft64_11.dll`. The same holds for cuSOLVER and cuSolverMg;
+- cuFile never loads by its soname, because no `.so.0` candidate exists;
+- Windows CUPTI cannot load at all, because its DLL names carry a year
+  (`cupti64_2024.3.1.dll`);
+- upstream issue #603 reports the unversioned-name case.
+
+**Candidates** for library L and built major M (12 or 13), in this order:
+
+1. L's versioned names for M (table below);
+2. L's unversioned names (`libL.so`; `L64.dll`), accepted only after the
+   version check.
+
+| L | Linux, M = 12 | Linux, M = 13 | Windows, M = 12 | Windows, M = 13 |
+| --- | --- | --- | --- | --- |
+| cudart | `libcudart.so.12` | `.so.13` | `cudart64_12.dll` | `cudart64_13.dll` |
+| cublas | `libcublas.so.12` | `.so.13` | `cublas64_12.dll` | `cublas64_13.dll` |
+| cublasLt | `libcublasLt.so.12` | `.so.13` | `cublasLt64_12.dll` | `cublasLt64_13.dll` |
+| nvrtc | `libnvrtc.so.12` | `.so.13` | `nvrtc64_120_0.dll` | `nvrtc64_130_0.dll` |
+| cupti | `libcupti.so.12` | `.so.13` | unchanged from upstream (note 1) | same |
+| cufft | `libcufft.so.11` | `.so.12` | `cufft64_11.dll` | `cufft64_12.dll` |
+| cusolver | `libcusolver.so.11` | `.so.12` | `cusolver64_11.dll` | `cusolver64_12.dll` |
+| cusolverMg | `libcusolverMg.so.11` | `.so.12` | `cusolverMg64_11.dll` | `cusolverMg64_12.dll` |
+| cusparse | `libcusparse.so.12` | `.so.12` | `cusparse64_12.dll` | `cusparse64_12.dll` |
+| curand | `libcurand.so.10` | `.so.10`, then `.so.11` (note 2) | `curand64_10.dll` | `curand64_10.dll`, `curand64_11.dll` |
+| cufile | `libcufile.so.0` | `.so.0` | not available | not available |
+
+Notes:
+
+1. Windows CUPTI keeps upstream's candidates, which cannot load it either.
+   This is a known upstream gap and not a regression. Enumerating
+   year-named DLLs is out of scope.
+2. PATHFINDER lists `libcurand.so.11` for CUDA 13.4, but the 13.4 release
+   notes ship cuRAND 10.4.4. It is accepted only through the version check
+   (UNCONFIRMED name).
+
+**The Windows names were not read from wheel contents.** They come from
+PATHFINDER, conda-forge recipes and cudarc #242/#246. FC3 checks them on
+the Windows VM before FC6.
+
+**The version check** runs `dlsym` on the candidate's own handle, never
+through the generated binding, which panics. A library is accepted if its
+query reports the built major's line:
+
+| L | Query (no handle or context needed) | Accept for M = 12 | Accept for M = 13 |
+| --- | --- | --- | --- |
+| cudart | `cudaRuntimeGetVersion` | v / 1000 = 12 | v / 1000 = 13 |
+| cublas | `cublasGetProperty(MAJOR)` | 12 | 13 |
+| cublasLt | `cublasLtGetProperty(MAJOR)` | 12 | 13 |
+| nvrtc | `nvrtcVersion` | major 12 | major 13 |
+| cupti | `cuptiGetVersion` | < 130000 (19–28 seen) | v / 10000 = 13 |
+| cufft | `cufftGetProperty(MAJOR)` | 11 | 12 |
+| cusolver | `cusolverGetProperty(MAJOR)` | 11 | 12 |
+| cusparse | `cusparseGetProperty(MAJOR, MINOR)` | 12.0–12.5 | 12.6 or later |
+| curand | `curandGetVersion` | 10.3.x (10300–10399) | ≥ 10400 |
+| cufile | `cuFileGetVersion` (exported since 1.11) | ≤ 1140 | ≥ 1150 |
+| cusolverMg | none exported | versioned name only | versioned name only |
+
+- **Measured samples** (12.6 apt / 12.8 wheel / cu13 wheel):
+  - cudart: 12060 / 12080 / 13000
+  - cuBLAS: [12,6,1] / [12,8,4] / [13,1,1]
+  - cuRAND: 10307 / 10309 / 10400
+  - cuSPARSE: 12.5.3 / 12.5.8 / 12.6.3
+  - cuFile: 1110 / 1130 / 1150
+  - CUPTI: 24 / 26 / 130001
+
+  The CUDA 13 CUPTI header defines the `xxyyzz` format with `xx` = CUDA
+  major.
+- **Same-soname libraries are checked by line, and the other major's line is
+  rejected** (requirements revision 3 rule 3, with this evidence):
+  - **NVIDIA guarantees ABI only within a major.** RN13.0: "guarantees ABI
+    stability within the major version series"; MVC: "provided they are all
+    from the same major release family".
+  - **CUDA 13 dropped pre-Turing GPUs.** RN13.0: cuSPARSE "Dropped support
+    for pre-Turing architectures"; cuFFT "Removed support for Maxwell,
+    Pascal, and Volta". The cu13 cuRAND and cuSPARSE fatbins contain only
+    sm_75 and newer.
+  - **Different dependencies.** The cu13 `libcusparse.so.12` needs
+    `libnvJitLink.so.13`, and 13.x needs driver ≥ 580.
+- **Cost of rejecting:** a default 12.x build that today uses a torch-cu13
+  `libcurand.so.10` on a Turing+ GPU with driver ≥ 580 would now get the
+  CUDA 12 cuRAND, if one is installed, or a typed error. That trade is
+  accepted, because REQ31-15 forbids loading another major. Out-of-range
+  future versions within a major's line (for example cuRAND 10.5 under
+  13.5) are accepted for M = 13, since the 13.x ranges are open-ended.
+- **Rejected handles are closed.** Measured: after `dlclose`,
+  `/proc/self/maps` no longer lists cuBLAS and cuBLASLt, cuSPARSE and
+  nvJitLink, cuRAND, cuFFT, or the cuSOLVER chain. The exception is
+  `libcufile.so.0`, which is `DF_1_NODELETE`. T-DEV skips the unmap
+  assertion for cuFile, and the report still names the accepted file.
+
+**API** (upstream-shaped, in each `src/<lib>/sys/mod.rs`, and in
+`bindings_generator/src/merge.rs` so regeneration keeps it):
+
+```rust
+pub unsafe fn try_culib() -> Result<&'static libloading::Library, crate::LibLoadError>; // memoized
+pub unsafe fn culib() -> &'static libloading::Library;      // try_culib() or panic, as today
+pub unsafe fn is_culib_present() -> bool;                   // try_culib().is_ok()
+pub unsafe fn is_symbol_present(name: &str) -> Result<bool, crate::LibLoadError>;
+pub fn loaded_library() -> Option<crate::LoadedLibrary>;    // after a load
+```
+
+```rust
+// src/lib.rs
+pub struct LibLoadError { pub library: &'static str, pub major: u32,
+                          pub tried: Vec<(String, RejectReason)> }
+pub enum RejectReason { NotFound, WrongVersion(String), NoVersionQuery }
+pub struct LoadedLibrary { pub library: &'static str, pub path: Option<PathBuf>,
+                           pub version: Option<String> }
+pub fn get_lib_name_candidates(lib_name: &str) -> Vec<String>;   // unchanged signature
+fn lib_candidates(os: TargetOs, ptr_width: u32, lib: &str, major: u32, minor: u32) -> Vec<String>; // pure
+```
+
+- **Resolved path:** on Linux, `dladdr` of the version-query symbol gives
+  `dli_fname`. On Windows, `GetModuleFileNameW` of the module handle. Both
+  are declared with `extern` blocks, so no new crate dependency is added.
+- **Driver:** `crate::driver::sys::loaded_library()` reports the driver's
+  file and `cuDriverGetVersion` without changing how it loads.
+- **Linked builds:** under `dynamic-linking` or `static-linking`, the report
+  says "linked at build time".
+- **Scope of the changed output:** `get_lib_name_candidates` keeps its
+  signature. Its output changes only for in-scope libraries on 12.x and
+  13.x builds, and that change is listed in `FATHOMDB.md` and in the second
+  proposal. Out-of-scope names and 11.x builds return exactly the base
+  output (T-UNIT).
+- **`no-std`:** the report types use `no_std_compat` like the rest of the
+  crate. Paths become `String` under `no-std`.
+
+## 13. Requirements revision 3 (made in this commit)
+
+- **CF-AC-02 trim:** k ≤ reserved ≤ max(k, used) + one granule, after a
+  synchronize, with the precondition (§ 5).
+- **CF-REQ-11 rule 1:** add cuFile's `.so.0`. Versioned-first ordering also
+  fixes the base's wrong-major preference for cuFFT, cuSOLVER and
+  cuSolverMg.
+- **CF-REQ-11 rule 2:** CUPTI is verifiable on Linux (`cuptiGetVersion`).
+  The "versioned name only" set is `cusolverMg`. Windows CUPTI stays
+  upstream's.
+- **CF-REQ-11 rule 3:** same-soname libraries are checked by version line,
+  and the other major's line is rejected, with the § 12.4 evidence. This
+  replaces revision 2's "reported, not rejected", which rested on an ABI
+  claim NVIDIA does not make. G8's cu13 cuRAND/cuSPARSE sub-cell now expects
+  rejection, and then either the CUDA 12 library or the typed error.
+- **CF-AC-04c G5a:** upstream tests that JIT PTX are UNMEASURED there.
+  CUBIN applies only to fork-owned tests.
+- **CF-REQ-12:** the baseline uses the committed
+  `fathomdb/qualification/Cargo.lock.baseline`.
+- **CF-REQ-11 table:** the claim that the cu13 cuRAND and cuSPARSE are
+  "ABI-compatible successors" is removed.
+
+## 14. Open items for the test plan (FC3)
+
+1. Measure maxSize semantics on G1: reserved versus used, and the error on
+   excess.
+2. Measure the allocation granule on G1, G5b and G6.
+3. Check that driver 580 rejects attributes 9–15. This is an observation
+   only; the gate never requests them.
+4. Check the Windows DLL names on the Windows VM (`gh-runner-wonl-win11`).
+5. Pick G5b's driver branch from what Ubuntu 24.04 and NVIDIA's repository
+   offer for the T4.
+6. Record the 13.4 Driver API deprecation status of each fork function.

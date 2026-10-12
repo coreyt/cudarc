@@ -1,8 +1,9 @@
 # cudarc-fathomdb requirements (FC1)
 
-- Status: FC1 revision 2, 2026-10-12. Revision 1 (`f774dc3`) was reviewed by
-  R-FC-REQ (APPROVE-WITH-FIXES). This revision fixes every finding;
-  dispositions are in [review.md](review.md). The file finalizes
+- Status: FC1 revision 3, 2026-10-12. Revision 1 (`f774dc3`) was reviewed by
+  R-FC-REQ (APPROVE-WITH-FIXES); revision 2 (`761d7a4`) fixed every finding
+  (dispositions in [review.md](review.md)). Revision 3 applies the FC2
+  research ([design](design.md) § 13). The file finalizes
   [plan](plan.md) § 4. Where it and plan § 4 differ, this file governs.
 - Branch: `fathomdb/0.19.10` of `coreyt/cudarc`, cut from upstream tag
   `v0.19.10` (`ec1cac71`).
@@ -112,9 +113,11 @@ driver-only feature set) and G6, each clause has its own test:
   max(T, `USED_MEM_CURRENT`) and asserts that precondition. After a
   synchronize, `RESERVED_MEM_CURRENT` ≤ max(T, `USED_MEM_CURRENT`), rounded
   up to the allocation granularity.
-- **Trim.** The same precondition holds for k. After `trim_to(k)`,
-  `RESERVED_MEM_CURRENT` ≤ max(k, `USED_MEM_CURRENT`), with the same
-  rounding.
+- **Trim.** `trim_to(k)` sets a floor, not a ceiling: the pool keeps at
+  least k bytes reserved if it had more (DRV13.4, `cuMemPoolTrimTo`). With
+  the precondition `RESERVED_MEM_CURRENT` > max(k, `USED_MEM_CURRENT`)
+  before the call, after it and a synchronize:
+  k ≤ `RESERVED_MEM_CURRENT` ≤ max(k, `USED_MEM_CURRENT`) + one granule.
 - **Capacity.**
   - Requests whose total is at most the cap succeed.
   - A request that would exceed the cap returns
@@ -201,11 +204,13 @@ required parts.
 - CUDA 13.x libraries come from a scratch venv with pinned NVIDIA wheels for
   each build's minor, reached by `LD_LIBRARY_PATH`. If a minor's wheels are
   not on PyPI, the nearest available 13.x minor is used and recorded.
-- NVRTC compiles to CUBIN for sm_86, so no PTX JIT is needed.
+- The fork's own NVRTC-dependent tests compile to CUBIN for sm_86, so they
+  need no PTX JIT.
 - Every test that needs neither PTX JIT of 13.1+ output nor driver
   behaviour newer than 13.0 must pass.
-- D-F1 marks the other tests, and G5a records them UNMEASURED with that
-  reason.
+- Upstream tests that JIT PTX (`launch` and `unified_memory`) cannot be
+  changed to CUBIN, because CF-REQ-12 forbids editing upstream tests. G5a
+  records them, and any other test D-F1 marks, UNMEASURED with the reason.
 
 **G5b (GCP T4, sm_75, newer driver).** The full `--lib` test set passes.
 
@@ -366,16 +371,19 @@ wheels:
 | `curand` | 10 | 10 | no |
 | `cufile` | 0 | 0 | no |
 
-NVIDIA keeps a soname only while the ABI stays compatible. So a library
-whose soname is the same across CUDA 12 and 13 is not, by that fact, the
-wrong library. For example, the cu13 wheels' cuRAND 10.4.0 and cuSPARSE
-12.6.3 are ABI-compatible successors of CUDA 12.6's 10.3.7 and 12.5.3.
+For cuSPARSE, cuRAND and cuFile, the soname does not tell CUDA 12 from CUDA
+13. NVIDIA guarantees ABI stability only within one major (CUDA 13.0 release
+notes; minor-version compatibility guide). CUDA 13's cuSPARSE and cuFFT
+drop pre-Turing GPUs. The cu13 cuRAND and cuSPARSE contain only sm_75+ code,
+and the cu13 cuSPARSE needs `libnvJitLink.so.13`. Design D-F4 (§ 12.4)
+gives the evidence.
 
 These rules apply to CUDA 12.x and 13.x builds:
 
 1. **Expected versioned names first.** For library L and toolkit major M,
    the candidates are L's versioned names for M (the table's soname on
-   Linux; the DLL names D-F4 measures on Windows). They come before any
+   Linux, including cuFile's `.so.0`, which `ec1cac71` never tries; the
+   DLL names D-F4 lists on Windows). They come before any
    unversioned name, and no versioned name of another major is ever tried.
    For example, a 13.x build never tries `libcublas.so.12`.
 2. **Unversioned names are verified.** An unversioned name (`libcublas.so`,
@@ -384,15 +392,16 @@ These rules apply to CUDA 12.x and 13.x builds:
    does not, the handle is closed and loading continues. A library with no
    usable version query is never accepted by an unversioned name, only by
    its versioned name. D-F4 gives a per-library table: the query and the
-   accepted range, or "versioned name only". At `ec1cac71` that applies to
-   `cusolverMg` (no `cusolverMgGetVersion`), `cufile` below 12030 (no
-   `cuFileGetVersion` binding) and `cupti` (`cuptiGetVersion` returns the
-   CUPTI API version).
-3. **Same-soname libraries are reported, not rejected.** For cuSPARSE,
-   cuRAND and cuFile, a library found by its versioned name is accepted. Its
-   reported version goes into the report. D-F4 may reject a version only
-   with cited evidence of incompatibility, such as a newer driver floor, a
-   dropped architecture or an ABI note.
+   accepted range, or "versioned name only". "Versioned name only" applies
+   to `cusolverMg`, which exports no version query. The check calls the
+   query through `dlsym` on the candidate's own handle, so it works even
+   where the binding is cfg-limited (`cuFileGetVersion` before 12030).
+   Windows CUPTI keeps upstream's candidates (year-named DLLs; D-F4).
+3. **Same-soname libraries are checked by version line.** For cuSPARSE,
+   cuRAND and cuFile, a library found by its versioned name is also
+   version-checked against the built major's line (D-F4 ranges). A library
+   of the other major's line is rejected and closed, on the evidence above.
+   The 13.x ranges are open-ended, so later 13.x minors are accepted.
 4. **A typed, non-panicking path.** For each in-scope library, there is a
    fallible check that applies exactly the acceptance rule `culib()` uses
    and returns a typed error naming:
@@ -463,8 +472,10 @@ These rules apply to CUDA 12.x and 13.x builds:
     symbol is a typed error. The receipt names which. No panic or abort;
   - 13000 build with cuBLAS 13.0.x: the cuBLAS tests pass;
   - 12060 build with the cu13 wheels' `libcurand.so.10` and
-    `libcusparse.so.12` first on the path: both load (rule 3), and the
-    report shows versions 10.4.x and 12.6.x.
+    `libcusparse.so.12` first on the path: both are rejected by version
+    (rule 3). The process then maps the system's CUDA 12.6 cuRAND and
+    cuSPARSE (`/proc/self/maps`), and the report names them. With no CUDA 12
+    copy reachable, the check returns the typed error.
 
 ### CF-REQ-12 Honest test accounting [REQ31-11]
 
@@ -473,7 +484,9 @@ ignored or UNMEASURED with a reason.
 
 - **Baseline.** For each cell, the baseline is the upstream tests at
   `ec1cac71`, built with the same `CUDARC_CUDA_VERSION`, the same upstream
-  feature set and the same `Cargo.lock`, on the same host. Tests the fork
+  feature set and the same `Cargo.lock`
+  (`fathomdb/qualification/Cargo.lock.baseline`, committed at FC4, because
+  upstream ships no lockfile), on the same host. Tests the fork
   adds have no baseline. They must pass at `C`.
 - **Run count.** Baseline and `C` each run k ≥ 3 times. A test that fails
   in every baseline run is a baseline fact. A test that passes in every
