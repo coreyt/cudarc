@@ -46,7 +46,7 @@ pub struct CudaContext {
     pub(crate) error_state: AtomicU32,
 }
 
-// FATHOMDB PATCH BEGIN: private memory pool (see FATHOMDB-PATCH.md).
+// FATHOMDB PATCH BEGIN: private memory pool (see FATHOMDB.md, item 5).
 /// The allocator a [CudaContext] uses, fixed when it is created.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum AllocMode {
@@ -326,7 +326,7 @@ impl CudaContext {
     /// allocations all come from `pool` (`cuMemAllocFromPoolAsync`); they are
     /// freed with `cuMemFreeAsync`, which returns memory to the pool it came
     /// from. Its [CudaContext::alloc_mode] is [AllocMode::Private] (FathomDB
-    /// patch; see `FATHOMDB-PATCH.md`).
+    /// patch; see `FATHOMDB.md`, item 5).
     ///
     /// The device's current memory pool is neither read nor changed, and on
     /// aarch64 Linux the device's process-wide allocator decision is neither
@@ -3984,7 +3984,7 @@ mod fathomdb_alloc_fallback {
 }
 // FATHOMDB PATCH END
 
-// FATHOMDB PATCH BEGIN: private memory pool tests (see FATHOMDB-PATCH.md).
+// FATHOMDB PATCH BEGIN: private memory pool tests (see FATHOMDB.md, item 5).
 #[cfg(test)]
 mod fathomdb_private_pool {
     use super::*;

@@ -1,4 +1,4 @@
-// FATHOMDB PATCH BEGIN: private memory pool primitive (see FATHOMDB-PATCH.md).
+// FATHOMDB PATCH BEGIN: private memory pool primitive (see FATHOMDB.md, item 5).
 //! An explicit device memory pool ([CudaMemPool]) owned by the caller.
 
 use crate::driver::{
