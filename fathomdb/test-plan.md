@@ -1,9 +1,12 @@
 # cudarc-fathomdb test plan (FC3)
 
-- Status: FC3 revision 2, 2026-10-12.
+- Status: FC3 revision 3, 2026-10-12.
   - Revision 1 (`936c25e`) was reviewed by R-FC-TEST (APPROVE-WITH-FIXES).
-  - This revision fixes every finding; dispositions are in
+  - Revision 2 fixes every finding; dispositions are in
     [review.md](review.md).
+  - Revision 3 (R-FC-CODE fix round): § 3.4 T-UNIT gains
+    `report_address_symbols_are_bound_wherever_the_library_is` (finding L3),
+    so T-UNIT has 10 tests per feature.
 - Inputs: [requirements](requirements.md) revision 5,
   [design](design.md) revision 2, [plan](plan.md) §§ 1, 6–9.
 - Tracing: every test traces to a CF-AC, or, where marked "design", to the
@@ -269,8 +272,8 @@ the report) is checked only in GREEN.
 
 **T-UNIT** (P; module `fathomdb_lib_major` in `src/lib.rs`; the T-UNIT
 job runs 19 features × Linux x86_64 and Windows, with every library
-feature enabled). Exactly 9 tests per feature, so the expected set is 9
-names per feature, 171 per OS. All compile under 11.x features, `no-std`
+feature enabled). Exactly 10 tests per feature, so the expected set is 10
+names per feature, 190 per OS. All compile under 11.x features, `no-std`
 and Windows: they use only `std::` through `no_std_compat`, and pure
 functions parameterized by OS.
 
@@ -285,6 +288,7 @@ functions parameterized by OS.
 | `is_culib_present_agrees_with_try_culib` | rule 4, for every in-scope library, against a fixture loader that returns chosen results | FC6-b |
 | `a_failed_load_is_memoized` | rule 4 / design L2: the fixture loader is called once across two `try_culib` calls that fail | FC6-b |
 | `the_report_says_linked_at_build_time_when_linked` | rule 5, the pure formatting path for `dynamic-linking`/`static-linking` | FC6-b |
+| `report_address_symbols_are_bound_wherever_the_library_is` | rule 5: the symbol whose address resolves each in-scope library's file (and the driver's) is bound in the checked-in bindings for every `cuda-*` feature that builds the module; cuFile's is not `cuFileGetVersion`, which a pre-1.8 cuFile accepted for 12.x lacks | R-FC-CODE L3 (`480db3f`): cuFile's symbol was `cuFileGetVersion`, unbound for 11040–12020 |
 
 **T-DEV** (D, G1; integration test `tests/fathomdb_lib_major.rs`, whose
 ignored tests are run by `fathomdb/scripts/t-dev-lib-major.sh`). Each case
@@ -368,7 +372,7 @@ alone with `-- --ignored --exact <name>`.
 | G7 | Orin, JetPack 7.2 | 13020/13040 | UNMEASURED, owner ruling Q5 (requirements CF-AC-05b) |
 | G8 | as § 3.4 | 12060, 13000 | `fathomdb/scripts/g8-*.sh` per sub-cell |
 | fork pure-test job | GitHub-hosted, Linux x86_64 | 19 features, `--no-default-features -F std,driver,dynamic-loading,cuda-<v>` | `cargo test --lib -- fathomdb_private_pool:: --test-threads=1`, P tests only (device tests return early without a device and are excluded by name); expected names per feature from the catalogue. The generator template test also runs here |
-| T-UNIT job | GitHub-hosted, Linux x86_64 and Windows | 19 features, every library feature | `cargo test --lib -- fathomdb_lib_major::`; 9 names per feature |
+| T-UNIT job | GitHub-hosted, Linux x86_64 and Windows | 19 features, every library feature | `cargo test --lib -- fathomdb_lib_major::`; 10 names per feature |
 | hosted test job, publish dry run, check, clippy, fmt | plan § 1.4 | — | — |
 
 **The fork pure-test job is new** in revision 2 (R-FC-TEST H4). The fork

@@ -1035,6 +1035,20 @@ red = "FC6-b"
 cfg = {  }
 
 [[test]]
+name = "report_address_symbols_are_bound_wherever_the_library_is"
+module = "fathomdb_lib_major"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["t-unit"]
+ignored = false
+landed = true
+origin = "test-plan"
+section = "3.4"
+serves = "CF-AC-11"
+red = "R-FC-CODE L3 480db3f: cufile: cuFileGetVersion not bound for cuda-11040..cuda-12020 (12060, 11040, 13000)"
+cfg = {  }
+
+[[test]]
 name = "template_loader_tail_matches_the_checked_in_cublas_loader"
 module = "loader_tail::tests"
 binary = "unittests:bindings_generator"
