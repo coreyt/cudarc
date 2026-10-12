@@ -331,9 +331,18 @@ impl CudaContext {
     ///
     /// The context holds `pool`, and every [CudaStream] and [CudaSlice] holds
     /// the context, so the pool is destroyed only after the last of them.
-    /// A pointer taken out with [CudaSlice::leak] must be freed with
-    /// `cuMemFreeAsync`, so it may be upgraded only onto a context whose
-    /// [CudaContext::has_async_alloc] is `true`.
+    /// A pointer taken out with [CudaSlice::leak] may be upgraded onto any
+    /// context of the device with [CudaStream::upgrade_device_ptr], whose
+    /// `# Safety` section states the conditions; `cuMemFreeAsync` returns it
+    /// to this pool, and `cuMemFree` also releases it.
+    ///
+    /// An allocation made on a stream that is being captured into a graph is
+    /// owned by the graph, not by `pool`: NVIDIA's `cuMemAllocFromPoolAsync`
+    /// creates an allocation node during capture and uses the pool's
+    /// properties only for the node's creation parameters. Such memory is
+    /// outside the pool's `maxSize` and release threshold, and the pool's
+    /// counters do not include it; callers who need a bound on captured
+    /// memory must size their graphs.
     ///
     /// # Errors
     /// `CUDA_ERROR_INVALID_VALUE` if `pool` belongs to another device (no
