@@ -218,8 +218,8 @@ jobs:
       - name: Run 1 (baseline lock)
         run: |
           set -euo pipefail
-          cp fathomdb/qualification/Cargo.lock.baseline Cargo.lock
-          sha256sum Cargo.lock
+          python3 -I -B fathomdb/scripts/use-baseline-lock.py Cargo.lock
+          sha256sum fathomdb/qualification/Cargo.lock.baseline Cargo.lock
           cargo tree -e normal --locked --no-default-features -F "$FEATURES"
           set +e
           cargo test --locked --lib --no-default-features -F "$FEATURES" -- fathomdb_ --test-threads=1 2>&1 | tee run-baseline.log
@@ -340,8 +340,8 @@ jobs:
       - name: Module contents equal the catalogue
         run: |
           set -euo pipefail
-          cp fathomdb/qualification/Cargo.lock.baseline Cargo.lock
-          sha256sum Cargo.lock
+          python3 -I -B fathomdb/scripts/use-baseline-lock.py Cargo.lock
+          sha256sum fathomdb/qualification/Cargo.lock.baseline Cargo.lock
           ct=(python3 -I -B fathomdb/scripts/count-tests.py)
           cell=(--set drv --version "$CUDARC_CUDA_VERSION" --arch x86_64 --os linux)
           cargo test --locked --lib --no-default-features -F "std,driver,dynamic-loading,${{ matrix.version }}" -- fathomdb_private_pool:: --list 2>&1 | tee list.log
@@ -456,7 +456,7 @@ jobs:
       - name: Module contents equal the catalogue
         run: |
           set -euo pipefail
-          cp fathomdb/qualification/Cargo.lock.baseline Cargo.lock
+          python -I -B fathomdb/scripts/use-baseline-lock.py Cargo.lock
           ct=(python -I -B fathomdb/scripts/count-tests.py)
           cell=(--set def --features "$CHECK_DEFAULT_FEATURES" --version "$CUDARC_CUDA_VERSION" --arch x86_64 --os "$TARGET_OS")
           cargo test --locked --lib -F "${{ matrix.version }},$CHECK_DEFAULT_FEATURES" -- fathomdb_lib_major:: --list 2>&1 | tee list.log
