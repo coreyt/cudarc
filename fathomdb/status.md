@@ -33,6 +33,7 @@ reviewer re-runs each RED; the last column holds that result.
 | 2026-10-12 | FC6-b count-tests: other binaries, `--binary` | `43bff6d` | 2 of 38 fail: unexpected sections `test:fathomdb_lib_major`, `unittests:bindings_generator` | `8889071` (38 pass) | pending (R-FC-CODE) |
 | 2026-10-12 | FC6-b count-tests: `- should panic` lines | `2e5de53` | 1 of 39 fails: `{} != {'…test_alloc_pinned_panics_on_size_overflow': 'ok'}` | `5e28fa7` (39 pass) | pending (R-FC-CODE) |
 | 2026-10-12 | FC6-b pool doc (D-2, D-9) | — (doc) | — | `e6e5e0f` | — |
+| 2026-10-12 | FC7 packaging (item 8) | — (packaging; test plan § 10: no RED) | — | `d04ea18` | — |
 
 ## FC4-0 (class D)
 
@@ -820,6 +821,100 @@ Log SHA-256: G1 `203f1f87…213c8`, 13000 `d32d6d08…7ac7`.
   callers: a failed load is never retried in the process, and
   `is_culib_present()` keeps the library loaded.
 
+## FC7 (class P)
+
+`d04ea18` (`P`) touches only `Cargo.toml`, `README.md` and the new
+`FATHOMDB.md`:
+
+- `Cargo.toml`: package `cudarc-fathomdb` 0.19.10, `[lib] name = "cudarc"`;
+  licence and authors unchanged; description, homepage, documentation and
+  repository name the fork; `exclude = ["/fathomdb/",
+  "/.github/workflows/fathomdb-ci.yaml"]` (upstream had neither `include`
+  nor `exclude`). The marker-feature comment cites `FATHOMDB.md` item 6.
+- `README.md`: fork notice above the unchanged upstream text.
+- `FATHOMDB.md`: the items 1–9 table (plan § 3), sections for items 1–4, 5,
+  6 and 9 (the anchor the item-9 code docs cite), the corrected item-2
+  rationale (design § 2), the behaviour changes of design § 12.4 and
+  requirements CF-REQ-11 item 6, the measured facts of FC5 and FC6-a
+  (driver 580 leaves `USED_MEM_CURRENT` stale after `cuMemFree`; captured
+  allocations are outside the pool budget; attributes 9–15 gated on
+  bindings and driver 13020; reservation step and cap), and how to depend
+  on the package. Upstream status for items 5 and 9 reads "planned and not
+  posted": FC9 and FC9b have not run.
+
+Name dependence: `build.rs`, `bindings_generator`, the examples, the tests
+and the doc tests use the library name `cudarc`, which `[lib]` keeps; no
+`CARGO_PKG_NAME` use. The lib test binary is still
+`target/debug/deps/cudarc-*`, so `unittests:cudarc` labels hold.
+
+### Checks at `d04ea18`
+
+| Check | Result |
+| --- | --- |
+| `cargo package --list` (main checkout) | refuses: `log_matmul_f32` is untracked and not ignored, so cargo counts it as an uncommitted package file |
+| `cargo package --list` (scratch `git worktree add --detach d04ea18`, removed after) | 135 files; no `fathomdb/` path; no `fathomdb-ci.yaml`; `FATHOMDB.md`, `LICENSE-APACHE`, `LICENSE-MIT`, `README.md` present; list SHA-256 `83db814a…f6ddac7` |
+| `cargo publish --dry-run -F cuda-13040` (same worktree) | `Packaged 135 files, 7.7MiB (633.4KiB compressed)`, verify build ok, `warning: aborting upload due to dry run`, exit 0 |
+| `cargo publish --dry-run` without a feature | fails in `build.rs` (`Must specify one of the following features`), as upstream does with no `nvcc` on `PATH`; fork CI passes `-F cuda-13040` |
+| `cargo fmt --all -- --check` | clean |
+| fork CI clippy (`--all-targets`, `$CLIPPY_FEATURES`), 13040 and 12060 | clean |
+| `cargo check --lib`, default features, 11040, 12060, 13000, 13040 | clean |
+| `python3 -I fathomdb/scripts/test_count_tests.py` | 39 tests OK |
+| `git diff 5b23a87 HEAD --stat -- . ':(exclude)fathomdb'` | `Cargo.toml`, `FATHOMDB.md`, `README.md` only (`Cargo.lock` is gitignored) |
+
+### `--locked` and the baseline lock (open)
+
+`fathomdb/qualification/Cargo.lock.baseline` names the root package
+`cudarc`. With the rename, `cp …/Cargo.lock.baseline Cargo.lock` followed by
+any `--locked` command fails: `error: cannot update the lock file … because
+--locked was passed`. Fork CI's jobs that copy the baseline (lines 221, 343
+and 459 of the workflow) and `g8-common.sh` and `t-dev-lib-major.sh` will
+fail at `d04ea18` until this is resolved. Regenerating with `--offline`
+changes exactly one line (`name = "cudarc"` → `name = "cudarc-fathomdb"`,
+line 24); every dependency entry is byte-identical. The baseline was not
+changed here: baseline runs at `ec1cac71` still need the `cudarc` root, so
+the choice (a second lock, a rename at copy time, or replacing the file) is
+a design decision. The runs below therefore used `--offline` with that
+one-line-different lock instead of `--locked`.
+
+### G1 smoke (plan § 8, packaging row)
+
+Default features, cuda-12060, `CUDA_DEVICE_ORDER=PCI_BUS_ID
+CUDA_VISIBLE_DEVICES=0` (NVIDIA GeForce RTX 3090, 00000000:41:00.0),
+`cargo test --offline --lib -F cuda-12060 -- fathomdb_ --test-threads=1`:
+`54 passed; 0 failed; 5 ignored; 0 measured; 75 filtered out`;
+`count-tests check` against `expect --set def --version 12060 --filter
+fathomdb_ --binary unittests:cudarc`: PASS; `unlanded`: PASS. Log SHA-256
+`dae68dee…9616b05`. Guard before 2026-10-12T09:51:27-05:00 and after
+2026-10-12T09:52:19-05:00: driver `580.178.04` on all three GPUs,
+`/usr/local/cuda` → `/usr/local/cuda-12.6`, unchanged.
+
+### Hosted-test run 2 (FathomDB's lock), simulated
+
+FathomDB's `Cargo.lock` at `FATHOMDB_LOCK_SHA` (`4c327cd8`) read from the
+local FathomDB clone with `git show` (not fetched; SHA-256 `5b9e6806…2fac52`),
+then the workflow's steps: `cargo metadata` (which rewrites the lock with a
+`cudarc-fathomdb` root), the workflow's Python check (`FathomDB's entry:
+cudarc 0.19.7`, `PASS: 2 resolved dependencies equal FathomDB's lock`),
+`cargo tree --locked`, and `cargo test --locked --lib --no-default-features
+-F std,driver,dynamic-loading,cuda-12060 -- fathomdb_ --test-threads=1`
+without a GPU: `54 passed; 0 failed; 4 ignored; 28 filtered out`,
+`count-tests` PASS, `unlanded` PASS. The rename does not affect this step:
+the lock is re-resolved before any `--locked` command, and the check
+already accepts `cudarc` or `cudarc-fathomdb`. FathomDB itself still
+vendors the crate as `cudarc` 0.19.7; when it switches to this package its
+lock gains a `cudarc-fathomdb` entry, which the check also accepts.
+
+### Notes for the orchestrator
+
+- The `--locked` break above needs a decision before the push.
+- `examples/07-build-workflow/Cargo.toml` (its own package, not in the
+  crate) depends on `cudarc = { path = "../.." }`, which no longer resolves
+  under the new package name; it needs `package = "cudarc-fathomdb"`. Not
+  changed: outside the `P` file list.
+- Source comments still cite `FATHOMDB-PATCH.md` (`core.rs`, `mem_pool.rs`)
+  and "upstream 0.19.7" (`core.rs`, `SYNC_FALLBACK`). `FATHOMDB.md` says such
+  citations refer to it; the comments themselves are code-tree changes.
+
 ## Code commits since `ec1cac71` (CF-AC-01)
 
 | Commit | Class | Purpose |
@@ -857,3 +952,4 @@ Log SHA-256: G1 `203f1f87…213c8`, 13000 `d32d6d08…7ac7`.
 | `160a0c4` | U | FC6-b GREEN: item 9 tails in the generator template |
 | `e6e5e0f` | U | `new_with_mem_pool` doc: leaked pointers (D-2), graph capture (D-9) |
 | `7a84fce` | W | fork CI: `pure-test-generator` job; pure-test skips generator rows |
+| `d04ea18` | P | item 8: `cudarc-fathomdb` package, `exclude`, README notice, `FATHOMDB.md` |
