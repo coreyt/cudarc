@@ -848,7 +848,7 @@ landed = true
 origin = "test-plan"
 section = "3.2"
 serves = "CF-AC-03"
-red = "no RED: characterization; renamed after the FC5-d finding (design D-2: driver 580 leaves USED_MEM_CURRENT stale after cuMemFree); lands at FC6"
+red = "no RED: characterization; renamed after the FC5-d finding (design D-2: driver 580 leaves USED_MEM_CURRENT stale after cuMemFree); landed at FC6-a"
 cfg = { features = ["driver"] }
 
 [[test]]
@@ -872,12 +872,12 @@ binary = "unittests:cudarc"
 kind = "F+D"
 cells = ["G1"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.3"
 serves = "CF-AC-05"
 red = "no RED: characterization"
-cfg = { features = ["driver"] }
+cfg = { features = ["driver"], arch = ["x86_64"] }
 
 [[test]]
 name = "off_target_choice_equals_the_upstream_inline_rule"
@@ -886,12 +886,12 @@ binary = "unittests:cudarc"
 kind = "D"
 cells = ["G1"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.3"
 serves = "CF-AC-05"
 red = "no RED: equality check"
-cfg = { features = ["driver"] }
+cfg = { features = ["driver"], arch = ["x86_64"] }
 
 [[test]]
 name = "off_target_zero_length_sync_behaviour_matches_the_base"
@@ -900,13 +900,13 @@ binary = "unittests:cudarc"
 kind = "D"
 cells = ["G1"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.3"
 serves = "CF-AC-05"
 red = "no RED: compared with the base"
-cfg = { features = ["driver"] }
-note = "cells: G1 + baseline"
+cfg = { features = ["driver"], arch = ["x86_64"] }
+note = "cells: G1 + baseline; the base result is recorded in status.md (FC6-a) and asserted as constants"
 
 [[test]]
 name = "in_scope_candidates_never_name_another_major"
