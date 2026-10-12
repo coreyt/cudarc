@@ -1,9 +1,12 @@
 # cudarc-fathomdb design (FC2)
 
-- Status: FC2 draft for review R-FC-DES, 2026-10-12.
+- Status: FC2 revision 2, 2026-10-12. Revision 1 (`8259c14`) was reviewed by
+  R-FC-DES (APPROVE-WITH-FIXES); this revision fixes every finding
+  (dispositions in [review.md](review.md)).
 - Inputs:
-  - [requirements](requirements.md) revision 3 (this commit; § 13 lists what
-    changed from revision 2);
+  - [requirements](requirements.md) revision 4 (§ 13 lists the changes made
+    with this design: revision 3 with design revision 1, revision 4 with
+    this revision);
   - [plan](plan.md) § 5 design topics;
   - the vendored delta at FathomDB `third_party/cudarc-0.19.7/`
     (`FATHOMDB-PATCH.md` and its two patches);
@@ -54,16 +57,13 @@ pub struct MemPoolProps {        // Default: max_size 0, release_threshold 0
 pub struct CudaMemPool { /* cu_device, pool: CUmemoryPool */ }
 impl CudaMemPool {
     pub fn create(ordinal: usize, props: &MemPoolProps) -> Result<Self, DriverError>;
-    pub fn ordinal(&self) -> usize;
     pub fn raw(&self) -> sys::CUmemoryPool;
     pub fn reserved_current(&self) -> Result<u64, DriverError>;
     pub fn reserved_high(&self) -> Result<u64, DriverError>;
     pub fn used_current(&self) -> Result<u64, DriverError>;
     pub fn used_high(&self) -> Result<u64, DriverError>;
     pub fn release_threshold(&self) -> Result<u64, DriverError>;
-    pub fn set_release_threshold(&self, bytes: u64) -> Result<(), DriverError>;
-    pub fn reset_high_watermarks(&self) -> Result<(), DriverError>;
-    pub fn max_size(&self) -> Result<Option<u64>, DriverError>; // D-4
+    pub fn max_size(&self) -> Option<u64>; // D-4
     pub fn trim_to(&self, min_bytes_to_keep: usize) -> Result<(), DriverError>;
 }
 // src/driver/safe/core.rs
@@ -75,6 +75,21 @@ impl CudaContext {
     pub fn mem_pool(&self) -> Option<&Arc<CudaMemPool>>;
 }
 ```
+
+**Changes from the vendored API (tree A), each an FC5 commit:**
+
+| Change | Class | Serves |
+| --- | --- | --- |
+| typed reads replace `attribute(CUmemPool_attribute)` | `U` | CF-REQ-04 (no raw attribute values; 64-bit reads; no exhaustive match) |
+| `max_size()` read-back | `U` | CF-REQ-04 / D-4 |
+| `create` returns `NOT_SUPPORTED` for an unsupported nonzero `max_size` | `U` | CF-REQ-04 |
+| `upgrade_device_ptr` `# Safety` text | `U` | CF-REQ-03 |
+
+Nothing else is added. FathomDB reads pool counters through
+`result::mem_pool::get_attribute` (`cuda_pool_policy.rs:1369-1384`), not
+through `attribute()`, so removing it does not affect FathomDB. A setter for
+the release threshold and a high-water reset are not added. No requirement
+needs them, and `result::mem_pool::set_attribute` already serves callers.
 
 Decisions:
 
@@ -111,29 +126,48 @@ Decisions:
   therefore drops it and destroys the pool. T-FAULT covers this with a
   `cfg(test)` seam.
 
-**Leaked pointers (CF-REQ-03).**
+**Leaked pointers (CF-REQ-03).** NVIDIA allows freeing across the two
+allocator families:
 
-- `cuMemFreeAsync` returns memory to whichever pool owns it. A private-pool
-  pointer upgraded onto a context whose mode is `Default` or `Private` is
-  therefore freed correctly.
-- The hazard is the synchronous family. A pool pointer upgraded onto a
-  `Synchronous` context would reach `cuMemFree`, and a `cuMemAlloc` pointer
-  upgraded onto a pool context would reach `cuMemFreeAsync`.
-- Design:
-  - **Doc:** the `# Safety` list of `upgrade_device_ptr` gains: "the
-    allocation must come from the same allocator family as this stream's
-    context: stream-ordered (`AllocMode::Default` or `AllocMode::Private`)
-    or synchronous (`AllocMode::Synchronous`)."
-  - **Debug check:** in debug builds, `upgrade_device_ptr` queries
-    `CU_POINTER_ATTRIBUTE_MEMPOOL_HANDLE` (17). It `debug_assert!`s that the
-    result is non-null exactly when the context allocates stream-ordered.
-    Release builds add no driver call.
-  - **CF-AC-03 RED:** a `#[should_panic]` debug-build test upgrades a
-    private-pool pointer onto a synchronous context. On aarch64 it uses the
-    item-2 decision table seeded through a `cfg(test)` hook. On x86_64 it
-    uses a `cfg(test)` constructor flag that forces `has_async_alloc =
-    false`. The test fails at the item-5 port (no assertion yet) and passes
-    after the fix.
+- `cuMemFree` accepts pointers from `cuMemAllocAsync` and
+  `cuMemAllocFromPoolAsync`, without implicit synchronization: "Callers must
+  ensure that all accesses to these pointer have completed before invoking
+  ::cuMemFree" (H12.6, `cuMemFree`).
+- PG13.4: "Memory allocated with cudaMalloc() can be freed with with
+  cudaFreeAsync()" (NVIDIA's typo), and memory from `cudaMallocAsync` "can
+  be freed with cudaFree()".
+
+`cuMemFreeAsync` returns pool memory to whichever pool owns it. cudarc's
+synchronous drop synchronizes the slice's stream before `cuMemFree`
+(`core.rs:856-875`). So a private-pool pointer upgraded onto any context is
+freed correctly, provided every access is ordered before the free.
+
+Revision 1 of this design assumed a cross-family hazard, and so does the
+rationale of vendored item 2 (`FATHOMDB-PATCH.md`). NVIDIA's text above
+removes that premise. Item 2's per-device table stays as carried: it keeps
+all wrappers of one device on one allocator, which is consistent and
+measured on the Orin. `FATHOMDB.md` states the corrected rationale.
+
+Design:
+
+- **No new check.** `upgrade_device_ptr` keeps its behaviour.
+- **The `# Safety` list** states the real preconditions, citing H12.6 and
+  PG13.4:
+  - the pointer belongs to this stream's device;
+  - it is the base of an allocation of at least `len * size_of::<T>()`
+    bytes, or 0 with `len == 0`;
+  - every access by other streams or by host code is ordered before the
+    slice's free;
+  - it may come from either allocator family.
+- **CF-AC-03** is a doc change with characterization tests. These tests are
+  not RED, because no behaviour changes. On G1:
+  - a private-pool pointer is leaked and upgraded onto a `CudaContext::new`
+    context, and after drop and a synchronize the private pool's
+    `USED_MEM_CURRENT` is 0;
+  - a private-pool pointer is leaked and freed with `result::free_sync`
+    after a synchronize, giving the same result;
+  - a `result::malloc_sync` pointer is upgraded onto a private context and
+    dropped, with no error and `check_err()` clean.
 
 ## 3. D-3 Stream ordering and reuse
 
@@ -169,15 +203,22 @@ Decisions:
     reads those bytes as `reserved`, which must be 0.
   - Driver ≥ 13020 and bindings ≥ 13020: after creation, read
     `CU_MEMPOOL_ATTR_MAX_POOL_SIZE` (13, a `cuuint64_t`). The value "may be
-    higher than what was initially passed" (TYPES13.4); a value lower than
-    requested is an error.
-  - `max_size()` returns that read-back value, or `None` where it cannot be
-    read.
-- **The driver-version gate:** attributes 9–15 are requested only when
-  `cuDriverGetVersion` ≥ 13020. The 13.2 and 13.3 Driver API pages list only
-  attributes 1–8 for `cuMemPoolGetAttribute`, and 13.4 lists 9–15. The gate
-  is proved on G3 by a `cfg(test)` counter (CF-AC-04b), and on G5b by a real
-  read-back (CF-AC-04c).
+    higher than what was initially passed" (TYPES13.4). If the read fails,
+    `create` still succeeds and `max_size()` returns `None`. Only a
+    successful read below a nonzero request makes `create` fail
+    (`CUDA_ERROR_INVALID_VALUE`, after destroying the pool).
+  - `max_size()` returns the read-back value cached at creation, or `None`.
+- **The driver-version gate** rests on the headers, from which the bindings
+  are generated:
+  - Attributes 9–14 first appear in the 13.2 header (bindings 13020). They
+    are requested only when the bindings are 13020+ **and**
+    `cuDriverGetVersion` ≥ 13020.
+  - Attribute 15 first appears in the 13.4 header (bindings 13040). It needs
+    13040+ on both sides, and the fork never requests it.
+  - The online Driver API pages are not used as evidence. The archived
+    13.2.0 page renders as 13.1.1.
+  - The gate is proved on G3 by a `cfg(test)` counter (CF-AC-04b), and on
+    G5b by a real read-back (CF-AC-04c).
 - **64-bit values:** attributes 4–8 and 13 are `cuuint64_t`; the others are
   `int` (H12.6, TYPES13.4). Typed reads use the matching width.
 - **Concurrent exhaustion:** each failing `cuMemAllocFromPoolAsync` returns
@@ -198,14 +239,21 @@ Decisions:
   reserved, the pool keeps "at least minBytesToKeep bytes reserved" (DRV13.4,
   `cuMemPoolTrimTo`). Frees whose completion the host has not observed count
   as outstanding.
-- **The CF-AC-02 trim criterion, after a synchronize,** with reserved
-  memory above max(k, used) before the call: k ≤ `RESERVED_MEM_CURRENT` ≤
-  max(k, `USED_MEM_CURRENT`) + one granule. Requirements revision 3 records
-  that change (§ 13).
-- **Granularity:** NVIDIA gives none ("may happen at different granularity",
-  H12.6). The test plan measures the granule on G1, G5b and G6 as the step
-  of `RESERVED_MEM_CURRENT` after a one-byte allocation, and uses that
-  value.
+- **Fragmentation.** The driver "cannot release OS allocations that back
+  outstanding asynchronous allocations" (DRV13.4, TrimTo). Live
+  allocations spread over several OS chunks therefore keep all those chunks
+  reserved.
+- **The CF-AC-02 bounds** are tested with the live set limited to one
+  allocation. The test frees everything, synchronizes, makes one
+  allocation, and then applies the threshold or trim. After a synchronize,
+  with the precondition reserved > max(k, used):
+  - k ≤ `RESERVED_MEM_CURRENT` ≤ max(k, `USED_MEM_CURRENT`) + one chunk;
+  - for the threshold, the same bound with T.
+- **Chunk size:** NVIDIA gives none ("may happen at different granularity",
+  H12.6). The test plan measures it on G1, G5b and G6 as the step of
+  `RESERVED_MEM_CURRENT` for allocations of 1 B, 1 MiB, 32 MiB and 256 MiB,
+  and uses the largest step that a single allocation of the test's size
+  produces.
 
 ## 6. D-6 Thread safety
 
@@ -240,6 +288,13 @@ lack a feature. It never lists the new versions that have it, so a future
 #[cfg(not(any(feature = "cuda-11040", /* … */ feature = "cuda-13010")))]
 //   → CUmemLocation has the union (13020+), and any later version
 ```
+
+When several `cuda-*` features are enabled together (feature unification;
+upstream issue #525), "old" wins in this form, while `build.rs` sets
+`CUDA_MAJOR_VERSION` from the newest feature or `CUDARC_CUDA_VERSION`. A
+mismatch gives a compile error (a missing field), never a silent wrong
+layout. Item 9 takes its major only from `CUDA_MAJOR_VERSION`, the same
+source `get_lib_name_candidates` uses.
 
 Upstream's pattern lists the new versions instead
 (`src/driver/safe/unified_memory.rs:186-221` names 13020, 13030 and 13040).
@@ -317,12 +372,20 @@ as "not compiled (upstream cfg)" (CF-REQ-12).
 - **Decision:** document this on `new_with_mem_pool`. Graph memory is outside
   the pool's budget, and callers who need a bound on captured memory must
   size their graphs. No capture-specific code is added.
-- **T-CAPTURE** checks three things:
+- **T-CAPTURE** checks three things, so it cannot pass vacuously:
   - alloc and free inside a capture on a private context instantiate and
     launch;
-  - `USED_MEM_CURRENT` of the private pool does not change from graph
-    allocations;
-  - the default pool is untouched.
+  - `cuDeviceGetGraphMemAttribute(CU_GRAPH_MEM_ATTR_USED_MEM_CURRENT)` rises
+    while the graph's allocation is live, a positive effect;
+  - the private pool's `USED_MEM_CURRENT` and the default pool do not change
+    from graph allocations.
+- **Unconfirmed:** whether an allocation node accepts the parameters of a
+  pool with nonzero `maxSize`. If capture fails, the test records the error
+  and the design documents the limit. No capture-specific code is added.
+- **Tegra risk:** graph memory needs its own virtual-address reservation,
+  the same failure class as the default pool on a fragmented Orin. G6 runs
+  T-CAPTURE; a failure there is recorded as a known Tegra limit for
+  FathomDB.
 
 **PR #594** (open, "capture-scoped CUDA graph memory pool"):
 
@@ -387,8 +450,13 @@ as "not compiled (upstream cfg)" (CF-REQ-12).
   13.0, except attributes 9–15 and location types 5 and 6, which only the
   gated code (§ 4) can request.
 - **Layouts:** compatible (§ 8).
-- **Test counts:** the full RUN/UNMEASURED map, and the per-module counts
-  at `ec1cac71`, go into `test-plan.md`. Upstream `--lib` totals, ignored
+- **Test counts:** these go into `test-plan.md`, which requirements
+  revision 4 names for them (CF-AC-04a, CF-AC-04b):
+  - the per-test dependency table (functions, values and layouts, each with
+    its introducing version);
+  - the RUN/UNMEASURED map;
+  - the 13.4 deprecation status of each fork function;
+  - the per-module counts at `ec1cac71`. Upstream `--lib` totals, ignored
   tests included:
 
   | Feature set | 12060 | 13000/13010 | 13020–13040 |
@@ -420,7 +488,10 @@ as "not compiled (upstream cfg)" (CF-REQ-12).
 - **Hosted test job:** runs the `fathomdb_` modules with the default lock,
   then again with FathomDB's `Cargo.lock`. That lock is fetched from the
   FathomDB pin commit recorded in the workflow (`FATHOMDB_LOCK_SHA`), from
-  the public repository by exact sha.
+  the public repository by exact sha, and its SHA-256 is recorded. Cargo
+  re-resolves entries that do not match the cudarc root. The job therefore
+  asserts, from `cargo metadata`, that every resolved cudarc dependency's
+  version equals FathomDB's lock entry, and fails otherwise.
 - **CI receipt:** `gh api` export of the run (run id, `head_sha`, each job's
   conclusion) into `fathomdb/qualification/`.
 - **Baseline lock (CF-REQ-12):** FC4 generates one `Cargo.lock` at
@@ -500,13 +571,33 @@ query reports the built major's line:
 | cublas | `cublasGetProperty(MAJOR)` | 12 | 13 |
 | cublasLt | `cublasLtGetProperty(MAJOR)` | 12 | 13 |
 | nvrtc | `nvrtcVersion` | major 12 | major 13 |
-| cupti | `cuptiGetVersion` | < 130000 (19–28 seen) | v / 10000 = 13 |
-| cufft | `cufftGetProperty(MAJOR)` | 11 | 12 |
-| cusolver | `cusolverGetProperty(MAJOR)` | 11 | 12 |
+| cupti | `cuptiGetVersion` | 19 ≤ v < 130000 (12.0 is 19 and 11.8 is 18, per the 12.6 `cupti_version.h`) | v / 10000 = 13 |
+| cufft | `cufftGetProperty(MAJOR)` | 11 (CUDA 11.x ships `.so.10`) | 12 |
+| cusolver | `cusolverGetProperty` | 11.4.2 ≤ v < 12 | 12 |
 | cusparse | `cusparseGetProperty(MAJOR, MINOR)` | 12.0–12.5 | 12.6 or later |
-| curand | `curandGetVersion` | 10.3.x (10300–10399) | ≥ 10400 |
-| cufile | `cuFileGetVersion` (exported since 1.11) | ≤ 1140 | ≥ 1150 |
-| cusolverMg | none exported | versioned name only | versioned name only |
+| curand | `curandGetVersion` | 10301–10399 | ≥ 10400 |
+| cufile | `cuFileGetVersion`, if the symbol exists | 1110–1140 with the symbol; no symbol: accepted, reason `NoVersionQuery` | ≥ 1150; no symbol: rejected |
+| cusolverMg | none exported | versioned name only (known gap below) | versioned name only |
+
+Lower bounds keep CUDA 11.x libraries out of 12.x builds. CUDA 11.x shares
+some sonames with 12.x: cuSOLVER and cuSolverMg `.so.11`, cuRAND `.so.10`
+and cuFile `.so.0`. The bounds use the earliest CUDA 12 versions on PyPI
+(cuSOLVER 11.4.2, cuRAND 10.3.1) and the CUPTI header list.
+
+Known gaps:
+
+- **cuSolverMg `.so.11`** exists in both CUDA 11.x and 12.x and exports no
+  version query, so a CUDA 11 cuSolverMg on the path of a 12.x build is not
+  detected. FathomDB does not use cuSolverMg.
+- **cuFile before 1.11** (CUDA 11.x to 12.5) may export no
+  `cuFileGetVersion`. Whether it does is UNCONFIRMED, and FC3 measures the
+  cu12 12.3 and 12.5 wheels. A cuFile without the symbol is accepted for
+  M = 12 with reason `NoVersionQuery`, in the report and in its
+  documentation. It is rejected for M = 13, since every 13.x cuFile is
+  1.15 or later.
+- **Future majors:** the 13.x ranges are open-ended, so a future CUDA 14
+  library that keeps the same soname would be accepted by a 13.x build.
+  This trade-off is accepted and noted for the second proposal (FC9b).
 
 - **Measured samples** (12.6 apt / 12.8 wheel / cu13 wheel):
   - cudart: 12060 / 12080 / 13000
@@ -537,9 +628,31 @@ query reports the built major's line:
   13.5) are accepted for M = 13, since the 13.x ranges are open-ended.
 - **Rejected handles are closed.** Measured: after `dlclose`,
   `/proc/self/maps` no longer lists cuBLAS and cuBLASLt, cuSPARSE and
-  nvJitLink, cuRAND, cuFFT, or the cuSOLVER chain. The exception is
-  `libcufile.so.0`, which is `DF_1_NODELETE`. T-DEV skips the unmap
-  assertion for cuFile, and the report still names the accepted file.
+  nvJitLink, cuRAND, cuFFT, or the cuSOLVER chain.
+- **Already-loaded objects.** glibc returns an already-loaded object for a
+  bare soname. That object might have been loaded earlier in the process by
+  another component (for example PyTorch's cu13 `libcurand.so.10`), or kept
+  by `DF_1_NODELETE` (`libcufile.so.0`, which stays mapped after
+  `dlclose`). So before opening each candidate name, the loader probes it
+  with `RTLD_NOLOAD`:
+  - if an object is already loaded, its version is checked;
+  - if that object belongs to the other major's line, loading fails with
+    `RejectReason::AlreadyLoadedWrongVersion`. Another file of the same
+    soname cannot be opened in that process.
+
+  This is a limit, not something to work around, and it is documented.
+  T-DEV and G8 expect the typed error in these cases (§ 13).
+- **Transitive dependencies (Linux).** An accepted library's own
+  dependencies may pull in a wrong-line library through the loader. For
+  example, CUDA 12's `libcusolver.so.11` needs `libcusparse.so.12`, which
+  can resolve to the cu13 copy.
+  - After an accepted load, the loader compares the link map before and
+    after (`dl_iterate_phdr`, an `extern` declaration).
+  - For every newly mapped object whose soname is in scope, it runs that
+    library's version check.
+  - A wrong line fails the load with `RejectReason::WrongMajorDependency`,
+    naming the dependency. The handle is closed.
+  - Windows has no equivalent check, which is a known gap.
 
 **API** (upstream-shaped, in each `src/<lib>/sys/mod.rs`, and in
 `bindings_generator/src/merge.rs` so regeneration keeps it):
@@ -554,18 +667,45 @@ pub fn loaded_library() -> Option<crate::LoadedLibrary>;    // after a load
 
 ```rust
 // src/lib.rs
-pub struct LibLoadError { pub library: &'static str, pub major: u32,
+#[derive(Clone, Debug)]
+pub struct LibLoadError { pub library: &'static str, pub cuda_major: u32,
                           pub tried: Vec<(String, RejectReason)> }
-pub enum RejectReason { NotFound, WrongVersion(String), NoVersionQuery }
-pub struct LoadedLibrary { pub library: &'static str, pub path: Option<PathBuf>,
-                           pub version: Option<String> }
+#[derive(Clone, Debug)]
+pub enum RejectReason { NotFound, LoadFailed(String), WrongVersion(LibVersion),
+                        AlreadyLoadedWrongVersion(LibVersion),
+                        WrongMajorDependency { soname: String, version: LibVersion } }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct LibVersion { pub major: u32, pub minor: u32, pub patch: Option<u32> }
+#[derive(Clone, Debug)]
+pub struct LoadedLibrary {
+    pub library: &'static str,
+    pub cuda_major: u32,              // the built major this load was checked against
+    pub opened_as: String,            // candidate name that was opened
+    pub path: Option<String>,         // canonical path (realpath of dli_fname)
+    pub version: Option<LibVersion>,  // None only for NoVersionQuery
+    pub note: Option<RejectReason>,   // e.g. NoVersionQuery for an old cuFile
+}
 pub fn get_lib_name_candidates(lib_name: &str) -> Vec<String>;   // unchanged signature
 fn lib_candidates(os: TargetOs, ptr_width: u32, lib: &str, major: u32, minor: u32) -> Vec<String>; // pure
 ```
 
-- **Resolved path:** on Linux, `dladdr` of the version-query symbol gives
-  `dli_fname`. On Windows, `GetModuleFileNameW` of the module handle. Both
-  are declared with `extern` blocks, so no new crate dependency is added.
+- **Resolved path:**
+  - **Linux:** `dladdr` of an exported symbol gives `dli_fname`, and the
+    report canonicalizes it with `realpath`, so it compares directly with
+    `/proc/self/maps`. The symbol is the version query, or any exported
+    function for cuSolverMg, for example `cusolverMgCreate`.
+  - **Windows:** `GetModuleFileNameW` of the module handle.
+
+  All of these are declared with `extern` blocks, so no new crate
+  dependency is added.
+- **Memoization** (a documented change from upstream, listed in
+  `FATHOMDB.md` and in the second proposal):
+  - `try_culib` stores `OnceLock<Result<Library, LibLoadError>>`, so a
+    failure is memoized and not retried. Upstream's panicking `get_or_init`
+    retries on the next call.
+  - `LibLoadError` is `Clone`.
+  - `is_culib_present()` now performs and keeps the real load. Upstream
+    probes the candidates and drops the handle.
 - **Driver:** `crate::driver::sys::loaded_library()` reports the driver's
   file and `cuDriverGetVersion` without changing how it loads.
 - **Linked builds:** under `dynamic-linking` or `static-linking`, the report
@@ -576,7 +716,19 @@ fn lib_candidates(os: TargetOs, ptr_width: u32, lib: &str, major: u32, minor: u3
   proposal. Out-of-scope names and 11.x builds return exactly the base
   output (T-UNIT).
 - **`no-std`:** the report types use `no_std_compat` like the rest of the
-  crate. Paths become `String` under `no-std`.
+  crate.
+- **Files changed for item 9:**
+  - `src/lib.rs`;
+  - the `sys/mod.rs` loaders of the 11 in-scope libraries: `src/runtime`,
+    `cublas`, `cublaslt`, `nvrtc`, `cupti`, `cufft`, `cusolver`,
+    `cusolvermg`, `cusparse`, `curand` and `cufile`;
+  - `src/driver/sys/mod.rs`, for `loaded_library()` only;
+  - the template `bindings_generator/src/merge.rs`.
+
+  The cuDNN, NCCL, cuTENSOR and NVTX loaders are unchanged. A unit test in
+  the generator renders the template's loader tail for one library and
+  compares it with the checked-in file. If the generator crate cannot host
+  that test, FC3 moves it to a fork-CI script.
 
 ## 13. Requirements revision 3 (made in this commit)
 
@@ -600,6 +752,22 @@ fn lib_candidates(os: TargetOs, ptr_width: u32, lib: &str, major: u32, minor: u3
 - **CF-REQ-11 table:** the claim that the cu13 cuRAND and cuSPARSE are
   "ABI-compatible successors" is removed.
 
+### Requirements revision 4 (made with design revision 2)
+
+- **CF-REQ-03 / CF-AC-03:** the hazard is removed (§ 2). The requirement is
+  now a doc correction backed by characterization tests, which need no RED.
+- **CF-AC-02:** bounds hold with the live set limited to one allocation,
+  plus one chunk.
+- **CF-AC-04a/04b:** the per-test dependency table and the 13.4 status list
+  live in `test-plan.md`.
+- **CF-REQ-11:** lower bounds for 12.x; already-loaded and dependency
+  checks; cuFile without a query symbol; Windows CUPTI exempt in T-UNIT;
+  structured report.
+- **G8:** with the cu13 cuRAND/cuSPARSE first on the path, they are
+  rejected. Another sub-cell preloads cu13 `libcurand.so.10` and expects
+  `AlreadyLoadedWrongVersion`. A third gives CUDA 12 cuSOLVER with cu13
+  cuSPARSE first and expects `WrongMajorDependency`.
+
 ## 14. Open items for the test plan (FC3)
 
 1. Measure maxSize semantics on G1: reserved versus used, and the error on
@@ -611,3 +779,6 @@ fn lib_candidates(os: TargetOs, ptr_width: u32, lib: &str, major: u32, minor: u3
 5. Pick G5b's driver branch from what Ubuntu 24.04 and NVIDIA's repository
    offer for the T4.
 6. Record the 13.4 Driver API deprecation status of each fork function.
+7. Measure whether `cuFileGetVersion` is exported by the cu12 12.3 and 12.5
+   cuFile wheels.
+8. Measure the chunk step at the four allocation sizes (§ 5).

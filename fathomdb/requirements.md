@@ -1,9 +1,12 @@
 # cudarc-fathomdb requirements (FC1)
 
-- Status: FC1 revision 3, 2026-10-12. Revision 1 (`f774dc3`) was reviewed by
-  R-FC-REQ (APPROVE-WITH-FIXES); revision 2 (`761d7a4`) fixed every finding
-  (dispositions in [review.md](review.md)). Revision 3 applies the FC2
-  research ([design](design.md) § 13). The file finalizes
+- Status: FC1 revision 4, 2026-10-12.
+  - Revision 1 (`f774dc3`) was reviewed by R-FC-REQ (APPROVE-WITH-FIXES).
+  - Revision 2 (`761d7a4`) fixed every finding.
+  - Revision 3 (`8259c14`) applied the FC2 research.
+  - Revision 4 applies the R-FC-DES findings ([design](design.md) § 13).
+
+  Dispositions are in [review.md](review.md). The file finalizes
   [plan](plan.md) § 4. Where it and plan § 4 differ, this file governs.
 - Branch: `fathomdb/0.19.10` of `coreyt/cudarc`, cut from upstream tag
   `v0.19.10` (`ec1cac71`).
@@ -109,15 +112,20 @@ driver-only feature set) and G6, each clause has its own test:
   second thread), and after drop. All reads are equal.
 - **Accounting.** After drop and a synchronize, `USED_MEM_CURRENT` and
   `RESERVED_MEM_CURRENT` are both 0.
+- **Live set for the bounds.** The driver cannot release an OS chunk that
+  backs a live allocation. So the threshold and trim tests first free
+  everything, synchronize, and leave exactly one live allocation. "One
+  chunk" is the reservation step `test-plan.md` measures for that
+  allocation size (design D-5).
 - **Threshold.** The test first drives `RESERVED_MEM_CURRENT` above
   max(T, `USED_MEM_CURRENT`) and asserts that precondition. After a
-  synchronize, `RESERVED_MEM_CURRENT` ≤ max(T, `USED_MEM_CURRENT`), rounded
-  up to the allocation granularity.
+  synchronize, `RESERVED_MEM_CURRENT` ≤ max(T, `USED_MEM_CURRENT`) + one
+  chunk.
 - **Trim.** `trim_to(k)` sets a floor, not a ceiling: the pool keeps at
   least k bytes reserved if it had more (DRV13.4, `cuMemPoolTrimTo`). With
   the precondition `RESERVED_MEM_CURRENT` > max(k, `USED_MEM_CURRENT`)
   before the call, after it and a synchronize:
-  k ≤ `RESERVED_MEM_CURRENT` ≤ max(k, `USED_MEM_CURRENT`) + one granule.
+  k ≤ `RESERVED_MEM_CURRENT` ≤ max(k, `USED_MEM_CURRENT`) + one chunk.
 - **Capacity.**
   - Requests whose total is at most the cap succeed.
   - A request that would exceed the cap returns
@@ -138,16 +146,35 @@ driver-only feature set) and G6, each clause has its own test:
 
 ### CF-REQ-03 Leaked pointers [REQ31-02]
 
-A pointer leaked from a private-pool context (`CudaSlice::leak`) must never
-silently become valid input to another context's allocator. Design D-2
-either rejects that case or states it as an explicit safety precondition.
-The `# Safety` list above `pub unsafe fn upgrade_device_ptr`
-(`src/driver/safe/core.rs:2594-2599` at `ec1cac71`) must stop implying that
-any valid allocation on the device is acceptable.
+NVIDIA allows freeing across the two allocator families. `cuMemFree`
+accepts `cuMemAllocAsync` and `cuMemAllocFromPoolAsync` pointers once all
+accesses have completed, and `cuMemFreeAsync` accepts `cuMemAlloc` pointers
+(CUDA 12.6 `cuda.h`, `cuMemFree`; Programming Guide 13.4). A pointer leaked
+from a private-pool context (`CudaSlice::leak`) and upgraded onto any
+context of the same device is therefore freed correctly. The `# Safety`
+list above `pub unsafe fn upgrade_device_ptr`
+(`src/driver/safe/core.rs:2590-2599` at `ec1cac71`) must state the real
+preconditions:
 
-**CF-AC-03.** The test or doc test chosen in FC2 is RED at the commit before
-the fix. The corrected `# Safety` text names the pool or context the pointer
-must come from.
+- same device;
+- an allocation base of at least `len * size_of::<T>()` bytes, or 0 with
+  `len == 0`;
+- every access ordered before the free;
+- either allocator family.
+
+It must cite NVIDIA.
+
+**CF-AC-03.** The corrected `# Safety` text is present. Characterization
+tests on G1 pass (design D-2):
+
+- a private-pool pointer upgraded onto a `CudaContext::new` context;
+- a private-pool pointer freed with `result::free_sync` after a
+  synchronize;
+- a `result::malloc_sync` pointer upgraded onto a private context.
+
+After each, the private pool's `USED_MEM_CURRENT` returns to 0 and
+`check_err()` is clean. No behaviour changes, so these tests need no RED;
+the TDD exception is recorded in `status.md`.
 
 ### CF-REQ-04 Every CUDA feature [REQ31-03]
 
@@ -174,16 +201,17 @@ receipt's `head_sha` equals that commit, and it covers:
 - the hosted test job and the T-UNIT job (CF-AC-11);
 - the name-agnostic publish dry run.
 
-Removed or deprecated APIs: D-F1 lists every Driver API function the fork
-calls, with its deprecation status in the CUDA 13.4 Driver API reference.
+Removed or deprecated APIs: `test-plan.md` lists every Driver API function
+the fork calls, with its deprecation status in the CUDA 13.4 Driver API
+reference (design D-F1).
 R-FC-CODE records a grep of the fork diff showing that none of them is
 deprecated or removed.
 
 **CF-AC-04b (G3).** The G3 test set passes on driver 580 for builds with
 `CUDARC_CUDA_VERSION` = 12060, 13000, 13010, 13020, 13030 and 13040.
 
-- Design D-F1 lists what each test depends on, each item with the CUDA
-  version that introduced it:
+- `test-plan.md` lists what each test depends on (design D-F1), each item
+  with the CUDA version that introduced it:
   - every driver function it calls, checked against `nm -D` of
     `libcuda.so.580.178.04`;
   - every enum, attribute and flag value it passes;
@@ -397,11 +425,23 @@ These rules apply to CUDA 12.x and 13.x builds:
    query through `dlsym` on the candidate's own handle, so it works even
    where the binding is cfg-limited (`cuFileGetVersion` before 12030).
    Windows CUPTI keeps upstream's candidates (year-named DLLs; D-F4).
+   For 12.x the accepted lines have lower bounds, so CUDA 11.x libraries
+   that share a soname (cuSOLVER, cuRAND, cuFile, CUPTI) are rejected.
+   cuSolverMg `.so.11` is a known gap (D-F4). A cuFile without
+   `cuFileGetVersion` is accepted for 12.x with reason `NoVersionQuery` and
+   rejected for 13.x.
 3. **Same-soname libraries are checked by version line.** For cuSPARSE,
    cuRAND and cuFile, a library found by its versioned name is also
    version-checked against the built major's line (D-F4 ranges). A library
    of the other major's line is rejected and closed, on the evidence above.
    The 13.x ranges are open-ended, so later 13.x minors are accepted.
+   - **Already loaded.** An object already loaded under that soname (by
+     another component, or kept by `DF_1_NODELETE`) is checked first. If it
+     is wrong, loading fails with a typed error, because the process cannot
+     open another file of that soname.
+   - **Dependencies (Linux).** Libraries that an accepted library pulls in
+     and that are in scope are version-checked. A wrong one fails the load
+     with a typed error naming the dependency.
 4. **A typed, non-panicking path.** For each in-scope library, there is a
    fallible check that applies exactly the acceptance rule `culib()` uses
    and returns a typed error naming:
@@ -416,8 +456,12 @@ These rules apply to CUDA 12.x and 13.x builds:
    upstream-shaped.
 5. **Loaded-library report.** A public API exposes, for each in-scope
    library loaded under `dynamic-loading`/`fallback-dynamic-loading`:
-   - the resolved file actually loaded;
-   - its reported version (or "none" for libraries without a query).
+   - the CUDA major it was checked against;
+   - the name opened;
+   - the canonical path of the file actually loaded, comparable with
+     `/proc/self/maps`;
+   - its structured version (major, minor, patch), or "none" with the
+     reason.
 
    The report also covers the driver (resolved file and
    `cuDriverGetVersion`), without changing how the driver loads. Under
@@ -439,11 +483,13 @@ These rules apply to CUDA 12.x and 13.x builds:
   runs the item-9 test module by name. Its receipt asserts a nonzero count
   per feature, equal to the expected count in the test plan. The tests
   check:
-  - for 12.x and 13.x features, every in-scope library on Linux and Windows:
-    the candidate list has no other major's versioned name, and versioned
-    names come first;
-  - the version-acceptance function accepts M and rejects M ± 1 for every
-    library with a query;
+  - for 12.x and 13.x features, every in-scope library on Linux and Windows
+    except Windows CUPTI (which keeps upstream's candidates): the candidate
+    list has no other major's versioned name, and versioned names come
+    first;
+  - the version-acceptance function accepts the built major's line and
+    rejects the lines of M − 1 and M + 1 for every library with a query,
+    including the CUDA 11.x versions that share a soname;
   - candidate lists for `cuda`, `nvcuda`, `cudnn`, `nccl`, `cutensor` and
     `nvToolsExt`, and for every library under 11.x features, equal those
     at `ec1cac71`;
@@ -462,6 +508,9 @@ These rules apply to CUDA 12.x and 13.x builds:
     mapping remains.
   - (c) No acceptable library at all: the check returns the typed error,
     and the process neither panics nor aborts.
+  - (d) A 12060 build with cu13 `libcufile.so.0` first on the path: it is
+    rejected, stays mapped (`DF_1_NODELETE`), and the check returns
+    `AlreadyLoadedWrongVersion`.
 - **Driver with only `libcuda.so.1`** (a lab VM or container where no
   `libcuda.so` dev link exists). The driver loads at `C` as at `ec1cac71`.
 - **G8 (`windchill3`, scratch venvs).** For each sub-cell, the loaded file
@@ -473,9 +522,14 @@ These rules apply to CUDA 12.x and 13.x builds:
   - 13000 build with cuBLAS 13.0.x: the cuBLAS tests pass;
   - 12060 build with the cu13 wheels' `libcurand.so.10` and
     `libcusparse.so.12` first on the path: both are rejected by version
-    (rule 3). The process then maps the system's CUDA 12.6 cuRAND and
-    cuSPARSE (`/proc/self/maps`), and the report names them. With no CUDA 12
-    copy reachable, the check returns the typed error.
+    (rule 3) and unmapped. The unversioned names then resolve to the
+    system's CUDA 12.6 copies, which `/proc/self/maps` shows and the report
+    names. With no CUDA 12 copy reachable, the check returns the typed
+    error.
+  - 12060 build in a process that first `dlopen`s the cu13
+    `libcurand.so.10`: the check returns `AlreadyLoadedWrongVersion`.
+  - 12060 build loading cuSOLVER with the cu13 `libcusparse.so.12` first on
+    the path: the check returns `WrongMajorDependency` naming cuSPARSE.
 
 ### CF-REQ-12 Honest test accounting [REQ31-11]
 

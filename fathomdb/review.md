@@ -68,3 +68,35 @@ Every review is an independent Opus subagent, read-only (plan § 9).
 | L7 | Orin host guard undefined | § 2 defines it (L4T, JetPack, `/usr/local/cuda`) |
 | L8 | report scope undefined for linked builds and the driver | rule 5 |
 | L9 | "G1 (12.6)" ambiguous for the proposal | "G1's host and build, against `proposal/mem-pool`" |
+
+## R-FC-DES, 2026-10-12
+
+- Model: `opus` (Claude Opus), general-purpose, read-only.
+- Reviewed: `fathomdb/design.md` revision 1 at `8259c14`, with requirements
+  revision 3, plan § 5, the vendored delta, FathomDB Slice 30 design
+  §§ 3.1 and 4.5, the Slice 31 plan, `src/` at `ec1cac71`, and the FC2
+  research notes and scratch evidence.
+- Verdict: APPROVE-WITH-FIXES. No duplicated upstream functionality
+  (CF-AC-06). Every finding is fixed in design revision 2 and requirements
+  revision 4; none was deferred.
+
+| Finding | Defect (short) | Disposition |
+| --- | --- | --- |
+| H1 | the cross-family free hazard is false: `cuMemFree` accepts pool pointers (CUDA 12.6 `cuda.h`, `cuMemFree`), PG13.4 allows both directions; the debug check would reject valid input | debug check and `should_panic` RED dropped; CF-REQ-03 is a cited doc correction with characterization tests; item 2's rationale corrected in `FATHOMDB.md` (item kept: one allocator per device, measured) |
+| M1 | 12.x ranges admitted CUDA 11.x libraries sharing a soname | lower bounds (cuSOLVER ≥ 11.4.2, cuRAND ≥ 10301, CUPTI ≥ 19 from the 12.6 header); cuSolverMg `.so.11` a recorded gap; M−1 cases in T-UNIT |
+| M2 | glibc reuses an already-loaded object for a bare soname (NODELETE cuFile; a library another component loaded) | `RTLD_NOLOAD` probe; `AlreadyLoadedWrongVersion`; T-DEV (d) and a preloaded G8 sub-cell |
+| M3 | transitive dependencies unchecked (`libcusolver.so.11` needs `libcusparse.so.12`) | Linux link-map diff after load; `WrongMajorDependency`; G8 sub-cell; Windows a recorded gap |
+| M4 | cuFile without `cuFileGetVersion` unspecified | accepted for 12.x with `NoVersionQuery`, rejected for 13.x; FC3 measures 12.3/12.5 wheels |
+| M5 | trim/threshold upper bounds ignored fragmentation | live set limited to one allocation; bound + one chunk; chunk step measured at four sizes |
+| M6 | per-test dependency table and 13.4 status list promised in design, absent | CF-AC-04a/04b now name `test-plan.md` |
+| M7 | gate evidence misattributed (archived 13.2 page renders as 13.1.1); attribute 15 gated at 13020; read failure unspecified | gate rests on headers; attribute 15 needs 13040 and is never requested; read error gives `None`, only a successful low read fails `create` |
+| L1 | report version unstructured; path not canonical; cuSolverMg has no query symbol | structured `LibVersion`, `cuda_major`, `opened_as`, canonical path; any exported symbol for `dladdr` |
+| L2 | memoization and `is_culib_present` changes unspecified | `Clone` error, memoized failure, `LoadFailed`; behaviour changes listed for `FATHOMDB.md` and the proposal |
+| L3 | Windows CUPTI contradicts T-UNIT | exempted explicitly |
+| L4 | T-CAPTURE could pass vacuously; Tegra graph-memory risk unmentioned | positive graph-memory `USED_MEM_CURRENT` assertion; failure outcome stated; Tegra risk added |
+| L5 | FathomDB-lock run may silently re-resolve | `cargo metadata` assertion against the lock; lock SHA-256 recorded |
+| L6 | unrequested API growth | setters and `ordinal()` dropped; FC5 API change table with class and requirement |
+| L7 | multi-feature cfg mismatch | noted: compile error, never silent; item 9 major from `CUDA_MAJOR_VERSION` |
+| L8 | aarch64 RED seeded a shared table | moot (H1) |
+| L9 | open-ended 13.x ranges accept a future same-soname CUDA 14 library | recorded trade-off, FC9b note |
+| L10 | hand edits vs template could drift; files unnamed | files named; template-vs-file unit test (or fork-CI script) |
