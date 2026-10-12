@@ -1621,6 +1621,23 @@ pub mod mem_pool {
         sys::cuMemPoolSetAttribute(pool, attr, value).result()
     }
 
+    /// Allocate memory from a pool with stream-ordered semantics.
+    ///
+    /// See [cuda docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MALLOC__ASYNC.html#group__CUDA__MALLOC__ASYNC_1g0968906e6892e4f7e0e04ef5e5e0b416)
+    ///
+    /// # Safety
+    /// 1. Pool and stream must be valid.
+    /// 2. The returned memory is uninitialized.
+    pub unsafe fn alloc_async(
+        pool: sys::CUmemoryPool,
+        num_bytes: usize,
+        stream: sys::CUstream,
+    ) -> Result<sys::CUdeviceptr, DriverError> {
+        let mut dptr = MaybeUninit::uninit();
+        sys::cuMemAllocFromPoolAsync(dptr.as_mut_ptr(), num_bytes, pool, stream).result()?;
+        Ok(dptr.assume_init())
+    }
+
     /// Test-only counter of attribute requests that a 13.0 driver does not
     /// know. Thread-local, like the seams of `CudaMemPool::create`.
     #[cfg(test)]
@@ -1639,23 +1656,6 @@ pub mod mem_pool {
                 NEWER_ATTRIBUTE_REQUESTS.set(NEWER_ATTRIBUTE_REQUESTS.get() + 1);
             }
         }
-    }
-
-    /// Allocate memory from a pool with stream-ordered semantics.
-    ///
-    /// See [cuda docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MALLOC__ASYNC.html#group__CUDA__MALLOC__ASYNC_1g0968906e6892e4f7e0e04ef5e5e0b416)
-    ///
-    /// # Safety
-    /// 1. Pool and stream must be valid.
-    /// 2. The returned memory is uninitialized.
-    pub unsafe fn alloc_async(
-        pool: sys::CUmemoryPool,
-        num_bytes: usize,
-        stream: sys::CUstream,
-    ) -> Result<sys::CUdeviceptr, DriverError> {
-        let mut dptr = MaybeUninit::uninit();
-        sys::cuMemAllocFromPoolAsync(dptr.as_mut_ptr(), num_bytes, pool, stream).result()?;
-        Ok(dptr.assume_init())
     }
 }
 

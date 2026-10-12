@@ -401,6 +401,14 @@ impl CudaMemPool {
     }
 }
 
+impl Drop for CudaMemPool {
+    fn drop(&mut self) {
+        #[cfg(test)]
+        seams::POOL_DESTROYS.set(seams::POOL_DESTROYS.get() + 1);
+        let _ = unsafe { result::mem_pool::destroy(self.pool) };
+    }
+}
+
 /// Test-only seams of [CudaMemPool::create]. Thread-local, so tests that run
 /// in parallel do not see each other's settings.
 #[cfg(test)]
@@ -489,14 +497,6 @@ pub(crate) mod seams {
         READ_BACK_ERROR.set(None);
         POOL_DESTROYS.set(0);
         crate::driver::result::mem_pool::seams::NEWER_ATTRIBUTE_REQUESTS.set(0);
-    }
-}
-
-impl Drop for CudaMemPool {
-    fn drop(&mut self) {
-        #[cfg(test)]
-        seams::POOL_DESTROYS.set(seams::POOL_DESTROYS.get() + 1);
-        let _ = unsafe { result::mem_pool::destroy(self.pool) };
     }
 }
 // FATHOMDB PATCH END
