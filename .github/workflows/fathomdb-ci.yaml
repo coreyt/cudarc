@@ -1,0 +1,456 @@
+# cudarc-fathomdb fork CI (fork plan § 1.4, design D-F2, test plan § 4).
+#
+# Upstream's workflows run only on pull_request, and the fork never opens
+# pull requests, so this workflow mirrors upstream's four workflows
+# (cargo-check, cargo-clippy, cargo-fmt, cargo-publish-dry-run: same
+# matrices and feature lists) on push and workflow_dispatch, and adds the
+# fork's jobs. CUDARC_CUDA_VERSION always equals the cuda-* feature of the
+# cell (upstream issue #525). Hosted runners have no GPU and no CUDA
+# toolkit; cudarc's bindings are pre-generated and loaded dynamically, so
+# no job needs either, and device tests return early.
+
+name: fathomdb-ci
+
+on:
+  push:
+    branches:
+      - "fathomdb/**"
+      - "ci/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: never
+  # upstream cargo-check.yaml, default feature set
+  CHECK_DEFAULT_FEATURES: cudnn,nccl,cusolver,cusolvermg,cusparse,cufile,cupti,nvtx,cufft,cutensor
+  # upstream cargo-check.yaml, no-std feature set
+  CHECK_NO_STD_FEATURES: no-std,cudnn,cublas,cublaslt,nvrtc,driver,curand,nccl,cusolver,cusolvermg,cusparse,cufile,cupti,nvtx,cufft,cutensor,dynamic-loading
+  # upstream cargo-clippy.yaml
+  CLIPPY_FEATURES: no-std,cudnn,cublas,cublaslt,nvrtc,driver,curand,nccl,dynamic-loading,cufile,cupti,nvtx,cufft
+  # FathomDB commit whose Cargo.lock the hosted test job's second run uses
+  # (origin/release/0.8.28 on 2026-10-12). Update it when FathomDB pins a
+  # new cudarc-fathomdb commit (fork plan § 8, last row).
+  FATHOMDB_LOCK_SHA: 4c327cd8a90e21d431246b566eb2cba73a880619
+
+jobs:
+  # ---------------------------------------------------------------- upstream mirror
+
+  cargo-check:
+    name: cargo-check (${{ matrix.os }}, ${{ matrix.version }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        version:
+          - cuda-11040
+          - cuda-11050
+          - cuda-11060
+          - cuda-11070
+          - cuda-11080
+          - cuda-12000
+          - cuda-12010
+          - cuda-12020
+          - cuda-12030
+          - cuda-12040
+          - cuda-12050
+          - cuda-12060
+          - cuda-12080
+          - cuda-12090
+          - cuda-13000
+          - cuda-13010
+          - cuda-13020
+          - cuda-13030
+          - cuda-13040
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin CUDARC_CUDA_VERSION to the feature
+        shell: bash
+        env:
+          VERSION: ${{ matrix.version }}
+        run: echo "CUDARC_CUDA_VERSION=${VERSION#cuda-}" >> "$GITHUB_ENV"
+      - name: cargo check (default feature set)
+        shell: bash
+        run: cargo check --all-targets -F "${{ matrix.version }},$CHECK_DEFAULT_FEATURES"
+      - name: cargo check (no-std feature set)
+        shell: bash
+        run: cargo check --all-targets --no-default-features -F "${{ matrix.version }},$CHECK_NO_STD_FEATURES"
+
+  cargo-check-aarch64:
+    # Fork addition: items 1-3 compile only on aarch64 Linux (design D-F2).
+    name: cargo-check (ubuntu-24.04-arm, ${{ matrix.version }})
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - cuda-11040
+          - cuda-11050
+          - cuda-11060
+          - cuda-11070
+          - cuda-11080
+          - cuda-12000
+          - cuda-12010
+          - cuda-12020
+          - cuda-12030
+          - cuda-12040
+          - cuda-12050
+          - cuda-12060
+          - cuda-12080
+          - cuda-12090
+          - cuda-13000
+          - cuda-13010
+          - cuda-13020
+          - cuda-13030
+          - cuda-13040
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin CUDARC_CUDA_VERSION to the feature
+        env:
+          VERSION: ${{ matrix.version }}
+        run: echo "CUDARC_CUDA_VERSION=${VERSION#cuda-}" >> "$GITHUB_ENV"
+      - name: cargo check (default feature set)
+        run: cargo check --all-targets -F "${{ matrix.version }},$CHECK_DEFAULT_FEATURES"
+      - name: cargo check (no-std feature set)
+        run: cargo check --all-targets --no-default-features -F "${{ matrix.version }},$CHECK_NO_STD_FEATURES"
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    env:
+      CUDARC_CUDA_VERSION: "13040"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - run: cargo clippy --no-default-features --features "cuda-13040,$CLIPPY_FEATURES" --all-targets -- -D warnings
+
+  clippy-aarch64:
+    # Fork addition: clippy for all 19 features on aarch64 Linux.
+    name: clippy (ubuntu-24.04-arm, ${{ matrix.version }})
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - cuda-11040
+          - cuda-11050
+          - cuda-11060
+          - cuda-11070
+          - cuda-11080
+          - cuda-12000
+          - cuda-12010
+          - cuda-12020
+          - cuda-12030
+          - cuda-12040
+          - cuda-12050
+          - cuda-12060
+          - cuda-12080
+          - cuda-12090
+          - cuda-13000
+          - cuda-13010
+          - cuda-13020
+          - cuda-13030
+          - cuda-13040
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Pin CUDARC_CUDA_VERSION to the feature
+        env:
+          VERSION: ${{ matrix.version }}
+        run: echo "CUDARC_CUDA_VERSION=${VERSION#cuda-}" >> "$GITHUB_ENV"
+      - run: cargo clippy --no-default-features --features "${{ matrix.version }},$CLIPPY_FEATURES" --all-targets -- -D warnings
+
+  cargo-fmt:
+    name: cargo-fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all -- --check
+
+  cargo-publish-dry-run:
+    # Name-agnostic: no -p, so it works before the packaging commit and on
+    # ci/proposal-* where the crate is still `cudarc`.
+    name: cargo-publish-dry-run
+    runs-on: ubuntu-latest
+    env:
+      CUDARC_CUDA_VERSION: "13040"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo publish --dry-run -F cuda-13040
+
+  # ---------------------------------------------------------------- fork jobs
+
+  hosted-test:
+    # The fathomdb_ test modules with the driver-only feature set; pure tests
+    # run, device tests return early. Run 1 uses the baseline lock; run 2
+    # FathomDB's Cargo.lock (design D-F2). count-tests.py accounts for every
+    # name against fork-catalogue.toml and the upstream inventory.
+    name: hosted-test (${{ matrix.runner }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    env:
+      CUDARC_CUDA_VERSION: "12060"
+      FEATURES: std,driver,dynamic-loading,cuda-12060
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Expected list
+        run: |
+          set -euo pipefail
+          python3 -I -B fathomdb/scripts/count-tests.py expect \
+            --set drv --version 12060 --arch "$(uname -m)" --os linux --filter fathomdb_ \
+            | tee expected.txt
+      - name: Run 1 (baseline lock)
+        run: |
+          set -euo pipefail
+          cp fathomdb/qualification/Cargo.lock.baseline Cargo.lock
+          sha256sum Cargo.lock
+          cargo tree -e normal --locked --no-default-features -F "$FEATURES"
+          set +e
+          cargo test --locked --lib --no-default-features -F "$FEATURES" -- fathomdb_ --test-threads=1 2>&1 | tee run-baseline.log
+          status=${PIPESTATUS[0]}
+          set -e
+          python3 -I -B fathomdb/scripts/count-tests.py check --expected expected.txt run-baseline.log || status=1
+          python3 -I -B fathomdb/scripts/count-tests.py unlanded run-baseline.log || status=1
+          exit "$status"
+      - name: Run 2 (FathomDB Cargo.lock)
+        run: |
+          set -euo pipefail
+          curl -fsSL "https://raw.githubusercontent.com/fathomadb/fathomdb/${FATHOMDB_LOCK_SHA}/Cargo.lock" -o fathomdb-Cargo.lock
+          echo "FathomDB ${FATHOMDB_LOCK_SHA} Cargo.lock SHA-256:"
+          sha256sum fathomdb-Cargo.lock
+          cp fathomdb-Cargo.lock Cargo.lock
+          host="$(rustc -vV | sed -n 's/^host: //p')"
+          # Cargo re-resolves lock entries that do not fit this root, so
+          # assert that every resolved dependency of cudarc has FathomDB's version.
+          cargo metadata --format-version 1 --no-default-features -F "$FEATURES" --filter-platform "$host" > metadata.json
+          python3 -I -B - fathomdb-Cargo.lock metadata.json <<'PY'
+          import json
+          import sys
+          import tomllib
+
+          with open(sys.argv[1], "rb") as f:
+              lock = tomllib.load(f)
+          with open(sys.argv[2]) as f:
+              meta = json.load(f)
+          by_name = {}
+          for p in lock.get("package", []):
+              by_name.setdefault(p["name"], []).append(p)
+          pkgs = {p["id"]: p for p in meta["packages"]}
+          nodes = {n["id"]: n for n in meta["resolve"]["nodes"]}
+          root = meta["resolve"]["root"]
+          line = ".".join(pkgs[root]["version"].split(".")[:2]) + "."
+          mine = [
+              p
+              for n in ("cudarc", "cudarc-fathomdb")
+              for p in by_name.get(n, [])
+              if p["version"].startswith(line)
+          ]
+          if len(mine) != 1:
+              sys.exit(f"FAIL: expected one cudarc {line}x entry in FathomDB's lock, found {mine}")
+          print(f"FathomDB's entry: {mine[0]['name']} {mine[0]['version']}")
+          pinned = {}
+          for dep in mine[0].get("dependencies", []):
+              parts = dep.split()
+              if len(parts) > 1:
+                  pinned[parts[0]] = parts[1]
+              elif len(by_name.get(parts[0], [])) == 1:
+                  pinned[parts[0]] = by_name[parts[0]][0]["version"]
+          direct = {pkgs[d["pkg"]]["name"] for d in nodes[root]["deps"]}
+          reach, stack = set(), [root]
+          while stack:
+              for d in nodes[stack.pop()]["deps"]:
+                  if d["pkg"] not in reach:
+                      reach.add(d["pkg"])
+                      stack.append(d["pkg"])
+          problems = []
+          for pid in sorted(reach, key=lambda i: pkgs[i]["name"]):
+              name, ver = pkgs[pid]["name"], pkgs[pid]["version"]
+              have = sorted(e["version"] for e in by_name.get(name, []))
+              want = pinned.get(name) if name in direct else None
+              ok = (ver == want) if want else (ver in have)
+              print(f"{'ok  ' if ok else 'FAIL'} {name} {ver} (FathomDB lock: {want or have})")
+              if not ok:
+                  problems.append(name)
+          if problems:
+              sys.exit(f"FAIL: resolved versions differ from FathomDB's lock: {problems}")
+          print(f"PASS: {len(reach)} resolved dependencies equal FathomDB's lock")
+          PY
+          cargo tree -e normal --locked --no-default-features -F "$FEATURES"
+          set +e
+          cargo test --locked --lib --no-default-features -F "$FEATURES" -- fathomdb_ --test-threads=1 2>&1 | tee run-fathomdb-lock.log
+          status=${PIPESTATUS[0]}
+          set -e
+          python3 -I -B fathomdb/scripts/count-tests.py check --expected expected.txt run-fathomdb-lock.log || status=1
+          python3 -I -B fathomdb/scripts/count-tests.py unlanded run-fathomdb-lock.log || status=1
+          exit "$status"
+
+  pure-test:
+    # Test plan § 4: the pure tests of fathomdb_private_pool (cell "pure" of
+    # fork-catalogue.toml), by name, for every feature, driver-only feature
+    # set. Also checks that the module's tests at this feature equal the
+    # catalogue's landed rows, and that no test exists whose row is not landed.
+    name: pure-test (${{ matrix.version }})
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - cuda-11040
+          - cuda-11050
+          - cuda-11060
+          - cuda-11070
+          - cuda-11080
+          - cuda-12000
+          - cuda-12010
+          - cuda-12020
+          - cuda-12030
+          - cuda-12040
+          - cuda-12050
+          - cuda-12060
+          - cuda-12080
+          - cuda-12090
+          - cuda-13000
+          - cuda-13010
+          - cuda-13020
+          - cuda-13030
+          - cuda-13040
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Pin CUDARC_CUDA_VERSION to the feature
+        env:
+          VERSION: ${{ matrix.version }}
+        run: echo "CUDARC_CUDA_VERSION=${VERSION#cuda-}" >> "$GITHUB_ENV"
+      - name: Module contents equal the catalogue
+        run: |
+          set -euo pipefail
+          cp fathomdb/qualification/Cargo.lock.baseline Cargo.lock
+          sha256sum Cargo.lock
+          ct=(python3 -I -B fathomdb/scripts/count-tests.py)
+          cell=(--set drv --version "$CUDARC_CUDA_VERSION" --arch x86_64 --os linux)
+          cargo test --locked --lib --no-default-features -F "std,driver,dynamic-loading,${{ matrix.version }}" -- fathomdb_private_pool:: --list 2>&1 | tee list.log
+          "${ct[@]}" unlanded list.log
+          "${ct[@]}" expect "${cell[@]}" --filter fathomdb_private_pool:: > list-expected.txt
+          "${ct[@]}" check --mode list --expected list-expected.txt list.log
+      - name: Run the cell's tests by name
+        run: |
+          set -euo pipefail
+          ct=(python3 -I -B fathomdb/scripts/count-tests.py)
+          cell=(--set drv --version "$CUDARC_CUDA_VERSION" --arch x86_64 --os linux)
+          "${ct[@]}" names "${cell[@]}" --cell pure --with-binary | tee names.tsv
+          if [ ! -s names.tsv ]; then
+            echo "expected names: none yet (fork-catalogue.toml has no landed test in cell 'pure' for ${{ matrix.version }})"
+            exit 0
+          fi
+          others="$(cut -f1 names.tsv | sort -u | grep -vx 'unittests:cudarc' || true)"
+          if [ -n "$others" ]; then
+            echo "::error::cell 'pure' has landed tests in binaries this job does not run yet: $others"
+            exit 1
+          fi
+          mapfile -t names < <(cut -f2 names.tsv)
+          filters=()
+          for n in "${names[@]}"; do filters+=(--filter "$n"); done
+          "${ct[@]}" expect "${cell[@]}" --exact "${filters[@]}" | tee expected.txt
+          set +e
+          cargo test --locked --lib --no-default-features -F "std,driver,dynamic-loading,${{ matrix.version }}" -- --exact "${names[@]}" --test-threads=1 2>&1 | tee run.log
+          status=${PIPESTATUS[0]}
+          set -e
+          "${ct[@]}" check --expected expected.txt run.log || status=1
+          exit "$status"
+
+  t-unit:
+    # Requirements CF-AC-11: the item-9 test module by name, for every
+    # feature, with every library feature, on Linux x86_64 and Windows. The
+    # expected names come from cell "t-unit" of fork-catalogue.toml.
+    name: t-unit (${{ matrix.os }}, ${{ matrix.version }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        version:
+          - cuda-11040
+          - cuda-11050
+          - cuda-11060
+          - cuda-11070
+          - cuda-11080
+          - cuda-12000
+          - cuda-12010
+          - cuda-12020
+          - cuda-12030
+          - cuda-12040
+          - cuda-12050
+          - cuda-12060
+          - cuda-12080
+          - cuda-12090
+          - cuda-13000
+          - cuda-13010
+          - cuda-13020
+          - cuda-13030
+          - cuda-13040
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Pin CUDARC_CUDA_VERSION to the feature
+        env:
+          VERSION: ${{ matrix.version }}
+        run: |
+          echo "CUDARC_CUDA_VERSION=${VERSION#cuda-}" >> "$GITHUB_ENV"
+          if [ "$RUNNER_OS" = Windows ]; then echo "TARGET_OS=windows"; else echo "TARGET_OS=linux"; fi >> "$GITHUB_ENV"
+      - name: Module contents equal the catalogue
+        run: |
+          set -euo pipefail
+          cp fathomdb/qualification/Cargo.lock.baseline Cargo.lock
+          ct=(python -I -B fathomdb/scripts/count-tests.py)
+          cell=(--set def --features "$CHECK_DEFAULT_FEATURES" --version "$CUDARC_CUDA_VERSION" --arch x86_64 --os "$TARGET_OS")
+          cargo test --locked --lib -F "${{ matrix.version }},$CHECK_DEFAULT_FEATURES" -- fathomdb_lib_major:: --list 2>&1 | tee list.log
+          "${ct[@]}" unlanded list.log
+          "${ct[@]}" expect "${cell[@]}" --filter fathomdb_lib_major:: > list-expected.txt
+          "${ct[@]}" check --mode list --expected list-expected.txt list.log
+      - name: Run the cell's tests by name
+        run: |
+          set -euo pipefail
+          ct=(python -I -B fathomdb/scripts/count-tests.py)
+          cell=(--set def --features "$CHECK_DEFAULT_FEATURES" --version "$CUDARC_CUDA_VERSION" --arch x86_64 --os "$TARGET_OS")
+          "${ct[@]}" names "${cell[@]}" --cell t-unit --with-binary | tee names.tsv
+          if [ ! -s names.tsv ]; then
+            echo "expected names: none yet (fork-catalogue.toml has no landed test in cell 't-unit' for ${{ matrix.version }} on $TARGET_OS)"
+            exit 0
+          fi
+          others="$(cut -f1 names.tsv | sort -u | grep -vx 'unittests:cudarc' || true)"
+          if [ -n "$others" ]; then
+            echo "::error::cell 't-unit' has landed tests in binaries this job does not run yet: $others"
+            exit 1
+          fi
+          mapfile -t names < <(cut -f2 names.tsv | tr -d '\r')
+          filters=()
+          for n in "${names[@]}"; do filters+=(--filter "$n"); done
+          "${ct[@]}" expect "${cell[@]}" --exact "${filters[@]}" | tee expected.txt
+          set +e
+          cargo test --locked --lib -F "${{ matrix.version }},$CHECK_DEFAULT_FEATURES" -- --exact "${names[@]}" --test-threads=1 2>&1 | tee run.log
+          status=${PIPESTATUS[0]}
+          set -e
+          "${ct[@]}" check --expected expected.txt run.log || status=1
+          exit "$status"
