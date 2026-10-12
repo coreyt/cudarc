@@ -12,6 +12,7 @@ use bindgen::Builder;
 
 mod download;
 mod extract;
+mod loader_tail;
 mod merge;
 mod version;
 

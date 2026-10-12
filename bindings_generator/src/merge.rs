@@ -192,7 +192,7 @@ impl BindingMerger {
         let unions = self.write_to_output(&self.unions).expect("Write to output");
         let consts = self.write_to_output(&self.consts).expect("Write to output");
 
-        let lib_names = &self.lib_names;
+        let tail = crate::loader_tail::loader_tail(&self.lib_names);
 
         let adapters = self
             .create_unified_adapters(&self.functions)
@@ -234,39 +234,7 @@ impl BindingMerger {
 
             #adapters
 
-            #[cfg(feature = "dynamic-loading")]
-            pub unsafe fn is_culib_present() -> bool {
-                let lib_names = [#(#lib_names),*];
-                let choices = lib_names
-                    .iter()
-                    .map(|l| crate::get_lib_name_candidates(l))
-                    .flatten();
-                for choice in choices {
-                    if ::libloading::Library::new(choice).is_ok() {
-                        return true;
-                    }
-                }
-                false
-            }
-
-            #[cfg(feature = "dynamic-loading")]
-            pub unsafe fn culib() -> &'static ::libloading::Library {
-                static LIB: OnceLock<::libloading::Library> = OnceLock::new();
-                LIB.get_or_init(|| {
-                    let lib_names = std::vec![#(#lib_names),*];
-                    let choices: std::vec::Vec<_> = lib_names
-                        .iter()
-                        .map(|l| crate::get_lib_name_candidates(l))
-                        .flatten()
-                        .collect();
-                    for choice in choices.iter() {
-                        if let Ok(lib) = ::libloading::Library::new(choice) {
-                            return lib;
-                        }
-                    }
-                    crate::panic_no_lib_found(lib_names[0], &choices);
-                })
-            }
+            #tail
         })
     }
 
