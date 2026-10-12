@@ -138,7 +138,9 @@ fn driver_version() -> Result<i32, DriverError> {
     Ok(version)
 }
 
-/// `CU_MEMPOOL_ATTR_MAX_POOL_SIZE` (a `cuuint64_t`, from the 13.2 header).
+/// `CU_MEMPOOL_ATTR_MAX_POOL_SIZE` (a `cuuint64_t`). Attributes 9-14 first
+/// appear in the 13.2 header, so the read needs `cuda-13020` bindings and a
+/// driver of 13020 or later; an older driver is never asked (design D-4).
 #[cfg(not(any(
     feature = "cuda-11040",
     feature = "cuda-11050",
@@ -157,7 +159,15 @@ fn driver_version() -> Result<i32, DriverError> {
     feature = "cuda-13000",
     feature = "cuda-13010"
 )))]
-fn read_max_pool_size(pool: sys::CUmemoryPool) -> Result<Option<u64>, DriverError> {
+fn read_max_pool_size(
+    pool: sys::CUmemoryPool,
+    driver: Option<i32>,
+) -> Result<Option<u64>, DriverError> {
+    if driver.unwrap_or(0) < 13020 {
+        #[cfg(test)]
+        seams::READ_BACK_SKIPS.set(seams::READ_BACK_SKIPS.get() + 1);
+        return Ok(None);
+    }
     let mut value: u64 = 0;
     unsafe {
         result::mem_pool::get_attribute(
@@ -187,9 +197,33 @@ fn read_max_pool_size(pool: sys::CUmemoryPool) -> Result<Option<u64>, DriverErro
     feature = "cuda-13000",
     feature = "cuda-13010"
 ))]
-fn read_max_pool_size(_pool: sys::CUmemoryPool) -> Result<Option<u64>, DriverError> {
+fn read_max_pool_size(
+    _pool: sys::CUmemoryPool,
+    _driver: Option<i32>,
+) -> Result<Option<u64>, DriverError> {
     Ok(None)
 }
+
+/// Whether the bindings have `CU_MEMPOOL_ATTR_MAX_POOL_SIZE` (`cuda-13020`
+/// on).
+const BINDINGS_HAVE_MAX_POOL_SIZE: bool = cfg!(not(any(
+    feature = "cuda-11040",
+    feature = "cuda-11050",
+    feature = "cuda-11060",
+    feature = "cuda-11070",
+    feature = "cuda-11080",
+    feature = "cuda-12000",
+    feature = "cuda-12010",
+    feature = "cuda-12020",
+    feature = "cuda-12030",
+    feature = "cuda-12040",
+    feature = "cuda-12050",
+    feature = "cuda-12060",
+    feature = "cuda-12080",
+    feature = "cuda-12090",
+    feature = "cuda-13000",
+    feature = "cuda-13010"
+)));
 
 /// A memory pool for one device (`cuMemPoolCreate`), created and owned by the
 /// caller.
@@ -236,9 +270,14 @@ impl CudaMemPool {
         seams::enter_driver()?;
         result::init()?;
         let cu_device = result::device::get(ordinal as i32)?;
+        let driver = if props.max_size > 0 || BINDINGS_HAVE_MAX_POOL_SIZE {
+            Some(driver_version()?)
+        } else {
+            None
+        };
         // A driver before 12.2 reads `maxSize` as part of `reserved`, which
         // must be 0.
-        if props.max_size > 0 && driver_version()? < 12020 {
+        if props.max_size > 0 && matches!(driver, Some(v) if v < 12020) {
             return Err(not_supported);
         }
         let raw = pool_props(ordinal as i32, props);
@@ -259,7 +298,7 @@ impl CudaMemPool {
                 (&mut threshold as *mut u64).cast(),
             )
         }?;
-        created.max_size = read_max_pool_size(pool)?;
+        created.max_size = read_max_pool_size(pool, driver)?;
         Ok(created)
     }
 
