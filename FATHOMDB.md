@@ -133,6 +133,33 @@ Behaviour to know about:
   1 MiB succeed and the 65th returns `CUDA_ERROR_OUT_OF_MEMORY`, so the cap
   bounds reserved memory.
 
+## Tegra notes
+
+Measured on a Jetson AGX Orin (JetPack 6, L4T R36.5.2, CUDA 12.6). NVIDIA
+does not document these values.
+
+- **A `maxSize` cap gives about a third of the cap.** A pool with a nonzero
+  `max_size` returns `CUDA_ERROR_OUT_OF_MEMORY` after about a third of it
+  (64 MiB cap: 32 MiB; 512 MiB: 192 MiB; 4096 MiB: 1376 MiB). The fork
+  passes `max_size` to the driver unchanged, so size the cap at about three
+  times the memory needed. On an RTX 3090 the whole cap is usable.
+- **About four uncapped pools per process.** Each pool with `max_size` 0
+  takes a large range of GPU virtual address space, and a fresh process has
+  room for about four. The device's default pool (which item 1 obtains on
+  `CudaContext::new`) takes one, and graph memory takes one for the rest of
+  the process once a graph with a memory allocation is instantiated. A pool
+  dropped while an allocation is outstanding keeps its range until the
+  allocation is freed. When no range is left, `CudaContext::new` selects
+  synchronous allocation (item 1). Capped pools take less.
+- **`cuMemGetInfo` is not a release signal.** Free memory is the kernel's
+  `MemAvailable` and barely moves when device memory is allocated or freed.
+  Read the pool's counters (`reserved_current`, `used_current`) or the
+  process's resident set instead.
+- **Upstream `CudaContext::new_non_primary` crashes.** It calls
+  `cuCtxCreate_v4` with a null parameter pointer, which segfaults in this
+  driver; the same call with zeroed parameters succeeds. This is upstream
+  behaviour, unchanged by the fork, and FathomDB does not call it.
+
 ## Item 6: marker feature
 
 `fathomdb-private-pool` enables nothing. A dependent that enables it fails to
