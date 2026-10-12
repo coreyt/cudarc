@@ -448,10 +448,11 @@ def generate_expected(
     return "\n".join(lines) + "\n"
 
 
-def cell_names(
+def cell_rows(
     catalogue, cell, manifest, feature_set, version, arch, os_name, extra_features=(), module=None
 ):
-    """Landed fork tests of `cell` (all cells when None) that compile here."""
+    """(binary, full name) of the landed fork tests of `cell` (all cells
+    when None) that compile for this feature set, version, arch and OS."""
     features = enabled_features(manifest, feature_set, version, extra_features)
     out = []
     for row in _fork_rows(catalogue, features, version, arch, os_name):
@@ -459,8 +460,13 @@ def cell_names(
             continue
         if module is not None and row["module"] != module:
             continue
-        out.append(_full_name(row))
+        out.append((row["binary"], _full_name(row)))
     return sorted(out)
+
+
+def cell_names(*args, **kwargs):
+    """Full names of `cell_rows`."""
+    return sorted(name for _, name in cell_rows(*args, **kwargs))
 
 
 def unlanded_present(catalogue, observed):
@@ -509,6 +515,9 @@ def main(argv=None):
     _cell_args(pn)
     pn.add_argument("--cell", required=True)
     pn.add_argument("--module")
+    pn.add_argument(
+        "--with-binary", action="store_true", help="print '<binary label>\\t<name>' per line"
+    )
 
     pc = sub.add_parser("check", help="compare cargo test output with an expected list")
     pc.add_argument("--expected", type=Path, required=True)
@@ -540,7 +549,7 @@ def main(argv=None):
         )
         return 0
     if a.cmd == "names":
-        names = cell_names(
+        rows = cell_rows(
             load_catalogue(a.catalogue),
             a.cell,
             a.manifest,
@@ -551,8 +560,8 @@ def main(argv=None):
             _features(a.features),
             a.module,
         )
-        for n in names:
-            print(n)
+        for binary, name in rows:
+            print(f"{binary}\t{name}" if a.with_binary else name)
         return 0
     if a.cmd == "check":
         expected = parse_expected(a.expected.read_text())
