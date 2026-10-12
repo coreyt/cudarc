@@ -124,6 +124,15 @@ class UseBaselineLock(unittest.TestCase):
         self.assertNotEqual(r.returncode, 0)
         self.assertFalse(dest.exists())
 
+    def test_crlf_line_endings_are_kept(self):
+        # A Windows checkout with core.autocrlf=true has a CRLF baseline.
+        lock = self.dir / "baseline.lock"
+        lock.write_bytes(BASELINE.read_bytes().replace(b"\n", b"\r\n"))
+        dest = self.tree("cudarc-fathomdb")
+        r = self.run_script(dest, baseline=lock)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(dest.read_bytes(), RENAMED.read_bytes().replace(b"\n", b"\r\n"))
+
     def test_the_baseline_itself_is_never_written(self):
         before = BASELINE.read_bytes()
         dest = self.tree("cudarc-fathomdb")
