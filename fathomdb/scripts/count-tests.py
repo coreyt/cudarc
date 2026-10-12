@@ -10,6 +10,8 @@ Subcommands:
           row of `fork-catalogue.toml` whose cfg matches, after libtest's
           filtering (substring or `--exact` filters, `--skip`, `--ignored` /
           `--include-ignored`). The list is never derived from the build.
+          A binary other than the lib with no selected test gets no
+          section; `--binary` restricts the list to the named binaries.
   names   Print the landed fork tests of one catalogue cell (one per line),
           for passing to `cargo test -- --exact`.
   check   Parse `cargo test` output (libtest's pretty format, one or more
@@ -428,6 +430,8 @@ def generate_expected(
         f"# filters: {list(filters)} exact={exact} skip={list(skips)} ignored={ignored_mode}",
     ]
     for label in sorted(set(universe) | unknown):
+        if binaries and label not in binaries:
+            continue
         names = universe.get(label, {})
         selected = {}
         for n, ign in names.items():
@@ -440,6 +444,10 @@ def generate_expected(
                 selected[n] = "ok"
             else:
                 selected[n] = "ignored" if ign else "ok"
+        if label != lib_label and not selected and not binaries:
+            # `cargo test --lib` never runs other binaries; one that runs
+            # with nothing selected prints only its count
+            continue
         lines.append(f"[{label}]")
         if label in unknown:
             lines.append(f"# filtered-out: unknown (no {inv.name})")
@@ -549,6 +557,7 @@ def main(argv=None):
                 a.exact,
                 tuple(a.skip),
                 mode,
+                tuple(a.binary),
             )
         )
         return 0
