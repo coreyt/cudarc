@@ -90,7 +90,7 @@ run_case() {  # run_case <case> <test name> <binary> [env/loader prefix...]
   local c="$1" name="$2" bin="$3"; shift 3
   local log="$out/case-$c.log" status=0
   "$@" "$bin" --ignored --exact "$name" --nocapture --test-threads=1 >"$log" 2>&1 || status=$?
-  grep -oE '(MAPS|RESULT) .*|panicked at .*' "$log" | sed "s/^/  /" || true
+  grep -oE '(MAPS|RESULT|REPORT) .*|panicked at .*' "$log" | sed "s/^/  /" || true
   grep -A1 'panicked at' "$log" | grep -vE 'panicked at|^--$' | sed "s/^/  message: /" || true
   local summary
   summary="$(grep -E '^test result: ' "$log" || true)"
