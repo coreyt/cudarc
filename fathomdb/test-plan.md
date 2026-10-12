@@ -8,8 +8,16 @@
     `report_address_symbols_are_bound_wherever_the_library_is` (finding L3),
     so T-UNIT has 10 tests per feature; the T-DEV (d) setup states the
     in-process preload (finding L4).
-- Inputs: [requirements](requirements.md) revision 5,
-  [design](design.md) revision 2, [plan](plan.md) §§ 1, 6–9.
+  - Revision 4 (FC8 G6 fix round; findings F-G6-1, F-G6-2, F-G5a-1 of
+    the G6 receipt `2026-10-12-G6-b29c41c.md`): § 3.1 and § 3.2 give the
+    release oracle on Tegra (pool attributes and process VmRSS, not
+    `cuMemGetInfo`) and the Tegra branch of
+    `requests_within_the_cap_succeed`; § 3.1 adds the leaked-pointer
+    guard; § 4 runs G6 one process per test; § 8 gives M-2 per platform
+    with the Orin table; § 9 adds the G6 platform list. The § 9 list
+    amends the "closed list" rule and is **pending R-FC-CODE-2**.
+- Inputs: [requirements](requirements.md) revision 6,
+  [design](design.md) revision 3, [plan](plan.md) §§ 1, 6–9.
 - Tracing: every test traces to a CF-AC, or, where marked "design", to the
   design topic it serves. Each test names its cell, command and expected
   result.
@@ -177,6 +185,37 @@ trim fails the bound. No environment variable is involved.
 `measure_reservation_steps` (an ignored D test) still prints the steps for
 1 B, 1 MiB, 32 MiB and 256 MiB into the receipt (M-1).
 
+**Release oracle on Tegra (revision 4).** Tests that assert that memory
+was released branch at run time on the device's
+`CU_DEVICE_ATTRIBUTE_INTEGRATED` (a shared test helper):
+
+- **Discrete GPUs (attribute 0)** keep `cuMemGetInfo` free memory, with
+  the assertions of revision 3 unchanged.
+- **Integrated GPUs (attribute 1, the Orin)** use the pool attributes
+  (`RESERVED_MEM_CURRENT`, `USED_MEM_CURRENT`) where the pool is still
+  alive, plus the process's `VmRSS` from `/proc/self/status`. On the Orin
+  (JetPack 6, 12.6), `cuMemGetInfo` free memory is `/proc/meminfo`
+  `MemAvailable`, and once the nvmap page pools are warm
+  (`enable_page_pools=Y`) it does not move: 96 MiB reserved and then
+  released left it at `52810706944 -> 52810706944` (G6 receipt
+  `2026-10-12-G6-b29c41c.md`). The pool attributes and `VmRSS` are exact:
+  3 × 32 MiB gave `RESERVED_MEM_CURRENT` 100663296 and `VmRSS` +104 MiB,
+  and after a synchronize at threshold 0, reserved 0 and `VmRSS` back
+  (FC8 G6 root-cause probes, 2026-10-12; the new G6 receipt reproduces
+  them with the tests' printed values). Upstream's
+  `test_post_alloc_memory`, which asserts `cuMemGetInfo` movement, fails
+  on the Orin at `ec1cac71` for the same reason (§ 9).
+
+**Leaked pointers are guarded (revision 4).** Every test in this module
+that takes a pointer out with `CudaSlice::leak` and can panic before
+freeing it holds the pointer in a guard that frees it during unwinding.
+A failing test therefore cannot leave a pool in deferred destruction
+behind. On the Orin each uncapped pool holds about 21 GB of GPU virtual
+address space and a process gets about four (design D-2), so one leaked
+pool made later tests fail with `CUDA_ERROR_OUT_OF_MEMORY` (F-G6-1).
+`pool_model_property` frees each leaked pointer in the next statement,
+with no panic point between, and needs no guard.
+
 | Test | Kind | Serves | Cells | Expected | RED at |
 | --- | --- | --- | --- | --- | --- |
 | vendored 8 (+ 2 aarch64) | P/D/X | CF-AC-02 | G1, G3 (12060–13010; 13020+ after FC5-a), G6 (all 10) | pass | FC4-port: the vendored tests on bare `ec1cac71` fail because `CudaMemPool` is missing (a compile failure; the port is the exception plan § 9 FC4 names) |
@@ -184,7 +223,7 @@ trim fails the bound. No environment variable is involved.
 | `accounting_returns_to_zero_after_drop_and_sync` | D | CF-AC-02 accounting | G1, G3, G6 | used = reserved = 0 | no RED: characterization |
 | `release_threshold_bounds_reserved_after_sync` | D | CF-AC-02 threshold | G1, G3, G5b, G6 | precondition holds; reserved ≤ max(T, used) + chunk | no RED: the driver enforces it; characterization |
 | `trim_to_keeps_the_floor_and_releases_above_it` | D | CF-AC-02 trim | G1, G3, G5b, G6 | precondition holds; k ≤ reserved ≤ max(k, used) + chunk | no RED: characterization |
-| `requests_within_the_cap_succeed` | D | CF-AC-02 capacity | G1, G3, G5b, G6 | each allocation up to the M-2 limit succeeds | no RED: characterization |
+| `requests_within_the_cap_succeed` | D | CF-AC-02 capacity | G1, G3, G5b, G6 | each allocation up to the M-2 limit succeeds. **Discrete:** unchanged; limit ≤ cap and limit + chunk > cap. **Tegra:** every allocation within the measured usable limit succeeds, limit ≤ cap, and limit ≥ one chunk; the limit is printed as an M-2 measurement (§ 8, Orin table) | no RED on discrete (characterization). Tegra branch: RED is the revision-3 test on G6 at `b29c41c` (`limit 33554432 leaves more than a chunk (33554432) of the cap 67108864 unusable`) |
 | `a_request_over_the_cap_is_out_of_memory` | D | CF-AC-02 capacity | G1, G3, G5b, G6 | `CUDA_ERROR_OUT_OF_MEMORY`; total requested ≤ cap + one chunk | no RED: characterization |
 | `exhaustion_under_two_threads_and_four_streams_fails_only_the_excess` | D | CF-AC-02 capacity (T-CONC) | G1, G3, G6 | 2 host threads × 2 streams each; total requested ≤ cap + one chunk; at least one call fails with OOM; sum of successful sizes ≤ the M-2 limit; every successful buffer verifies its data pattern | no RED: characterization |
 | `a_buffer_freed_on_one_stream_is_not_reused_before_its_reader_finishes` | D | CF-AC-02 stream order (T-CONC) | G1, G3, G6 | see "stream-order test" below | no RED: characterization of event tracking |
@@ -202,7 +241,7 @@ trim fails the bound. No environment variable is involved.
 | `typed_reads_return_64_bit_values` | D | CF-AC-04 (D-4) | G1, G6 | a threshold of 2^33 round-trips through `result::mem_pool::set_attribute` and `release_threshold()` | no RED: the vendored `attribute()` already reads a `u64`; characterization |
 | `create_destroys_the_pool_when_setting_the_threshold_fails` | F | CF-AC-02 (D-2) | G1 | the seam fails `set_attribute`; the destroy counter (with positive control) is 1 | no RED: the vendored `create` already owns the pool before `set_attribute`; characterization |
 | `a_pool_create_out_of_memory_returns_the_error_and_no_pool` | F | CF-AC-02 (T-FAULT) | G1 | the seam makes `cuMemPoolCreate` return OOM; `create` returns `CUDA_ERROR_OUT_OF_MEMORY` and the destroy counter is 0 | no RED: characterization |
-| `destroy_with_outstanding_allocations_is_deferred` | D | design D-2 | G1, G6 | drop the pool handle with a live leaked pointer, free it with `free_async`, synchronize; `cuMemGetInfo` free memory returns to within one chunk of its starting value | no RED: characterization |
+| `destroy_with_outstanding_allocations_is_deferred` | D | design D-2 | G1, G6 | drop the pool handle with a live leaked pointer (held by the guard), free it with `free_async`, synchronize. **Discrete:** `cuMemGetInfo` free memory is at least half the allocation below its start while outstanding, and returns to within one chunk of its starting value. **Tegra:** `VmRSS` is at least half the allocation above its start while outstanding, and returns to within half the allocation of its start (the pool is gone, so its attributes cannot be read; half the allocation, not one chunk, because the chunk of a 256 MiB request is 256 MiB) | no RED on discrete (characterization). Tegra branch: RED is the revision-3 test on G6 at `b29c41c` (`the outstanding allocation was released with the pool: free 52818878464 -> 52818878464`) |
 | `drops_after_a_sticky_error_neither_panic_nor_abort` | X | design D-2 (T-FAULT, lost context) | G1, G5b (ignored, run alone) | child process: private pool, live slices, then a device-side assert (as upstream's `test_device_side_assert`); then drops slices, stream, context and pool; exit status 0 and no panic | no RED: characterization |
 | `capture_on_a_private_context_uses_graph_memory` | D | design D-9 (T-CAPTURE) | G1, G5b: success required; G6: success or recorded Tegra limit | capture instantiates and launches; graph-memory `USED_MEM_CURRENT` rises; private and default pool counters are unchanged | no RED: characterization. A capture failure on G1 or G5b is a finding needing a design disposition |
 | `two_pools_on_two_devices_are_independent` | D | design D-13 (T-MULTI) | G2 | `#[ignore = "must be executed with multiple gpus"]`; pool 0 counters do not move when pool 1 allocates | no RED: characterization |
@@ -250,7 +289,7 @@ case is `drops_after_a_sticky_error_neither_panic_nor_abort`.
 | Test | Kind | Cells | Expected |
 | --- | --- | --- | --- |
 | `a_private_pointer_upgraded_onto_a_default_context_returns_to_its_pool` | D | G1, G6 | private `USED_MEM_CURRENT` = 0 after drop and sync; `check_err()` clean |
-| `a_private_pointer_freed_synchronously_releases_its_memory` | D | G1, G6 | after `result::free_sync` following a synchronize: `trim_to(0)` leaves reserved ≤ one chunk; `cuMemGetInfo` free memory recovers within one chunk; `USED_MEM_CURRENT` printed as an observation (stale on driver 580, design D-2) |
+| `a_private_pointer_freed_synchronously_releases_its_memory` | D | G1, G6 | after `result::free_sync` following a synchronize: `trim_to(0)` leaves reserved ≤ one chunk; `USED_MEM_CURRENT` printed as an observation (stale on driver 580, design D-2). **Discrete:** `cuMemGetInfo` free memory falls by at least two chunks while live and recovers within one chunk. **Tegra:** `VmRSS` rises by at least two chunks while live and returns to within one chunk of its start (§ 3.1, release oracle); the pointers are held by the guard. Tegra branch RED: the revision-3 test on G6 at `b29c41c` (`precondition: reserved 100663296, free 52810706944 -> 52810706944, chunk 33554432`) |
 | `a_synchronous_pointer_upgraded_onto_a_private_context_frees_cleanly` | D | G1, G6 | no error; private pool unchanged |
 
 These are characterization tests with no RED (requirements CF-AC-03).
@@ -376,7 +415,7 @@ alone with `-- --ignored --exact <name>`.
 | G4 | same + `cu13-130` venv | 13000, default features | `LD_LIBRARY_PATH=<venv>/…/nvidia/cu13/lib cargo test --lib -F cuda-13000 -- --test-threads=1`, the whole set (NVRTC 13.0 PTX JITs on driver 580); ignored one by one |
 | G5a | same + `cu13-13<m>` venvs (nearest PyPI minor, recorded) | 13010–13040, default features | as G4; § 7 lists the UNMEASURED tests |
 | G5b | GCP Spot T4 (session below) | 13010–13040, default features | the cross-built test binaries run directly with `LD_LIBRARY_PATH=/usr/local/cuda-13.<m>/lib64` for each build; ignored one by one; T-DEV (e) |
-| G6 | Orin, JetPack 6, 12.6 | 12060, default features | as G1, plus every X test |
+| G6 | Orin, JetPack 6, 12.6 | 12060, default features | every `--lib` test as its own process: `<test binary> --exact <name> --test-threads=1`, and each ignored test with `--ignored --exact <name>` (revision 4: one upstream test segfaults the process on the Orin, F-G6-2, § 9); then, at `C`, the fork modules in one process in sequence, `<test binary> fathomdb_ --test-threads=1`, which also covers every X test's parent |
 | G7 | Orin, JetPack 7.2 | 13020/13040 | UNMEASURED, owner ruling Q5 (requirements CF-AC-05b) |
 | G8 | as § 3.4 | 12060, 13000 | `fathomdb/scripts/g8-*.sh` per sub-cell |
 | fork pure-test job | GitHub-hosted, Linux x86_64 | 19 features, `--no-default-features -F std,driver,dynamic-loading,cuda-<v>` | `cargo test --lib -- fathomdb_private_pool:: --test-threads=1`, P tests only (device tests return early without a device and are excluded by name); expected names per feature from the catalogue. The generator template test also runs here |
@@ -478,15 +517,80 @@ cell does not include that set.
 | ID | Where | What | Used by |
 | --- | --- | --- | --- |
 | M-1 | G1, G5b, G6 | reservation steps at four sizes (`measure_reservation_steps`) | receipts; the bound tests measure their own chunk in-process |
-| M-2 | G1 | `measure_max_size_semantics`: grow until OOM with one allocation size; record reserved and used at the failure; repeat at release threshold 0 and T = cap | the capacity tests' "M-2 limit"; the doc on `MemPoolProps::max_size` |
+| M-2 | G1, G6 (per platform) | `measure_max_size_semantics`: grow until OOM with one allocation size; record reserved and used at the failure; repeat at release threshold 0 and T = cap. `requests_within_the_cap_succeed` also prints its limit on Tegra | the capacity tests' "M-2 limit"; the doc on `MemPoolProps::max_size` |
 | M-3 | G1 | `observe_new_attributes_on_driver_580` | an observation for design D-4 |
 | M-4 | G5b | the 615 driver's `cuDriverGetVersion` | CF-AC-04c (must be ≥ each build) |
+
+**M-2 per platform (revision 4).**
+
+- **RTX 3090, driver 580.178.04:** with `maxSize` 64 MiB and 1 MiB
+  requests, 64 succeed and the 65th returns `CUDA_ERROR_OUT_OF_MEMORY`
+  (limit = cap) at both thresholds (G1 receipt).
+- **Jetson AGX Orin, JetPack 6 (L4T R36.5.2), CUDA 12.6
+  (`cuDriverGetVersion` 12060):** the usable limit is about a third of the
+  cap. With a 64 MiB cap, 32 requests of 1 MiB succeed, at reserved = used
+  = 32 MiB, at both thresholds (G6 receipt `b29c41c`). Over a range of caps
+  (one pool per process, 1 MiB requests; FC8 G6 root-cause probe
+  `m2.c`, reproduced in the new G6 receipt):
+
+  | Cap (MiB) | Usable (MiB) |
+  | --- | --- |
+  | 32–96 | 32 |
+  | 97–192 | 64 |
+  | 256 | 96 |
+  | 512 | 192 |
+  | 1024 | 352 |
+  | 4096 | 1376 |
+
+  These fit `ceil(ceil(cap / 32 MiB) / 3) × 32 MiB`. That formula is fitted
+  to the measurements; NVIDIA does not document it. M-1 on the Orin equals
+  the RTX 3090's (a 32 MiB first step for requests up to 32 MiB).
+  Attributes 9 and 10 return `CUDA_ERROR_INVALID_VALUE` on this driver.
+  Design D-4 records the consequence for callers.
 
 ## 9. Host-dependent and flaky tests
 
 - **Host-dependent (closed list):** `test_pinned_copy_is_faster` and
   `test_default_pinned_host_reads_are_faster_than_write_combined`. They
   always run, and the receipt records the timing pair printed on failure.
+- **G6 platform list (revision 4; pending R-FC-CODE-2).** The closed
+  host-dependent list above stays exactly two tests. Separately, these
+  tests fail on the Orin (G6) at `ec1cac71` and at `b29c41c`, each run as
+  its own process (`--exact`; ignored ones with `--ignored --exact`).
+  Evidence: `qualification/2026-10-12-G6-pertest-ec1cac71.tsv` and
+  `qualification/2026-10-12-G6-pertest-b29c41c.tsv` (one row per test:
+  name, kind, exit status, libtest result).
+
+  | Test | Cause on the Orin |
+  | --- | --- |
+  | `driver::safe::core::tests::test_from_raw_context_bind_to_thread` | upstream defect: `cuCtxCreate_v4` with `ctxCreateParams = NULL` segfaults in the Tegra 12.6 driver (exit 139); a zeroed params struct succeeds (design § 10) |
+  | `driver::safe::core::tests::test_from_raw_context_creates_and_destroys` | same `cuCtxCreate_v4(NULL)` segfault |
+  | `driver::safe::core::tests::test_new_non_primary_creates_and_destroys` | same |
+  | `driver::safe::core::tests::test_new_non_primary_htod_dtoh` | same |
+  | `driver::safe::core::tests::test_new_non_primary_cross_thread` | same |
+  | `driver::safe::unified_memory::tests::test_unified_memory_host` | `CUDA_ERROR_NOT_PERMITTED` on Tegra |
+  | `driver::result::tests::peer_transfer_contexts` (ignored) | one device: `CUDA_ERROR_INVALID_DEVICE` |
+  | `driver::result::tests::re_associate_context_for_memory_op` (ignored) | one device: `CUDA_ERROR_INVALID_DEVICE` |
+  | `driver::safe::launch::tests::test_peer_memcpy_waits_for_src_stream` (ignored) | one device: `CUDA_ERROR_INVALID_DEVICE` |
+  | `driver::safe::core::tests::test_post_alloc_memory` (ignored) | the Tegra free-memory oracle: `cuMemGetInfo` does not move (§ 3.1) |
+
+  - They are always run and recorded, never skipped or filtered
+    (CF-REQ-12). Each is a baseline fact in the sense of CF-REQ-12; this
+    list only makes the G6 set explicit. A G6 result at `C` that differs
+    from the baseline for any of them is a finding.
+  - The fork's T-MULTI tests (`two_pools_on_two_devices_are_independent`,
+    `a_pool_of_device_1_is_rejected_for_device_0`) are G2 tests, ignored
+    and multi-GPU only. They are not G6 tests: the Orin has one device.
+    G6 runs them with `--ignored --exact` and records the failure.
+  - **Cascade, not a platform failure:**
+    `max_size_on_a_driver_older_than_12020_is_not_supported` stays a G1
+    and G3 test (§ 3.1). It failed on the Orin only in the fork-module
+    sequence at `b29c41c`, with `CUDA_ERROR_OUT_OF_MEMORY` on pool
+    creation after earlier failing tests had left pools in deferred
+    destruction (§ 3.1, leaked-pointer guard; design D-2). It passed
+    alone. `release_threshold_bounds_reserved_after_sync` and
+    `trim_to_keeps_the_floor_and_releases_above_it` failed the same way
+    and are G6 tests that must pass.
 - **Flaky:** none are named now. A test that is flaky at the baseline is
   added here only with R-FC-TEST approval and its baseline runs attached.
 

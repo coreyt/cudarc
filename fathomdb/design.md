@@ -1,8 +1,13 @@
 # cudarc-fathomdb design (FC2)
 
-- Status: FC2 revision 2, 2026-10-12. Revision 1 (`8259c14`) was reviewed by
-  R-FC-DES (APPROVE-WITH-FIXES); this revision fixes every finding
-  (dispositions in [review.md](review.md)).
+- Status: FC2 revision 3, 2026-10-12. Revision 1 (`8259c14`) was reviewed by
+  R-FC-DES (APPROVE-WITH-FIXES); revision 2 fixes every finding
+  (dispositions in [review.md](review.md)). Revision 3 (FC8 G6 fix round,
+  findings F-G6-1 and F-G6-2 of `qualification/2026-10-12-G6-b29c41c.md`)
+  adds the Tegra measurements: free memory (D-2), the usable fraction of a
+  `maxSize` cap (D-4), the per-process budget of uncapped pools (D-2,
+  D-9), and an upstream `cuCtxCreate_v4` defect (§ 10). No fork code
+  changes for them; the fork's tests change (test plan revision 4).
 - Inputs:
   - [requirements](requirements.md) revision 4 (§ 13 lists the changes made
     with this design: revision 3 with design revision 1, revision 4 with
@@ -179,6 +184,47 @@ Design:
   - a `result::malloc_sync` pointer is upgraded onto a private context and
     dropped, with no error and `check_err()` clean.
 
+**Tegra: free memory is not a release signal (revision 3).** Measured on
+the Jetson AGX Orin (JetPack 6, L4T R36.5.2, CUDA 12.6) during FC8:
+
+- `cuMemGetInfo` free memory equals `/proc/meminfo` `MemAvailable`. Once
+  the nvmap page pools are warm (`enable_page_pools=Y`), it does not move
+  when pool memory is reserved or released: 96 MiB reserved and released
+  left it at `52810706944 -> 52810706944`. Whether it moves in a fresh
+  process depends on the page pools, so it is not a usable oracle either
+  way. Upstream's `test_post_alloc_memory` fails on the Orin at
+  `ec1cac71` for this reason.
+- The pool attributes and the process's `VmRSS` are exact: 3 × 32 MiB
+  gave `RESERVED_MEM_CURRENT` 100663296 and `VmRSS` +104 MiB, and after a
+  synchronize at release threshold 0, reserved 0 and `VmRSS` back.
+
+So on integrated devices (`CU_DEVICE_ATTRIBUTE_INTEGRATED` = 1) the tests
+use the pool attributes and `VmRSS` to show release; discrete devices keep
+`cuMemGetInfo` (test plan § 3.1). Consumers that judge pool memory on
+Tegra should read the pool's counters, not `cuMemGetInfo`.
+
+**Tegra: about four uncapped pools per process (revision 3).** On the
+Orin, each pool created with `maxSize` 0 reserves about 21 GB of
+contiguous GPU virtual address space, and a fresh process can hold about
+four; the next uncapped `cuMemPoolCreate` returns
+`CUDA_ERROR_OUT_OF_MEMORY`. The holders:
+
+- the device's default pool, which the aarch64 fallback obtains on
+  `CudaContext::new` (item 1);
+- graph memory, after a stream capture allocates, for the rest of the
+  process (D-9);
+- every uncapped private pool, including one in deferred destruction
+  because an allocation is still outstanding (above): its range stays
+  taken until that allocation is freed.
+
+With four uncapped private pools live, `cuDeviceGetDefaultMemPool` fails
+and `CudaContext::new` picks `AllocMode::Synchronous`, which is the
+fallback's intended behaviour. A fresh process picks `Default`. Capped
+pools take less address space. The numbers are measured, not documented
+by NVIDIA. The fork's tests free leaked pointers through a guard during
+unwinding, so a failing test cannot leave a deferred-destroyed pool that
+fails later tests (test plan § 3.1; finding F-G6-1).
+
 ## 3. D-3 Stream ordering and reuse
 
 - **Frees are stream-ordered:** `CudaSlice::drop` frees with `cuMemFreeAsync`
@@ -231,6 +277,29 @@ Design:
     G5b by a real read-back (CF-AC-04c).
 - **64-bit values:** attributes 4–8 and 13 are `cuuint64_t`; the others are
   `int` (H12.6, TYPES13.4). Typed reads use the matching width.
+- **Tegra: about a third of the cap is usable (revision 3; measured, not
+  documented).** On the Orin (JetPack 6, CUDA 12.6, `cuDriverGetVersion`
+  12060), a pool with a nonzero `maxSize` serves about a third of it
+  before `CUDA_ERROR_OUT_OF_MEMORY`, with reserved = used at the failure.
+  The RTX 3090 on driver 580 serves the whole cap. One pool per process,
+  1 MiB requests:
+
+  | Cap (MiB) | Usable on the Orin (MiB) |
+  | --- | --- |
+  | 32–96 | 32 |
+  | 97–192 | 64 |
+  | 256 | 96 |
+  | 512 | 192 |
+  | 1024 | 352 |
+  | 4096 | 1376 |
+
+  The values fit `ceil(ceil(cap / 32 MiB) / 3) × 32 MiB`, a fitted
+  formula with no NVIDIA source. Attributes 9 and 10 return
+  `CUDA_ERROR_INVALID_VALUE` on this driver, so the reason cannot be read
+  from the pool. A caller that sizes a pool on Tegra must size the cap at
+  about three times the memory it needs, and the fork does not compensate:
+  `maxSize` is passed to the driver unchanged. The capacity tests measure
+  the limit in-process (M-2, test plan § 8).
 - **Concurrent exhaustion:** each failing `cuMemAllocFromPoolAsync` returns
   `CUDA_ERROR_OUT_OF_MEMORY` to its caller and poisons no other stream. The
   fork surfaces the error unchanged, and T-CONC checks it with N ≥ 2 streams.
@@ -396,6 +465,11 @@ as "not compiled (upstream cfg)" (CF-REQ-12).
   the same failure class as the default pool on a fragmented Orin. G6 runs
   T-CAPTURE; a failure there is recorded as a known Tegra limit for
   FathomDB.
+- **Tegra budget (revision 3, measured at FC8):** T-CAPTURE passes on the
+  Orin. After a capture allocates, graph memory holds one of the process's
+  about four uncapped-pool address ranges until the process exits (D-2).
+  So a Tegra process that captures and also uses the default pool has
+  room for about two uncapped private pools.
 
 **PR #594** (open, "capture-scoped CUDA graph memory pool"):
 
@@ -429,6 +503,16 @@ as "not compiled (upstream cfg)" (CF-REQ-12).
   `FATHOMDB.md`.
 - **Tegra P2P:** NVIDIA's Tegra app note says P2P calls are not supported,
   so D-13's multi-device tests are x86 only.
+- **Upstream defect on Tegra (revision 3; F-G6-2): `cuCtxCreate_v4` with
+  `ctxCreateParams = NULL`.** Upstream's `CudaContext::new_non_primary`
+  and the helper of the `from_raw_context` tests (bindings 12050–13010)
+  call `result::ctx::create_v4` with a null params pointer, that is
+  `cuCtxCreate_v4(&ctx, NULL, flags, dev)`. In the Tegra 12.6 driver this
+  segfaults; the same call with a zeroed `CUctxCreateParams` succeeds.
+  Five upstream tests die with `SIGSEGV` on the Orin at
+  `ec1cac71` and at `C` (test plan § 9). FathomDB never calls these
+  constructors, so the fork does not patch them, which keeps the delta
+  minimal. It is a candidate upstream issue (not posted, CF-REQ-10).
 - **Early `cuInit`:** NVIDIA's Tegra app note and PG13.4 say nothing on
   ordering. The precondition stays FathomDB's (Slice 30 § 3.1): call
   `cuInit` before the address space fragments. Every fork constructor calls

@@ -1,12 +1,16 @@
 # cudarc-fathomdb requirements (FC1)
 
-- Status: FC1 revision 5, 2026-10-12.
+- Status: FC1 revision 6, 2026-10-12.
   - Revision 1 (`f774dc3`) was reviewed by R-FC-REQ (APPROVE-WITH-FIXES).
   - Revision 2 (`761d7a4`) fixed every finding.
   - Revision 3 (`8259c14`) applied the FC2 research.
   - Revision 4 applies the R-FC-DES findings ([design](design.md) § 13).
   - Revision 5 corrects the T-DEV (a) and (d) setups after R-FC-TEST
     (H2, H3).
+  - Revision 6 (FC8, finding F-G5a-1 of the G5a receipts): CF-AC-04c's
+    CUBIN statement applies to the G5a test set;
+    `drops_after_a_sticky_error_neither_panic_nor_abort` (PTX through
+    NVRTC) belongs to G1 and G5b.
 
   Dispositions are in [review.md](review.md). The file finalizes
   [plan](plan.md) § 4. Where it and plan § 4 differ, this file governs.
@@ -238,8 +242,14 @@ required parts.
 - CUDA 13.x libraries come from a scratch venv with pinned NVIDIA wheels for
   each build's minor, reached by `LD_LIBRARY_PATH`. If a minor's wheels are
   not on PyPI, the nearest available 13.x minor is used and recorded.
-- The fork's own NVRTC-dependent tests compile to CUBIN for sm_86, so they
-  need no PTX JIT.
+- Any fork test in the G5a set that depends on NVRTC compiles to CUBIN for
+  sm_86, so it needs no PTX JIT. The G5a set contains no such test at
+  present. The one fork test that uses NVRTC,
+  `drops_after_a_sticky_error_neither_panic_nor_abort`, compiles PTX
+  (`nvrtc::compile_ptx`, mirroring upstream's `test_device_side_assert`).
+  It belongs to G1 and G5b, as the fork test catalogue lists it, and G5a
+  records it UNMEASURED with the 13.1+ PTX JIT reason (revision 6,
+  finding F-G5a-1).
 - Every test that needs neither PTX JIT of 13.1+ output nor driver
   behaviour newer than 13.0 must pass.
 - Upstream tests that JIT PTX (`launch` and `unified_memory`) cannot be
