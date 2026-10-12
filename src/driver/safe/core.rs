@@ -5786,7 +5786,9 @@ mod fathomdb_private_pool {
     /// Design D-2: dropping the last pool handle while a leaked allocation
     /// is outstanding defers the destruction. The memory stays allocated
     /// until the pointer is freed with `cuMemFreeAsync`; then free device
-    /// memory returns to within one chunk of where it started. On an
+    /// memory returns to less than half the allocation below where it
+    /// started (not one chunk: the chunk of a 256 MiB request is 256 MiB,
+    /// so that bound could not fail). On an
     /// integrated device (Tegra) free memory does not move, and the pool's
     /// attributes cannot be read once its handle is gone, so the process's
     /// `VmRSS` must stay at least half the allocation up while it is
@@ -5845,9 +5847,13 @@ mod fathomdb_private_pool {
                 SIZE / 2
             );
         } else {
+            std::println!(
+                "discrete: cuMemGetInfo free {free_before} -> outstanding {free_outstanding} -> after {free_after}; chunk {chunk} (observation)"
+            );
             assert!(
-                free_after + chunk >= free_before,
-                "free {free_before} -> {free_after}, more than one chunk ({chunk}) short"
+                free_after + SIZE / 2 > free_before,
+                "free {free_before} -> {free_after}: half the allocation ({}) or more is still taken",
+                SIZE / 2
             );
         }
         ordinary.check_err().unwrap();
