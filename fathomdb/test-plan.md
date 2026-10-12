@@ -1,6 +1,6 @@
 # cudarc-fathomdb test plan (FC3)
 
-- Status: FC3 revision 5, 2026-10-12.
+- Status: FC3 revision 6, 2026-10-12.
   - Revision 1 (`936c25e`) was reviewed by R-FC-TEST (APPROVE-WITH-FIXES).
   - Revision 2 fixes every finding; dispositions are in
     [review.md](review.md).
@@ -15,14 +15,19 @@
     `requests_within_the_cap_succeed`; § 3.1 adds the leaked-pointer
     guard; § 4 runs G6 one process per test; § 8 gives M-2 per platform
     with the Orin table; § 9 adds the G6 platform list. The § 9 list
-    amends the "closed list" rule and is **pending R-FC-CODE-2**.
+    amends the "closed list" rule. R-FC-CODE-2 approved it, with the G6
+    one-process-per-test rule ([review.md](review.md), R-FC-CODE-2).
   - Revision 5 (R-FC-CODE-2 findings M1, M2, L1): § 3.1 adds the Tegra
     upper bound of `requests_within_the_cap_succeed` (limit + chunk ≤ cap)
     and tightens the discrete post-free bound of
     `destroy_with_outstanding_allocations_is_deferred` to half the
     allocation; the leaked-pointer note gives the measured address space
     per uncapped pool.
-- Inputs: [requirements](requirements.md) revision 6,
+  - Revision 6 (R-FC-VERIFY notes): the § 9 G6 list is marked approved
+    by R-FC-CODE-2; § 4 G5b session records the owner-approved
+    `dpkg-divert` step that T-DEV (e) needs on Ubuntu's 615 driver
+    packages.
+- Inputs: [requirements](requirements.md) revision 7,
   [design](design.md) revision 4, [plan](plan.md) §§ 1, 6–9.
 - Tracing: every test traces to a CF-AC, or, where marked "design", to the
   design topic it serves. Each test names its cell, command and expected
@@ -448,6 +453,20 @@ receipt records VM creation and deletion times.
   `7.0.0-1011..1014-gcp`) runs the 13010 and 13020 builds. The 13030 and
   13040 builds then **fail CF-AC-04c**. They are not recorded as
   UNMEASURED, and the owner decides what follows.
+- **T-DEV (e) setup** (revision 6; owner-approved 2026-10-12): Ubuntu's
+  `libnvidia-compute-615-server` ships the unversioned
+  `/usr/lib/x86_64-linux-gnu/libcuda.so` (→ `libcuda.so.1`), which fails
+  the (e) precondition. Before (e), on the lab VM only, move it aside:
+
+  ```sh
+  sudo dpkg-divert --local --rename --divert \
+    /usr/lib/x86_64-linux-gnu/libcuda.so.g5b-diverted --add \
+    /usr/lib/x86_64-linux-gnu/libcuda.so && sudo ldconfig
+  ```
+
+  `/lib` is merged into `/usr/lib`, so this removes both loader paths.
+  The VM is deleted after the session. Receipt:
+  `qualification/2026-10-12-G5b-TDEV-b777f8d.md`.
 - **Toolkits:** runtime library packages only (`cuda-cudart-13-<m>`,
   `libcublas-13-<m>`, `libcurand-13-<m>`, `cuda-nvrtc-13-<m>`) for m = 1–4.
   Test binaries are cross-built on `windchill3` (`cargo test --no-run`,
@@ -560,7 +579,7 @@ cell does not include that set.
 - **Host-dependent (closed list):** `test_pinned_copy_is_faster` and
   `test_default_pinned_host_reads_are_faster_than_write_combined`. They
   always run, and the receipt records the timing pair printed on failure.
-- **G6 platform list (revision 4; pending R-FC-CODE-2).** The closed
+- **G6 platform list (revision 4; approved by R-FC-CODE-2).** The closed
   host-dependent list above stays exactly two tests. Separately, these
   tests fail on the Orin (G6) at `ec1cac71` and at `b29c41c`, each run as
   its own process (`--exact`; ignored ones with `--ignored --exact`).

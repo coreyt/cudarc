@@ -1,6 +1,6 @@
 # cudarc-fathomdb requirements (FC1)
 
-- Status: FC1 revision 6, 2026-10-12.
+- Status: FC1 revision 7, 2026-10-12.
   - Revision 1 (`f774dc3`) was reviewed by R-FC-REQ (APPROVE-WITH-FIXES).
   - Revision 2 (`761d7a4`) fixed every finding.
   - Revision 3 (`8259c14`) applied the FC2 research.
@@ -11,6 +11,10 @@
     CUBIN statement applies to the G5a test set;
     `drops_after_a_sticky_error_neither_panic_nor_abort` (PTX through
     NVRTC) belongs to G1 and G5b.
+  - Revision 7 (R-FC-VERIFY finding F5): the G5b receipt records the
+    CUDA libraries loaded as test plan § 1.2 states them: the
+    `/proc/<pid>/maps` lines in every cell, and the CF-REQ-11 report in
+    item-9 cells only (at G5b, T-DEV (e)).
 
   Dispositions are in [review.md](review.md). The file finalizes
   [plan](plan.md) § 4. Where it and plan § 4 differ, this file governs.
@@ -262,7 +266,9 @@ required parts.
   build's version. The receipt records:
   - the driver package and version;
   - `cuDriverGetVersion`;
-  - the CUDA libraries loaded (the CF-REQ-11 report).
+  - the CUDA libraries loaded: the baseline and `C` `/proc/<pid>/maps`
+    lines for CUDA libraries, and, for the item-9 cell (T-DEV (e)), the
+    CF-REQ-11 loaded-library report (test plan § 1.2; revision 7).
 - One driver that supports 13.4 may serve all four builds. The test plan
   (FC3) names the branch after checking which branches Ubuntu 24.04 or
   NVIDIA's repository offers for the T4.
