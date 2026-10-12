@@ -294,7 +294,7 @@ impl CudaMemPool {
         }
         let raw = pool_props(ordinal as i32, props);
         #[cfg(test)]
-        seams::POOL_CREATES.set(seams::POOL_CREATES.get() + 1);
+        seams::create_pool()?;
         let pool = unsafe { result::mem_pool::create(&raw) }?;
         // Owned from here, so an error below destroys the pool.
         let mut created = Self {
@@ -302,6 +302,8 @@ impl CudaMemPool {
             pool,
             max_size: None,
         };
+        #[cfg(test)]
+        seams::set_threshold()?;
         let mut threshold = props.release_threshold;
         unsafe {
             result::mem_pool::set_attribute(
@@ -414,8 +416,14 @@ pub(crate) mod seams {
         pub(crate) static FAIL_DRIVER_ENTRY: Cell<Option<CUresult>> = const { Cell::new(None) };
         /// When set, replaces the result of `cuDriverGetVersion`.
         pub(crate) static DRIVER_VERSION: Cell<Option<i32>> = const { Cell::new(None) };
-        /// Times `create` called `cuMemPoolCreate`.
+        /// Times `create` reached `cuMemPoolCreate`.
         pub(crate) static POOL_CREATES: Cell<u32> = const { Cell::new(0) };
+        /// When set, `cuMemPoolCreate` is not called and `create` returns
+        /// this error.
+        pub(crate) static FAIL_POOL_CREATE: Cell<Option<CUresult>> = const { Cell::new(None) };
+        /// When set, setting the release threshold is not attempted and
+        /// `create` returns this error.
+        pub(crate) static FAIL_SET_THRESHOLD: Cell<Option<CUresult>> = const { Cell::new(None) };
         /// Times `create` skipped the `MAX_POOL_SIZE` read-back because the
         /// driver is older than 13020.
         pub(crate) static READ_BACK_SKIPS: Cell<u32> = const { Cell::new(0) };
@@ -432,6 +440,21 @@ pub(crate) mod seams {
     pub(crate) fn enter_driver() -> Result<(), DriverError> {
         DRIVER_ENTRIES.set(DRIVER_ENTRIES.get() + 1);
         match FAIL_DRIVER_ENTRY.get() {
+            Some(err) => Err(DriverError(err)),
+            None => Ok(()),
+        }
+    }
+
+    pub(crate) fn create_pool() -> Result<(), DriverError> {
+        POOL_CREATES.set(POOL_CREATES.get() + 1);
+        match FAIL_POOL_CREATE.get() {
+            Some(err) => Err(DriverError(err)),
+            None => Ok(()),
+        }
+    }
+
+    pub(crate) fn set_threshold() -> Result<(), DriverError> {
+        match FAIL_SET_THRESHOLD.get() {
             Some(err) => Err(DriverError(err)),
             None => Ok(()),
         }
@@ -459,6 +482,8 @@ pub(crate) mod seams {
         FAIL_DRIVER_ENTRY.set(None);
         DRIVER_VERSION.set(None);
         POOL_CREATES.set(0);
+        FAIL_POOL_CREATE.set(None);
+        FAIL_SET_THRESHOLD.set(None);
         READ_BACK_SKIPS.set(0);
         READ_BACK_VALUE.set(None);
         READ_BACK_ERROR.set(None);

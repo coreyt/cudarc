@@ -4169,6 +4169,76 @@ mod fathomdb_private_pool {
         );
     }
 
+    /// Design D-4: the typed reads are 64 bits wide. A threshold above
+    /// `u32::MAX`, set through the result layer, reads back whole.
+    #[test]
+    fn typed_reads_return_64_bit_values() {
+        if !have_device() {
+            return;
+        }
+        let pool = CudaMemPool::create(0, &SMALL_POOL).unwrap();
+        let mut threshold: u64 = 1 << 33;
+        unsafe {
+            result::mem_pool::set_attribute(
+                pool.raw(),
+                sys::CUmemPool_attribute::CU_MEMPOOL_ATTR_RELEASE_THRESHOLD,
+                (&mut threshold as *mut u64).cast(),
+            )
+        }
+        .unwrap();
+        assert_eq!(pool.release_threshold(), Ok(1 << 33));
+        assert_eq!(pool.reserved_current(), Ok(0));
+        assert_eq!(pool.reserved_high(), Ok(0));
+        assert_eq!(pool.used_current(), Ok(0));
+        assert_eq!(pool.used_high(), Ok(0));
+    }
+
+    /// Design D-2: `create` owns the pool before setting the release
+    /// threshold, so a failure there destroys it.
+    #[test]
+    fn create_destroys_the_pool_when_setting_the_threshold_fails() {
+        if !have_device() {
+            return;
+        }
+        let _reset = seams::Reset::new();
+        // Positive control: dropping a created pool is counted.
+        drop(CudaMemPool::create(0, &SMALL_POOL).unwrap());
+        assert_eq!(seams::POOL_DESTROYS.get(), 1);
+        seams::POOL_DESTROYS.set(0);
+        seams::POOL_CREATES.set(0);
+
+        let failure = sys::CUresult::CUDA_ERROR_INVALID_VALUE;
+        seams::FAIL_SET_THRESHOLD.set(Some(failure));
+        assert_eq!(
+            CudaMemPool::create(0, &SMALL_POOL).map(|_| ()),
+            Err(DriverError(failure))
+        );
+        assert_eq!(seams::POOL_CREATES.get(), 1, "pools created");
+        assert_eq!(seams::POOL_DESTROYS.get(), 1, "pools destroyed");
+    }
+
+    /// T-FAULT: `cuMemPoolCreate` failing with out-of-memory is returned as
+    /// is, and there is no pool to destroy.
+    #[test]
+    fn a_pool_create_out_of_memory_returns_the_error_and_no_pool() {
+        if !have_device() {
+            return;
+        }
+        let _reset = seams::Reset::new();
+        // Positive control: dropping a created pool is counted.
+        drop(CudaMemPool::create(0, &SMALL_POOL).unwrap());
+        assert_eq!(seams::POOL_DESTROYS.get(), 1);
+        seams::POOL_DESTROYS.set(0);
+
+        let oom = sys::CUresult::CUDA_ERROR_OUT_OF_MEMORY;
+        seams::FAIL_POOL_CREATE.set(Some(oom));
+        assert_eq!(
+            CudaMemPool::create(0, &SMALL_POOL).map(|_| ()),
+            Err(DriverError(oom))
+        );
+        assert_eq!(seams::POOL_DESTROYS.get(), 0, "pools destroyed");
+    }
+
     /// Design D-8: one helper builds the location from zeroed memory on every
     /// binding, the union's `id` included.
     #[test]
