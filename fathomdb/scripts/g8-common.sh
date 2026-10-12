@@ -95,7 +95,7 @@ g8_upstream_tests() {
   echo "== $label: cargo test --lib -F cuda-$v,$G8_FEATURES -- $filter ($*)"
   (
     cd "$G8_SRC"
-    cp fathomdb/qualification/Cargo.lock.baseline Cargo.lock
+    python3 -I "$g8_here/use-baseline-lock.py" Cargo.lock
     env "$@" CUDARC_CUDA_VERSION="$v" cargo test --locked --lib -F "cuda-$v,$G8_FEATURES" \
       -- "$filter" --test-threads=1 >"$log" 2>&1
   ) || status=$?

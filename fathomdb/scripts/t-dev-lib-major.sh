@@ -67,7 +67,7 @@ build() {  # build <cuda version> <features> -> prints the test binary path
   local v="$1" feats="$2"
   (
     cd "$src"
-    cp fathomdb/qualification/Cargo.lock.baseline Cargo.lock
+    python3 -I "$here/use-baseline-lock.py" Cargo.lock
     CUDARC_CUDA_VERSION="$v" cargo test --locked -F "$feats" --test fathomdb_lib_major \
       --no-run --message-format=json 2>"$out/build-$v.log" |
       python3 -I -c 'import json,sys

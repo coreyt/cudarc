@@ -85,7 +85,8 @@ def main(argv=None):
     out = rename_root(text, name)
     with open(dest, "w", encoding="utf-8", newline="") as f:
         f.write(out)
-    print(f"use-baseline-lock: {args.baseline} -> {dest} (root {name})")
+    # stderr: callers capture stdout (t-dev-lib-major.sh prints a path).
+    print(f"use-baseline-lock: {args.baseline} -> {dest} (root {name})", file=sys.stderr)
     return 0
 
 
