@@ -46,7 +46,9 @@ g8_end() {
 
 # g8_build_report <cuda version> -> prints the report binary path
 g8_build_report() {
-  local v="$1" d="$G8_OUT/g8-report-$1"
+  local v="$1" d="$G8_OUT/g8-report-$1" pkg
+  # The tree's package name: `cudarc-fathomdb` from d04ea18, `cudarc` before.
+  pkg="$(python3 -I -c 'import sys, tomllib; print(tomllib.load(open(sys.argv[1], "rb"))["package"]["name"])' "$G8_SRC/Cargo.toml")"
   mkdir -p "$d"
   cat >"$d/Cargo.toml" <<TOML
 [package]
@@ -59,7 +61,7 @@ name = "g8_report"
 path = "$g8_here/g8_report.rs"
 
 [dependencies]
-cudarc = { path = "$G8_SRC", default-features = false, features = ["std", "driver", "dynamic-loading", "runtime", "nvrtc", "cuda-$v", "cublas", "cublaslt", "curand", "cusparse", "cusolver", "cufile"] }
+cudarc = { package = "$pkg", path = "$G8_SRC", default-features = false, features = ["std", "driver", "dynamic-loading", "runtime", "nvrtc", "cuda-$v", "cublas", "cublaslt", "curand", "cusparse", "cusolver", "cufile"] }
 
 [workspace]
 TOML
