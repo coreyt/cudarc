@@ -160,6 +160,17 @@ class ParseOutput(unittest.TestCase):
         lib = ct.parse_output(text)["unittests:cudarc"]
         self.assertEqual(lib.tests, {f"{FB}::sync_context_round_trips_data": "ok"})
 
+    def test_should_panic_tests_are_parsed(self):
+        out = (
+            "     Running unittests src/lib.rs (target/debug/deps/cudarc-0123456789abcdef)\n"
+            "test driver::safe::core::tests::test_alloc_pinned_panics_on_size_overflow - should panic ... ok\n"
+            "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n"
+        )
+        b = ct.parse_output(out)["unittests:cudarc"]
+        self.assertEqual(
+            b.tests, {"driver::safe::core::tests::test_alloc_pinned_panics_on_size_overflow": "ok"}
+        )
+
     def test_output_without_running_header_goes_to_an_unnamed_binary(self):
         text = "running 1 test\ntest a::b ... ok\n\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s\n"
         observed = ct.parse_output(text)
