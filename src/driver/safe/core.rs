@@ -4504,11 +4504,13 @@ mod fathomdb_private_pool {
         let private_stream = private.default_stream();
         let slice = private_stream.clone_htod(&[7u32; 4096]).unwrap();
         private_stream.synchronize().unwrap();
-        let ptr = slice.leak();
+        let mut leaked = Leaked::new(&private);
+        leaked.push(slice.leak());
         assert!(pool.used_current().unwrap() >= 4 * 4096);
 
         let ordinary = CudaContext::new(0).unwrap();
         let stream = ordinary.default_stream();
+        let ptr = leaked.pop().unwrap();
         let upgraded = unsafe { stream.upgrade_device_ptr::<u32>(ptr, 4096) };
         assert_eq!(stream.clone_dtoh(&upgraded).unwrap(), std::vec![7u32; 4096]);
         drop(upgraded);
@@ -4523,8 +4525,11 @@ mod fathomdb_private_pool {
     /// CF-AC-03: private-pool pointers freed with `cuMemFree` after their
     /// accesses completed are physically released: `trim_to(0)` leaves at
     /// most one chunk reserved, and free device memory recovers to within
-    /// one chunk. `USED_MEM_CURRENT` is only printed: driver 580 leaves it
-    /// stale after `cuMemFree` (design D-2).
+    /// one chunk. On an integrated device (Tegra) free memory does not move,
+    /// so the process's `VmRSS` must rise by two chunks while the pointers
+    /// live and return to within one chunk instead (design D-2).
+    /// `USED_MEM_CURRENT` is only printed: driver 580 leaves it stale after
+    /// `cuMemFree` (design D-2).
     #[test]
     fn a_private_pointer_freed_synchronously_releases_its_memory() {
         if !have_device() {
@@ -4537,20 +4542,30 @@ mod fathomdb_private_pool {
         assert_eq!(pool.reserved_current(), Ok(0));
         ctx.bind_to_thread().unwrap();
         let (free_before, _) = result::mem_get_info().unwrap();
+        let rss_before = integrated(&ctx).then(vm_rss);
 
-        let pointers: Vec<_> = (0..3)
-            .map(|_| stream.alloc_zeros::<u8>(WORK).unwrap().leak())
-            .collect();
+        let mut pointers = Leaked::new(&ctx);
+        for _ in 0..3 {
+            pointers.push(stream.alloc_zeros::<u8>(WORK).unwrap().leak());
+        }
         stream.synchronize().unwrap();
         let reserved_live = pool.reserved_current().unwrap();
         let (free_live, _) = result::mem_get_info().unwrap();
-        assert!(
-            reserved_live > chunk && free_live as u64 + 2 * chunk <= free_before as u64,
-            "precondition: reserved {reserved_live}, free {free_before} -> {free_live}, chunk {chunk}"
-        );
+        let rss_live = rss_before.map(|_| vm_rss());
+        if let (Some(rss_before), Some(rss_live)) = (rss_before, rss_live) {
+            assert!(
+                reserved_live > chunk && rss_live >= rss_before + 2 * chunk,
+                "precondition (integrated): reserved {reserved_live}, VmRSS {rss_before} -> {rss_live}, chunk {chunk}"
+            );
+        } else {
+            assert!(
+                reserved_live > chunk && free_live as u64 + 2 * chunk <= free_before as u64,
+                "precondition: reserved {reserved_live}, free {free_before} -> {free_live}, chunk {chunk}"
+            );
+        }
 
         ctx.bind_to_thread().unwrap();
-        for ptr in pointers {
+        while let Some(ptr) = pointers.pop() {
             unsafe { result::free_sync(ptr) }.unwrap();
         }
         stream.synchronize().unwrap();
@@ -4561,11 +4576,23 @@ mod fathomdb_private_pool {
             "USED_MEM_CURRENT after cuMemFree: {:?} (observation; design D-2)",
             pool.used_current()
         );
+        if let (Some(rss_before), Some(rss_live)) = (rss_before, rss_live) {
+            let rss_after = vm_rss();
+            std::println!(
+                "integrated: VmRSS {rss_before} -> live {rss_live} -> after {rss_after}; reserved live {reserved_live}, after {reserved}; cuMemGetInfo free {free_before} -> {free_live} -> {free_after} (observation)"
+            );
+            assert!(
+                rss_after <= rss_before + chunk,
+                "VmRSS {rss_before} -> {rss_after}, more than one chunk ({chunk}) still resident"
+            );
+        }
         assert!(reserved <= chunk, "reserved {reserved} > chunk {chunk}");
-        assert!(
-            free_after as u64 + chunk >= free_before as u64,
-            "free {free_before} -> {free_after}, more than one chunk ({chunk}) short"
-        );
+        if rss_before.is_none() {
+            assert!(
+                free_after as u64 + chunk >= free_before as u64,
+                "free {free_before} -> {free_after}, more than one chunk ({chunk}) short"
+            );
+        }
         ctx.check_err().unwrap();
     }
 
@@ -4828,6 +4855,69 @@ mod fathomdb_private_pool {
         let pool = Arc::new(CudaMemPool::create(0, props).unwrap());
         let ctx = CudaContext::new_with_mem_pool(0, pool.clone()).unwrap();
         (pool, ctx.new_stream().unwrap())
+    }
+
+    /// Whether `ctx`'s device shares memory with the host (Tegra). There,
+    /// `cuMemGetInfo` free memory does not show a release, and the tests use
+    /// the pool attributes and [vm_rss] instead (design D-2).
+    fn integrated(ctx: &CudaContext) -> bool {
+        ctx.attribute(sys::CUdevice_attribute::CU_DEVICE_ATTRIBUTE_INTEGRATED)
+            .unwrap()
+            != 0
+    }
+
+    /// This process's resident set size in bytes, `VmRSS` of
+    /// `/proc/self/status`. On Tegra, device memory the process holds is
+    /// resident in it.
+    fn vm_rss() -> u64 {
+        let status = std::fs::read_to_string("/proc/self/status").unwrap();
+        let kib: u64 = status
+            .lines()
+            .find_map(|line| line.strip_prefix("VmRSS:"))
+            .and_then(|value| value.trim().strip_suffix("kB"))
+            .map(|kib| kib.trim().parse().unwrap())
+            .expect("VmRSS in /proc/self/status");
+        kib * 1024
+    }
+
+    /// Pointers taken out with `CudaSlice::leak`. Whatever is still held when
+    /// the guard drops, also while a failing test unwinds, is freed with
+    /// `cuMemFree` after `ctx` synchronizes. A failing test therefore leaves
+    /// no pool in deferred destruction, which on Tegra would hold one of the
+    /// process's few uncapped-pool address ranges (design D-2).
+    struct Leaked {
+        ctx: Arc<CudaContext>,
+        pointers: Vec<sys::CUdeviceptr>,
+    }
+
+    impl Leaked {
+        fn new(ctx: &Arc<CudaContext>) -> Self {
+            Self {
+                ctx: ctx.clone(),
+                pointers: Vec::new(),
+            }
+        }
+
+        fn push(&mut self, ptr: sys::CUdeviceptr) {
+            self.pointers.push(ptr);
+        }
+
+        /// Hands a pointer back to the test, which then owns its free.
+        fn pop(&mut self) -> Option<sys::CUdeviceptr> {
+            self.pointers.pop()
+        }
+    }
+
+    impl Drop for Leaked {
+        fn drop(&mut self) {
+            if self.pointers.is_empty() {
+                return;
+            }
+            let _ = self.ctx.synchronize();
+            for ptr in self.pointers.drain(..) {
+                let _ = unsafe { result::free_sync(ptr) };
+            }
+        }
     }
 
     /// What [grow_until_failure] saw.
@@ -5200,7 +5290,9 @@ mod fathomdb_private_pool {
 
     /// CF-AC-02 capacity: in a fresh pool, every request up to the M-2
     /// limit succeeds and keeps its data. The limit is at most the cap and
-    /// within one chunk of it.
+    /// within one chunk of it. On an integrated device (Tegra) only about a
+    /// third of the cap is usable (design D-4), so there the limit must be
+    /// at least one chunk, and it is printed as an M-2 measurement.
     #[test]
     fn requests_within_the_cap_succeed() {
         if !have_device() {
@@ -5212,10 +5304,18 @@ mod fathomdb_private_pool {
         let (pool, stream) = private_stream(&SMALL_POOL);
         let chunk = reservation_step(&pool, &stream, SIZE) as usize;
         assert!(limit <= cap, "limit {limit} > cap {cap}");
-        assert!(
-            limit + chunk > cap,
-            "limit {limit} leaves more than a chunk ({chunk}) of the cap {cap} unusable"
-        );
+        if integrated(stream.context()) {
+            std::println!("M-2 integrated: cap={cap} size={SIZE} limit={limit} chunk={chunk}");
+            assert!(
+                limit >= chunk,
+                "limit {limit} is less than one chunk ({chunk}) of the cap {cap}"
+            );
+        } else {
+            assert!(
+                limit + chunk > cap,
+                "limit {limit} leaves more than a chunk ({chunk}) of the cap {cap} unusable"
+            );
+        }
 
         let buffers: Vec<_> = (0..limit / SIZE)
             .map(|i| {
@@ -5677,7 +5777,12 @@ mod fathomdb_private_pool {
     /// Design D-2: dropping the last pool handle while a leaked allocation
     /// is outstanding defers the destruction. The memory stays allocated
     /// until the pointer is freed with `cuMemFreeAsync`; then free device
-    /// memory returns to within one chunk of where it started.
+    /// memory returns to within one chunk of where it started. On an
+    /// integrated device (Tegra) free memory does not move, and the pool's
+    /// attributes cannot be read once its handle is gone, so the process's
+    /// `VmRSS` must stay at least half the allocation up while it is
+    /// outstanding and fall back to less than half the allocation above its
+    /// start after the free (design D-2).
     #[test]
     fn destroy_with_outstanding_allocations_is_deferred() {
         if !have_device() {
@@ -5692,9 +5797,11 @@ mod fathomdb_private_pool {
         };
         ordinary.bind_to_thread().unwrap();
         let (free_before, _) = result::mem_get_info().unwrap();
+        let rss_before = integrated(&ordinary).then(vm_rss);
 
         let (pool, stream) = private_stream(&MemPoolProps::default());
-        let ptr = stream.alloc_zeros::<u8>(SIZE).unwrap().leak();
+        let mut leaked = Leaked::new(&ordinary);
+        leaked.push(stream.alloc_zeros::<u8>(SIZE).unwrap().leak());
         stream.synchronize().unwrap();
         drop(stream);
         assert_eq!(Arc::strong_count(&pool), 1);
@@ -5702,17 +5809,38 @@ mod fathomdb_private_pool {
 
         ordinary.bind_to_thread().unwrap();
         let (free_outstanding, _) = result::mem_get_info().unwrap();
-        assert!(
-            free_outstanding + SIZE / 2 <= free_before,
-            "the outstanding allocation was released with the pool: free {free_before} -> {free_outstanding}"
-        );
+        let rss_outstanding = rss_before.map(|_| vm_rss());
+        if let (Some(rss_before), Some(rss_outstanding)) = (rss_before, rss_outstanding) {
+            assert!(
+                rss_outstanding >= rss_before + SIZE as u64 / 2,
+                "the outstanding allocation was released with the pool: VmRSS {rss_before} -> {rss_outstanding}"
+            );
+        } else {
+            assert!(
+                free_outstanding + SIZE / 2 <= free_before,
+                "the outstanding allocation was released with the pool: free {free_before} -> {free_outstanding}"
+            );
+        }
+        let ptr = leaked.pop().unwrap();
         unsafe { result::free_async(ptr, other.cu_stream()) }.unwrap();
         other.synchronize().unwrap();
         let (free_after, _) = result::mem_get_info().unwrap();
-        assert!(
-            free_after + chunk >= free_before,
-            "free {free_before} -> {free_after}, more than one chunk ({chunk}) short"
-        );
+        if let (Some(rss_before), Some(rss_outstanding)) = (rss_before, rss_outstanding) {
+            let rss_after = vm_rss();
+            std::println!(
+                "integrated: VmRSS {rss_before} -> outstanding {rss_outstanding} -> after {rss_after}; cuMemGetInfo free {free_before} -> {free_outstanding} -> {free_after} (observation)"
+            );
+            assert!(
+                rss_after < rss_before + SIZE as u64 / 2,
+                "VmRSS {rss_before} -> {rss_after}: half the allocation ({}) or more is still resident",
+                SIZE / 2
+            );
+        } else {
+            assert!(
+                free_after + chunk >= free_before,
+                "free {free_before} -> {free_after}, more than one chunk ({chunk}) short"
+            );
+        }
         ordinary.check_err().unwrap();
     }
 
