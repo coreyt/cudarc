@@ -1,3 +1,15 @@
+> **Fork notice.** This is `cudarc-fathomdb`, FathomDB's fork of
+> [cudarc](https://github.com/chelsea0x3b/cudarc) 0.19.10. It is not the
+> upstream crate and is not maintained or endorsed by cudarc's authors.
+> It carries a small set of changes that FathomDB needs, each listed with its
+> upstream status and removal path in [FATHOMDB.md](FATHOMDB.md). The library
+> is still named `cudarc`; depend on it with
+> `cudarc = { package = "cudarc-fathomdb", version = "0.19.10" }`.
+> Licence (MIT OR Apache-2.0) and authorship are upstream's, unchanged.
+> Do not report problems with this fork to upstream; its source is
+> [coreyt/cudarc](https://github.com/coreyt/cudarc), branch `fathomdb/0.19.10`.
+> The upstream README follows.
+
 # cudarc: minimal and safe api over the cuda toolkit
 
 [![](https://dcbadge.vercel.app/api/server/AtUhGqBDP5)](https://discord.gg/AtUhGqBDP5)

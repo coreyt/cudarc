@@ -1,15 +1,17 @@
 [package]
-name = "cudarc"
+name = "cudarc-fathomdb"
 version = "0.19.10"
 edition = "2021"
 authors = ["Chelsea Lowman <clowman1993@gmail.com>"]
 license = "MIT OR Apache-2.0"
 
-description = "Safe and minimal CUDA bindings"
-homepage = "https://github.com/chelsea0x3b/cudarc"
-documentation = "https://docs.rs/cudarc"
-repository = "https://github.com/chelsea0x3b/cudarc"
+description = "FathomDB's fork of cudarc 0.19.10 (safe and minimal CUDA bindings); not the upstream crate. See FATHOMDB.md for the differences."
+homepage = "https://github.com/coreyt/cudarc"
+documentation = "https://docs.rs/cudarc-fathomdb"
+repository = "https://github.com/coreyt/cudarc"
 readme = "README.md"
+# The fork's planning directory and its CI workflow are not part of the crate.
+exclude = ["/fathomdb/", "/.github/workflows/fathomdb-ci.yaml"]
 
 keywords = ["cuda", "nvidia", "gpu", "cudnn", "cublas"]
 categories = [
@@ -21,6 +23,10 @@ categories = [
 ]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+# Dependents keep writing `cudarc::...` under the fork's package name.
+[lib]
+name = "cudarc"
 
 [package.metadata.docs.rs]
 features = [
@@ -53,7 +59,7 @@ default = [
 
 fallback-latest = []
 # FATHOMDB PATCH: no-op marker for the private memory pool primitive
-# (FATHOMDB-PATCH.md item 6). A dependent that enables it fails to resolve
+# (FATHOMDB.md item 6). A dependent that enables it fails to resolve
 # against an unpatched cudarc instead of failing on a missing symbol.
 fathomdb-private-pool = []
 
