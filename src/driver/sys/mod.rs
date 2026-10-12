@@ -16876,16 +16876,31 @@ pub unsafe fn is_culib_present() -> bool {
     false
 }
 #[cfg(feature = "dynamic-loading")]
+static CULIB: OnceLock<(::libloading::Library, std::string::String)> = OnceLock::new();
+#[cfg(feature = "dynamic-loading")]
 pub unsafe fn culib() -> &'static ::libloading::Library {
-    static LIB: OnceLock<::libloading::Library> = OnceLock::new();
-    LIB.get_or_init(|| {
-        let lib_names = std::vec!["cuda", "nvcuda"];
-        let choices: std::vec::Vec<_> = lib_names.iter().map(|l| crate::get_lib_name_candidates(l)).flatten().collect();
-        for choice in choices.iter() {
-            if let Ok(lib) = ::libloading::Library::new(choice) {
-                return lib;
+    &CULIB
+        .get_or_init(|| {
+            let lib_names = std::vec!["cuda", "nvcuda"];
+            let choices: std::vec::Vec<_> = lib_names.iter().map(|l| crate::get_lib_name_candidates(l)).flatten().collect();
+            for choice in choices.iter() {
+                if let Ok(lib) = ::libloading::Library::new(choice) {
+                    return (lib, choice.clone());
+                }
             }
-        }
-        crate::panic_no_lib_found(lib_names[0], &choices);
-    })
+            crate::panic_no_lib_found(lib_names[0], &choices);
+        })
+        .0
+}
+#[doc = " The driver's file and `cuDriverGetVersion`, after it is loaded; \"linked at build time\" under `dynamic-linking` or `static-linking`."]
+pub fn loaded_library() -> Option<crate::LoadedLibrary> {
+    #[cfg(feature = "dynamic-loading")]
+    {
+        let (lib, name) = CULIB.get()?;
+        Some(unsafe { crate::lib_major::driver_report(lib, name) })
+    }
+    #[cfg(not(feature = "dynamic-loading"))]
+    {
+        Some(crate::lib_major::linked_at_build_time("cuda"))
+    }
 }

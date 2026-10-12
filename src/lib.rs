@@ -200,60 +200,70 @@ pub(crate) fn panic_no_lib_found<S: std::fmt::Debug>(lib_name: &str, choices: &[
     panic!("Unable to dynamically load the \"{lib_name}\" shared library - searched for library names: {choices:?}. Ensure that `LD_LIBRARY_PATH` has the correct path to the installed library. If the shared library is present on the system under a different name than one of those listed above, please open a GitHub issue.");
 }
 
+/// The candidate file names cudarc tries, in order, when it loads `lib_name`
+/// at run time.
+///
+/// For the CUDA toolkit libraries of FATHOMDB.md item 9 (`cudart`, `cublas`,
+/// `cublasLt`, `nvrtc`, `cupti`, `cufft`, `cusolver`, `cusolverMg`,
+/// `cusparse`, `curand`, `cufile`) in a CUDA 12.x or 13.x build, the list is
+/// the library's versioned names for the built major, then its unversioned
+/// name (none for `cusolverMg`, which has no version query). It never names
+/// another major's versioned file. Windows CUPTI, every other library (the
+/// driver, cuDNN, NCCL, cuTENSOR, NVTX) and CUDA 11.x builds keep the list of
+/// upstream cudarc 0.19.10.
+///
+/// # Panics
+///
+/// On a target whose pointer width is neither 32 nor 64 bits.
 #[cfg(feature = "dynamic-loading")]
 pub fn get_lib_name_candidates(lib_name: &str) -> std::vec::Vec<std::string::String> {
-    use std::env::consts::{DLL_PREFIX, DLL_SUFFIX};
-
     let pointer_width = if cfg!(target_pointer_width = "32") {
-        "32"
+        32
     } else if cfg!(target_pointer_width = "64") {
-        "64"
+        64
     } else {
         panic!("Unsupported target pointer width")
     };
-
-    let major = env!("CUDA_MAJOR_VERSION");
-    let minor = env!("CUDA_MINOR_VERSION");
-
-    [
-        std::format!("{DLL_PREFIX}{lib_name}{DLL_SUFFIX}"),
-        std::format!("{DLL_PREFIX}{lib_name}{pointer_width}{DLL_SUFFIX}"),
-        std::format!("{DLL_PREFIX}{lib_name}{pointer_width}_{major}{DLL_SUFFIX}"),
-        std::format!("{DLL_PREFIX}{lib_name}{pointer_width}_{major}{minor}{DLL_SUFFIX}"),
-        std::format!("{DLL_PREFIX}{lib_name}{pointer_width}_{major}{minor}_0{DLL_SUFFIX}"),
-        std::format!("{DLL_PREFIX}{lib_name}{pointer_width}_{major}0_{minor}{DLL_SUFFIX}"),
-        // See issue #242
-        std::format!("{DLL_PREFIX}{lib_name}{pointer_width}_10{DLL_SUFFIX}"),
-        std::format!("{DLL_PREFIX}{lib_name}{pointer_width}_11{DLL_SUFFIX}"),
-        std::format!("{DLL_PREFIX}{lib_name}{pointer_width}_12{DLL_SUFFIX}"),
-        // See issue #246
-        std::format!("{DLL_PREFIX}{lib_name}{pointer_width}_{major}0_0{DLL_SUFFIX}"),
-        // See issue #260
-        std::format!("{DLL_PREFIX}{lib_name}{pointer_width}_9{DLL_SUFFIX}"),
-        // See issue #274
-        std::format!("{DLL_PREFIX}{lib_name}{DLL_SUFFIX}.{major}"),
-        std::format!("{DLL_PREFIX}{lib_name}{DLL_SUFFIX}.12"),
-        std::format!("{DLL_PREFIX}{lib_name}{DLL_SUFFIX}.11"),
-        std::format!("{DLL_PREFIX}{lib_name}{DLL_SUFFIX}.10"),
-        std::format!("{DLL_PREFIX}{lib_name}{DLL_SUFFIX}.9"),
-        // See issue #296
-        std::format!("{DLL_PREFIX}{lib_name}{DLL_SUFFIX}.1"),
-    ]
-    .into()
+    let (major, minor) = lib_major::built_version();
+    lib_major::lib_candidates(
+        lib_major::TargetOs::host(),
+        pointer_width,
+        lib_name,
+        major,
+        minor,
+    )
 }
 
 pub use lib_major::{LibLoadError, LibVersion, LoadedLibrary, RejectReason};
 
 /// Built-major library loading (FATHOMDB.md item 9): candidate names, version
-/// lines and the loaded-library report.
+/// lines, the loader and the loaded-library report.
 // Each loader uses the part for its own library, so a build with only some
 // library features leaves the rest unused.
 #[allow(dead_code)]
-mod lib_major {
+pub(crate) mod lib_major {
     use core::fmt;
-    use std::string::String;
+    use std::string::{String, ToString};
     use std::sync::OnceLock;
     use std::vec::Vec;
+
+    /// The libraries whose loading item 9 changes. Their soname or DLL name
+    /// follows the CUDA toolkit's major version.
+    pub(crate) const IN_SCOPE: [&str; 11] = [
+        "cudart",
+        "cublas",
+        "cublasLt",
+        "nvrtc",
+        "cupti",
+        "cufft",
+        "cusolver",
+        "cusolverMg",
+        "cusparse",
+        "curand",
+        "cufile",
+    ];
+
+    const LINKED: &str = "linked at build time";
 
     /// A library version as reported by the library's own version query.
     ///
@@ -281,17 +291,21 @@ mod lib_major {
     pub enum RejectReason {
         /// The loader found no file of that name.
         NotFound,
-        /// The loader found a file but could not load it.
+        /// The loader found a file but could not load it, or its version
+        /// query failed.
         LoadFailed(String),
         /// The library reports a version outside the built major's line.
         WrongVersion(LibVersion),
         /// An object of that name was already loaded in the process and
         /// reports a version outside the built major's line. Another file of
-        /// the same soname cannot be opened in this process.
+        /// the same soname cannot be opened in this process, so loading stops.
         AlreadyLoadedWrongVersion(LibVersion),
-        /// The library pulled in an in-scope dependency of another line.
+        /// Loading the library mapped an in-scope dependency of another line
+        /// (Linux only).
         WrongMajorDependency { soname: String, version: LibVersion },
-        /// The library exports no version query.
+        /// The library exports no version query. A candidate without one is
+        /// accepted only by its versioned name (cuSolverMg; cuFile before 1.8
+        /// in a CUDA 12 build). As a note it marks such a load.
         NoVersionQuery,
     }
 
@@ -315,7 +329,7 @@ mod lib_major {
     /// A library of the built CUDA major could not be loaded.
     ///
     /// `tried` lists every candidate name in the order tried, with the reason
-    /// it was not used.
+    /// it was not used. The error is memoized: later calls return a clone.
     #[derive(Clone, Debug)]
     pub struct LibLoadError {
         pub library: &'static str,
@@ -323,14 +337,26 @@ mod lib_major {
         pub tried: Vec<(String, RejectReason)>,
     }
 
-    // FC6-b RED stub: the base panic message (no major, no reasons).
     impl fmt::Display for LibLoadError {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            let names: Vec<&str> = self.tried.iter().map(|(n, _)| n.as_str()).collect();
             write!(
                 f,
-                "Unable to dynamically load the \"{}\" shared library - searched for library names: {names:?}.",
-                self.library
+                "Unable to dynamically load the \"{}\" shared library for CUDA {}. Tried: ",
+                self.library, self.cuda_major
+            )?;
+            if self.tried.is_empty() {
+                write!(f, "no candidate names on this target")?;
+            }
+            for (i, (name, reason)) in self.tried.iter().enumerate() {
+                if i > 0 {
+                    write!(f, ", ")?;
+                }
+                write!(f, "{name} ({reason})")?;
+            }
+            write!(
+                f,
+                ". Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA {} copy of the library.",
+                self.cuda_major
             )
         }
     }
@@ -347,32 +373,59 @@ mod lib_major {
         /// The candidate name that was opened, or "linked at build time".
         pub opened_as: String,
         /// The canonical path of the loaded file, comparable with
-        /// `/proc/self/maps`.
+        /// `/proc/self/maps` (`None` if it could not be resolved, and when
+        /// linked).
         pub path: Option<String>,
-        /// `None` only when the library has no version query.
+        /// `None` only when the library has no version query, and when
+        /// linked.
         pub version: Option<LibVersion>,
         /// For example [`RejectReason::NoVersionQuery`] for a cuFile without
         /// `cuFileGetVersion`.
         pub note: Option<RejectReason>,
     }
 
-    // FC6-b RED stub.
     impl fmt::Display for LoadedLibrary {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            write!(f, "{}: unknown", self.library)
+            if self.opened_as == LINKED {
+                return write!(f, "{}: {LINKED} (CUDA {})", self.library, self.cuda_major);
+            }
+            write!(f, "{}: opened as {}, path ", self.library, self.opened_as)?;
+            match &self.path {
+                Some(p) => write!(f, "{p}")?,
+                None => write!(f, "unknown")?,
+            }
+            match &self.version {
+                Some(v) => write!(f, ", version {v}")?,
+                None => write!(f, ", version none")?,
+            }
+            if let Some(n) = &self.note {
+                write!(f, " ({n})")?;
+            }
+            write!(f, ", checked against CUDA {}", self.cuda_major)
         }
     }
 
-    // FC6-b RED stub.
     pub(crate) fn linked_report(library: &'static str, cuda_major: u32) -> LoadedLibrary {
         LoadedLibrary {
             library,
             cuda_major,
-            opened_as: String::new(),
+            opened_as: LINKED.to_string(),
             path: None,
             version: None,
             note: None,
         }
+    }
+
+    pub(crate) fn built_version() -> (u32, u32) {
+        (
+            env!("CUDA_MAJOR_VERSION").parse().unwrap_or(0),
+            env!("CUDA_MINOR_VERSION").parse().unwrap_or(0),
+        )
+    }
+
+    /// The report of a library under `dynamic-linking` or `static-linking`.
+    pub(crate) fn linked_at_build_time(library: &'static str) -> LoadedLibrary {
+        linked_report(library, built_version().0)
     }
 
     /// The target a candidate list is generated for.
@@ -412,8 +465,8 @@ mod lib_major {
         }
     }
 
-    /// The candidate list of `ec1cac71`, with the target and version as
-    /// parameters.
+    /// The candidate list of upstream cudarc 0.19.10, with the target and
+    /// version as parameters.
     pub(crate) fn base_candidates(
         os: TargetOs,
         pointer_width: u32,
@@ -430,30 +483,107 @@ mod lib_major {
             std::format!("{pre}{lib_name}{w}_{major}{minor}{suf}"),
             std::format!("{pre}{lib_name}{w}_{major}{minor}_0{suf}"),
             std::format!("{pre}{lib_name}{w}_{major}0_{minor}{suf}"),
+            // See issue #242
             std::format!("{pre}{lib_name}{w}_10{suf}"),
             std::format!("{pre}{lib_name}{w}_11{suf}"),
             std::format!("{pre}{lib_name}{w}_12{suf}"),
+            // See issue #246
             std::format!("{pre}{lib_name}{w}_{major}0_0{suf}"),
+            // See issue #260
             std::format!("{pre}{lib_name}{w}_9{suf}"),
+            // See issue #274
             std::format!("{pre}{lib_name}{suf}.{major}"),
             std::format!("{pre}{lib_name}{suf}.12"),
             std::format!("{pre}{lib_name}{suf}.11"),
             std::format!("{pre}{lib_name}{suf}.10"),
             std::format!("{pre}{lib_name}{suf}.9"),
+            // See issue #296
             std::format!("{pre}{lib_name}{suf}.1"),
         ]
         .into()
     }
 
-    // FC6-b RED stub: the base list.
+    /// Whether `lib` is loaded by item 9's rules on this target and major.
+    pub(crate) fn uses_checked_candidates(os: TargetOs, lib: &str, major: u32) -> bool {
+        (major == 12 || major == 13)
+            && IN_SCOPE.contains(&lib)
+            && match os {
+                TargetOs::Linux => true,
+                // year-named CUPTI DLLs (design § 12.4 note 1)
+                TargetOs::Windows => lib != "cupti",
+                TargetOs::Other { .. } => false,
+            }
+    }
+
+    /// The soname (Linux) or DLL (Windows) majors of `lib` for toolkit major
+    /// `major` (design § 12.4).
+    fn file_majors(lib: &str, major: u32) -> &'static [u32] {
+        match (lib, major) {
+            ("cudart" | "cublas" | "cublasLt" | "nvrtc" | "cupti", 12) => &[12],
+            ("cudart" | "cublas" | "cublasLt" | "nvrtc" | "cupti", 13) => &[13],
+            ("cufft" | "cusolver" | "cusolverMg", 12) => &[11],
+            ("cufft" | "cusolver" | "cusolverMg", 13) => &[12],
+            ("cusparse", _) => &[12],
+            ("curand", 12) => &[10],
+            // libcurand.so.11 is unconfirmed (PATHFINDER); accepted only
+            // through the version check
+            ("curand", 13) => &[10, 11],
+            ("cufile", _) => &[0],
+            _ => &[],
+        }
+    }
+
+    pub(crate) fn versioned_candidates(
+        os: TargetOs,
+        pointer_width: u32,
+        lib: &str,
+        major: u32,
+    ) -> Vec<String> {
+        let majors = file_majors(lib, major);
+        match os {
+            TargetOs::Linux => majors
+                .iter()
+                .map(|n| std::format!("lib{lib}.so.{n}"))
+                .collect(),
+            // cuFile is not available on Windows
+            TargetOs::Windows if lib == "cufile" => Vec::new(),
+            TargetOs::Windows if lib == "nvrtc" => {
+                std::vec![std::format!("nvrtc{pointer_width}_{major}0_0.dll")]
+            }
+            TargetOs::Windows => majors
+                .iter()
+                .map(|n| std::format!("{lib}{pointer_width}_{n}.dll"))
+                .collect(),
+            TargetOs::Other { .. } => Vec::new(),
+        }
+    }
+
+    fn unversioned_candidate(os: TargetOs, pointer_width: u32, lib: &str) -> Option<String> {
+        match (os, lib) {
+            // no version query: versioned name only
+            (_, "cusolverMg") => None,
+            (TargetOs::Linux, _) => Some(std::format!("lib{lib}.so")),
+            (TargetOs::Windows, "cufile") => None,
+            (TargetOs::Windows, _) => Some(std::format!("{lib}{pointer_width}.dll")),
+            (TargetOs::Other { .. }, _) => None,
+        }
+    }
+
+    /// The candidates for `lib`: item 9's list where it applies (see
+    /// [`crate::get_lib_name_candidates`]), otherwise the base list.
     pub(crate) fn lib_candidates(
         os: TargetOs,
         pointer_width: u32,
-        lib_name: &str,
+        lib: &str,
         major: u32,
         minor: u32,
     ) -> Vec<String> {
-        base_candidates(os, pointer_width, lib_name, major, minor)
+        if !uses_checked_candidates(os, lib, major) {
+            return base_candidates(os, pointer_width, lib, major, minor);
+        }
+        let mut out = versioned_candidates(os, pointer_width, lib, major);
+        out.extend(unversioned_candidate(os, pointer_width, lib));
+        out
     }
 
     /// The raw answer of a library's version query.
@@ -478,18 +608,93 @@ mod lib_major {
         Reject,
     }
 
-    // FC6-b RED stub: accepts everything.
-    pub(crate) fn version_verdict(_lib: &str, _major: u32, _observed: Observed) -> Verdict {
-        Verdict::Accept
+    fn int_version(v: i64) -> u32 {
+        u32::try_from(v).unwrap_or(0)
     }
 
-    /// The memoized result of loading one library.
+    pub(crate) fn decode_version(lib: &str, observed: Observed) -> Option<LibVersion> {
+        let v = |major, minor, patch| {
+            Some(LibVersion {
+                major,
+                minor,
+                patch,
+            })
+        };
+        match (lib, observed) {
+            (_, Observed::Absent) => None,
+            (_, Observed::Triple(a, b, c)) => v(a, b, Some(c)),
+            (_, Observed::Pair(a, b)) => v(a, b, None),
+            // 12060 = 12.6
+            ("cudart" | "cuda", Observed::Int(n)) => {
+                let n = int_version(n);
+                v(n / 1000, n % 1000 / 10, None)
+            }
+            // 10307 = 10.3.7
+            ("curand", Observed::Int(n)) => {
+                let n = int_version(n);
+                v(n / 1000, n % 1000 / 100, Some(n % 100))
+            }
+            // 1110 = 1.11
+            ("cufile", Observed::Int(n)) => {
+                let n = int_version(n);
+                v(n / 1000, n % 1000 / 10, None)
+            }
+            // 130001 = 13.0.1 (xxyyzz from CUDA 13); before: an API version
+            ("cupti", Observed::Int(n)) => {
+                let n = int_version(n);
+                if n >= 10000 {
+                    v(n / 10000, n / 100 % 100, Some(n % 100))
+                } else {
+                    v(n, 0, None)
+                }
+            }
+            (_, Observed::Int(n)) => v(int_version(n), 0, None),
+        }
+    }
+
+    /// Whether a library of `lib` that reports `observed` belongs to the
+    /// line of built major `major` (design § 12.4 table).
+    pub(crate) fn version_verdict(lib: &str, major: u32, observed: Observed) -> Verdict {
+        use Observed::{Absent, Int, Pair, Triple};
+        if observed == Absent {
+            return match (lib, major) {
+                ("cusolverMg", _) | ("cufile", 12) => Verdict::AcceptWithoutQuery,
+                _ => Verdict::Reject,
+            };
+        }
+        let m = i64::from(major);
+        let accept = match (lib, major, observed) {
+            ("cudart", _, Int(v)) => v / 1000 == m,
+            ("cublas" | "cublasLt", _, Triple(a, _, _)) => a == major,
+            ("nvrtc", _, Pair(a, _)) => a == major,
+            ("cupti", 12, Int(v)) => (19..130000).contains(&v),
+            ("cupti", 13, Int(v)) => v / 10000 == 13,
+            ("cufft", 12, Triple(a, _, _)) => a == 11,
+            ("cufft", 13, Triple(a, _, _)) => a == 12,
+            ("cusolver", 12, Triple(a, b, c)) => (a, b, c) >= (11, 4, 2) && a < 12,
+            ("cusolver", 13, Triple(a, _, _)) => a == 12,
+            ("cusparse", 12, Triple(a, b, _)) => a == 12 && b <= 5,
+            ("cusparse", 13, Triple(a, b, _)) => (a, b) >= (12, 6),
+            ("curand", 12, Int(v)) => (10301..=10399).contains(&v),
+            ("curand", 13, Int(v)) => v >= 10400,
+            ("cufile", 12, Int(v)) => (1080..=1140).contains(&v),
+            ("cufile", 13, Int(v)) => v >= 1150,
+            _ => false,
+        };
+        if accept {
+            Verdict::Accept
+        } else {
+            Verdict::Reject
+        }
+    }
+
+    /// The memoized result of loading one library: `try_culib`,
+    /// `is_culib_present` and `loaded_library` of a loader share one cell, so
+    /// they agree, and a failure is not retried.
     pub(crate) struct LibCell<L> {
         cell: OnceLock<Result<(L, LoadedLibrary), LibLoadError>>,
     }
 
-    // FC6-b RED stub: upstream's behaviour (a failure is retried, and the
-    // presence probe loads independently).
     impl<L> LibCell<L> {
         pub(crate) const fn new() -> Self {
             Self {
@@ -501,18 +706,9 @@ mod lib_major {
             &self,
             load: impl FnOnce() -> Result<(L, LoadedLibrary), LibLoadError>,
         ) -> Result<&L, LibLoadError> {
-            if let Some(Ok((l, _))) = self.cell.get() {
-                return Ok(l);
-            }
-            match load() {
-                Ok(v) => {
-                    let _ = self.cell.set(Ok(v));
-                    match self.cell.get() {
-                        Some(Ok((l, _))) => Ok(l),
-                        _ => unreachable!(),
-                    }
-                }
-                Err(e) => Err(e),
+            match self.cell.get_or_init(load) {
+                Ok((l, _)) => Ok(l),
+                Err(e) => Err(e.clone()),
             }
         }
 
@@ -520,13 +716,489 @@ mod lib_major {
             &self,
             load: impl FnOnce() -> Result<(L, LoadedLibrary), LibLoadError>,
         ) -> bool {
-            load().is_ok()
+            self.try_get(load).is_ok()
         }
 
         pub(crate) fn report(&self) -> Option<LoadedLibrary> {
             match self.cell.get() {
                 Some(Ok((_, r))) => Some(r.clone()),
                 _ => None,
+            }
+        }
+    }
+
+    // a build with only the driver uses driver_report alone
+    #[cfg(feature = "dynamic-loading")]
+    #[allow(unused_imports)]
+    pub(crate) use self::loader::{driver_report, load_culib, panic_lib_load_error};
+
+    #[cfg(feature = "dynamic-loading")]
+    mod loader {
+        use super::{
+            built_version, decode_version, lib_candidates, uses_checked_candidates,
+            version_verdict, versioned_candidates, LibLoadError, LoadedLibrary, Observed,
+            RejectReason, TargetOs, Verdict, IN_SCOPE,
+        };
+        use core::ffi::c_int;
+        use libloading::Library;
+        use std::string::{String, ToString};
+        use std::vec::Vec;
+
+        /// `culib()`'s panic on a failed load.
+        pub(crate) fn panic_lib_load_error(e: &LibLoadError) -> ! {
+            panic!("{e}")
+        }
+
+        fn query_symbol(lib: &str) -> Option<&'static str> {
+            Some(match lib {
+                "cudart" => "cudaRuntimeGetVersion",
+                "cublas" => "cublasGetProperty",
+                "cublasLt" => "cublasLtGetProperty",
+                "nvrtc" => "nvrtcVersion",
+                "cupti" => "cuptiGetVersion",
+                "cufft" => "cufftGetProperty",
+                "cusolver" => "cusolverGetProperty",
+                "cusparse" => "cusparseGetProperty",
+                "curand" => "curandGetVersion",
+                "cufile" => "cuFileGetVersion",
+                _ => return None,
+            })
+        }
+
+        /// An exported function of `lib`, for resolving the loaded file.
+        fn address_symbol(lib: &str) -> &'static str {
+            match lib {
+                "cusolverMg" => "cusolverMgCreate",
+                "cuda" => "cuDriverGetVersion",
+                _ => query_symbol(lib).unwrap_or("cudaRuntimeGetVersion"),
+            }
+        }
+
+        #[repr(C)]
+        struct CuFileStatus {
+            err: c_int,
+            cu_err: c_int,
+        }
+
+        /// Calls `lib`'s version query through `dlsym` on `handle` itself (never
+        /// through the generated binding, which panics on a missing symbol).
+        unsafe fn query_version(lib: &str, handle: &Library) -> Result<Observed, String> {
+            type IntFn = unsafe extern "C" fn(*mut c_int) -> c_int;
+            type U32Fn = unsafe extern "C" fn(*mut u32) -> c_int;
+            type PairFn = unsafe extern "C" fn(*mut c_int, *mut c_int) -> c_int;
+            type PropFn = unsafe extern "C" fn(c_int, *mut c_int) -> c_int;
+            type FileFn = unsafe extern "C" fn(*mut c_int) -> CuFileStatus;
+            let Some(symbol) = query_symbol(lib) else {
+                return Ok(Observed::Absent);
+            };
+            let failed = |s: c_int| std::format!("{symbol} returned status {s}");
+            match lib {
+                "cudart" | "curand" => {
+                    let Ok(f) = handle.get::<IntFn>(symbol.as_bytes()) else {
+                        return Ok(Observed::Absent);
+                    };
+                    let mut v = 0;
+                    match f(&mut v) {
+                        0 => Ok(Observed::Int(v.into())),
+                        s => Err(failed(s)),
+                    }
+                }
+                "cupti" => {
+                    let Ok(f) = handle.get::<U32Fn>(symbol.as_bytes()) else {
+                        return Ok(Observed::Absent);
+                    };
+                    let mut v = 0;
+                    match f(&mut v) {
+                        0 => Ok(Observed::Int(v.into())),
+                        s => Err(failed(s)),
+                    }
+                }
+                "nvrtc" => {
+                    let Ok(f) = handle.get::<PairFn>(symbol.as_bytes()) else {
+                        return Ok(Observed::Absent);
+                    };
+                    let (mut a, mut b) = (0, 0);
+                    match f(&mut a, &mut b) {
+                        0 => Ok(Observed::Pair(a as u32, b as u32)),
+                        s => Err(failed(s)),
+                    }
+                }
+                "cufile" => {
+                    let Ok(f) = handle.get::<FileFn>(symbol.as_bytes()) else {
+                        return Ok(Observed::Absent);
+                    };
+                    let mut v = 0;
+                    let s = f(&mut v);
+                    if s.err == 0 {
+                        Ok(Observed::Int(v.into()))
+                    } else {
+                        Err(std::format!(
+                            "{symbol} returned error {} (CUresult {})",
+                            s.err,
+                            s.cu_err
+                        ))
+                    }
+                }
+                _ => {
+                    let Ok(f) = handle.get::<PropFn>(symbol.as_bytes()) else {
+                        return Ok(Observed::Absent);
+                    };
+                    // libraryPropertyType: MAJOR_VERSION, MINOR_VERSION, PATCH_LEVEL
+                    let mut v = [0; 3];
+                    for (t, out) in v.iter_mut().enumerate() {
+                        match f(t as c_int, out) {
+                            0 => {}
+                            s => return Err(failed(s)),
+                        }
+                    }
+                    Ok(Observed::Triple(v[0] as u32, v[1] as u32, v[2] as u32))
+                }
+            }
+        }
+
+        #[cfg(target_os = "linux")]
+        mod os {
+            use core::ffi::{c_char, c_int, c_void, CStr};
+            use libloading::Library;
+            use std::string::{String, ToString};
+            use std::vec::Vec;
+
+            // glibc and musl
+            const RTLD_NOLOAD: c_int = 4;
+
+            #[repr(C)]
+            struct DlInfo {
+                dli_fname: *const c_char,
+                dli_fbase: *mut c_void,
+                dli_sname: *const c_char,
+                dli_saddr: *mut c_void,
+            }
+
+            /// The leading fields of `struct dl_phdr_info`.
+            #[repr(C)]
+            struct DlPhdrInfo {
+                dlpi_addr: usize,
+                dlpi_name: *const c_char,
+            }
+
+            type PhdrCallback = unsafe extern "C" fn(
+                info: *mut DlPhdrInfo,
+                size: usize,
+                data: *mut c_void,
+            ) -> c_int;
+
+            extern "C" {
+                fn dladdr(addr: *const c_void, info: *mut DlInfo) -> c_int;
+                fn dl_iterate_phdr(callback: Option<PhdrCallback>, data: *mut c_void) -> c_int;
+            }
+
+            /// The object already loaded under `name` (a soname or a path),
+            /// without loading anything.
+            pub(super) unsafe fn already_loaded(name: &str) -> Option<Library> {
+                use libloading::os::unix::{Library as UnixLibrary, RTLD_LAZY, RTLD_LOCAL};
+                UnixLibrary::open(Some(name), RTLD_LAZY | RTLD_LOCAL | RTLD_NOLOAD)
+                    .ok()
+                    .map(Library::from)
+            }
+
+            /// The canonical path of the file that defines `symbol` in `lib`.
+            pub(super) unsafe fn library_path(lib: &Library, symbol: &str) -> Option<String> {
+                let addr = *lib.get::<*mut c_void>(symbol.as_bytes()).ok()?;
+                let mut info = DlInfo {
+                    dli_fname: core::ptr::null(),
+                    dli_fbase: core::ptr::null_mut(),
+                    dli_sname: core::ptr::null(),
+                    dli_saddr: core::ptr::null_mut(),
+                };
+                if dladdr(addr, &mut info) == 0 || info.dli_fname.is_null() {
+                    return None;
+                }
+                let name = CStr::from_ptr(info.dli_fname)
+                    .to_string_lossy()
+                    .into_owned();
+                // realpath(3)
+                Some(match std::fs::canonicalize(&name) {
+                    Ok(p) => p.to_string_lossy().into_owned(),
+                    Err(_) => name,
+                })
+            }
+
+            unsafe extern "C" fn collect(
+                info: *mut DlPhdrInfo,
+                _size: usize,
+                data: *mut c_void,
+            ) -> c_int {
+                let out = &mut *(data as *mut Vec<String>);
+                let name = (*info).dlpi_name;
+                if !name.is_null() {
+                    let s = CStr::from_ptr(name).to_string_lossy();
+                    if !s.is_empty() {
+                        out.push(s.to_string());
+                    }
+                }
+                0
+            }
+
+            /// The file names of every loaded object (the link map).
+            pub(super) fn link_map() -> Vec<String> {
+                let mut out: Vec<String> = Vec::new();
+                unsafe {
+                    dl_iterate_phdr(Some(collect), &mut out as *mut Vec<String> as *mut c_void)
+                };
+                out
+            }
+        }
+
+        #[cfg(target_os = "windows")]
+        mod os {
+            use core::ffi::c_void;
+            use libloading::Library;
+            use std::string::String;
+
+            const GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT: u32 = 0x2;
+            const GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS: u32 = 0x4;
+
+            #[link(name = "kernel32")]
+            extern "system" {
+                fn GetModuleHandleExW(
+                    flags: u32,
+                    name: *const u16,
+                    module: *mut *mut c_void,
+                ) -> i32;
+                fn GetModuleFileNameW(module: *mut c_void, filename: *mut u16, size: u32) -> u32;
+            }
+
+            /// The path of the module that defines `symbol` in `lib`.
+            pub(super) unsafe fn library_path(lib: &Library, symbol: &str) -> Option<String> {
+                let addr = *lib.get::<*mut c_void>(symbol.as_bytes()).ok()?;
+                let mut module = core::ptr::null_mut();
+                if GetModuleHandleExW(
+                    GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS
+                        | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                    addr as *const u16,
+                    &mut module,
+                ) == 0
+                {
+                    return None;
+                }
+                let mut buf = [0u16; 32768];
+                let n = GetModuleFileNameW(module, buf.as_mut_ptr(), buf.len() as u32) as usize;
+                if n == 0 || n >= buf.len() {
+                    return None;
+                }
+                Some(String::from_utf16_lossy(&buf[..n]))
+            }
+        }
+
+        #[cfg(not(any(target_os = "linux", target_os = "windows")))]
+        mod os {
+            use libloading::Library;
+            use std::string::String;
+
+            pub(super) unsafe fn library_path(_lib: &Library, _symbol: &str) -> Option<String> {
+                None
+            }
+        }
+
+        fn open_error(e: &libloading::Error) -> RejectReason {
+            use std::error::Error;
+            // libloading's message is generic; the loader's text is the source
+            let msg = match e.source() {
+                Some(source) => std::format!("{e}: {source}"),
+                None => e.to_string(),
+            };
+            // glibc's dlerror text; Windows ERROR_MOD_NOT_FOUND
+            if msg.contains("No such file or directory") || msg.contains("(os error 126)") {
+                RejectReason::NotFound
+            } else {
+                RejectReason::LoadFailed(msg)
+            }
+        }
+
+        enum Judged {
+            Accept(Observed),
+            Reject(RejectReason),
+        }
+
+        /// Applies the version line of `lib` to an opened `handle`.
+        unsafe fn judge(lib: &str, major: u32, versioned: bool, handle: &Library) -> Judged {
+            let observed = match query_version(lib, handle) {
+                Ok(o) => o,
+                Err(msg) => return Judged::Reject(RejectReason::LoadFailed(msg)),
+            };
+            match version_verdict(lib, major, observed) {
+                Verdict::Accept => Judged::Accept(observed),
+                Verdict::AcceptWithoutQuery if versioned => Judged::Accept(observed),
+                Verdict::AcceptWithoutQuery => Judged::Reject(RejectReason::NoVersionQuery),
+                Verdict::Reject => Judged::Reject(match decode_version(lib, observed) {
+                    Some(v) => RejectReason::WrongVersion(v),
+                    None => RejectReason::NoVersionQuery,
+                }),
+            }
+        }
+
+        fn in_scope_library_of_file(file: &str) -> Option<&'static str> {
+            IN_SCOPE.iter().copied().find(|l| {
+                let stem = std::format!("lib{l}.so");
+                file == stem
+                    || file
+                        .strip_prefix(stem.as_str())
+                        .is_some_and(|r| r.starts_with('.'))
+            })
+        }
+
+        /// Version-checks the in-scope objects that loading `lib` newly mapped.
+        #[cfg(target_os = "linux")]
+        unsafe fn wrong_dependency(
+            lib: &str,
+            major: u32,
+            before: &[String],
+        ) -> Option<RejectReason> {
+            for path in os::link_map() {
+                if before.contains(&path) {
+                    continue;
+                }
+                let file = path.rsplit('/').next().unwrap_or(&path);
+                let Some(dep) = in_scope_library_of_file(file) else {
+                    continue;
+                };
+                if dep == lib {
+                    continue;
+                }
+                let Some(handle) = os::already_loaded(&path) else {
+                    continue;
+                };
+                let Ok(observed) = query_version(dep, &handle) else {
+                    continue;
+                };
+                if version_verdict(dep, major, observed) == Verdict::Reject {
+                    if let Some(version) = decode_version(dep, observed) {
+                        return Some(RejectReason::WrongMajorDependency {
+                            soname: file.to_string(),
+                            version,
+                        });
+                    }
+                }
+            }
+            None
+        }
+
+        enum Step {
+            Use(Library, Observed),
+            Next(RejectReason),
+            Stop(RejectReason),
+        }
+
+        unsafe fn try_candidate(
+            lib: &str,
+            major: u32,
+            checked: bool,
+            versioned: bool,
+            name: &str,
+        ) -> Step {
+            if !checked {
+                // CUDA 11.x builds, Windows CUPTI, other targets: the first
+                // name that opens, as upstream; the version is only reported
+                return match Library::new(name) {
+                    Ok(handle) => {
+                        let observed = query_version(lib, &handle).unwrap_or(Observed::Absent);
+                        Step::Use(handle, observed)
+                    }
+                    Err(e) => Step::Next(open_error(&e)),
+                };
+            }
+            #[cfg(target_os = "linux")]
+            if let Some(handle) = os::already_loaded(name) {
+                return match judge(lib, major, versioned, &handle) {
+                    Judged::Accept(observed) => Step::Use(handle, observed),
+                    Judged::Reject(RejectReason::WrongVersion(v)) => {
+                        Step::Stop(RejectReason::AlreadyLoadedWrongVersion(v))
+                    }
+                    Judged::Reject(r) => Step::Next(r),
+                };
+            }
+            #[cfg(target_os = "linux")]
+            let before = os::link_map();
+            let handle = match Library::new(name) {
+                Ok(h) => h,
+                Err(e) => return Step::Next(open_error(&e)),
+            };
+            let observed = match judge(lib, major, versioned, &handle) {
+                Judged::Accept(o) => o,
+                Judged::Reject(r) => return Step::Next(r),
+            };
+            #[cfg(target_os = "linux")]
+            if let Some(r) = wrong_dependency(lib, major, &before) {
+                return Step::Next(r);
+            }
+            Step::Use(handle, observed)
+        }
+
+        /// Loads `lib` for the built CUDA major: the loader behind each
+        /// in-scope `try_culib`.
+        pub(crate) unsafe fn load_culib(
+            lib: &'static str,
+        ) -> Result<(Library, LoadedLibrary), LibLoadError> {
+            let (major, minor) = built_version();
+            let os = TargetOs::host();
+            let width = if cfg!(target_pointer_width = "32") {
+                32
+            } else {
+                64
+            };
+            let checked = uses_checked_candidates(os, lib, major);
+            let versioned = if checked {
+                versioned_candidates(os, width, lib, major)
+            } else {
+                Vec::new()
+            };
+            let mut tried = Vec::new();
+            for name in lib_candidates(os, width, lib, major, minor) {
+                match try_candidate(lib, major, checked, versioned.contains(&name), &name) {
+                    Step::Use(handle, observed) => {
+                        let report = LoadedLibrary {
+                            library: lib,
+                            cuda_major: major,
+                            path: os::library_path(&handle, address_symbol(lib)),
+                            opened_as: name,
+                            version: decode_version(lib, observed),
+                            note: (observed == Observed::Absent)
+                                .then_some(RejectReason::NoVersionQuery),
+                        };
+                        return Ok((handle, report));
+                    }
+                    Step::Next(reason) => tried.push((name, reason)),
+                    Step::Stop(reason) => {
+                        tried.push((name, reason));
+                        break;
+                    }
+                }
+            }
+            Err(LibLoadError {
+                library: lib,
+                cuda_major: major,
+                tried,
+            })
+        }
+
+        /// The driver's report: its file and `cuDriverGetVersion`.
+        pub(crate) unsafe fn driver_report(handle: &Library, opened_as: &str) -> LoadedLibrary {
+            type IntFn = unsafe extern "C" fn(*mut c_int) -> c_int;
+            let version = handle
+                .get::<IntFn>(b"cuDriverGetVersion")
+                .ok()
+                .and_then(|f| {
+                    let mut v = 0;
+                    (f(&mut v) == 0).then_some(v)
+                })
+                .and_then(|v| decode_version("cuda", Observed::Int(v.into())));
+            LoadedLibrary {
+                library: "cuda",
+                cuda_major: built_version().0,
+                opened_as: opened_as.to_string(),
+                path: os::library_path(handle, address_symbol("cuda")),
+                version,
+                note: None,
             }
         }
     }

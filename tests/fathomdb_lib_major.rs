@@ -12,6 +12,9 @@
 use std::ffi::{c_char, c_int, c_void, CString};
 use std::panic::{catch_unwind, AssertUnwindSafe};
 
+#[allow(unused_imports)]
+use cudarc::RejectReason;
+
 extern "C" {
     fn dlopen(filename: *const c_char, flag: c_int) -> *mut c_void;
     fn dlclose(handle: *mut c_void) -> c_int;
@@ -100,6 +103,17 @@ fn cuda12_build_skips_an_unversioned_cuda13_cublas() {
         1,
         "expected one CUDA 12 cuBLAS mapping, got {m:?}"
     );
+    // the report (new API, checked only at GREEN) names the mapped file
+    let r = cudarc::cublas::sys::loaded_library().expect("a cuBLAS report after the load");
+    println!("REPORT a {r}");
+    assert_eq!(r.cuda_major, 12);
+    assert_eq!(r.opened_as, "libcublas.so.12");
+    assert_eq!(
+        r.path.as_ref(),
+        Some(right[0]),
+        "report path vs /proc/self/maps"
+    );
+    assert_eq!(r.version.map(|v| v.major), Some(12));
 }
 
 /// (b) A 13.x build where no CUDA 13 cuBLAS is reachable and the unversioned
@@ -131,6 +145,22 @@ fn cuda13_build_rejects_the_cuda12_cublas_from_the_loader_cache() {
         wrong.is_empty(),
         "a CUDA 13 build mapped CUDA 12 cuBLAS: {wrong:?}"
     );
+    // the fallible check (new API, checked only at GREEN)
+    let e = unsafe { cudarc::cublas::sys::try_culib() }
+        .map(|_| ())
+        .expect_err("no CUDA 13 cuBLAS is reachable");
+    println!("RESULT b try_culib(): {e}");
+    assert_eq!((e.library, e.cuda_major), ("cublas", 13));
+    assert!(
+        matches!(
+            e.tried.as_slice(),
+            [(n13, RejectReason::NotFound), (n, RejectReason::WrongVersion(v))]
+                if n13 == "libcublas.so.13" && n == "libcublas.so" && v.major == 12
+        ),
+        "{:?}",
+        e.tried
+    );
+    assert!(!unsafe { cudarc::cublas::sys::is_culib_present() });
 }
 
 /// (c) No acceptable cuBLAS at all: loading fails without a panic or an
@@ -142,18 +172,47 @@ fn no_acceptable_cublas_is_a_typed_error_not_a_panic() {
     for name in ["libcublas.so", "libcublas.so.12", "libcublas.so.13"] {
         assert!(!open_and_close(name), "precondition: {name} is resolvable");
     }
-    let loaded = catch_unwind(AssertUnwindSafe(|| unsafe {
-        cudarc::cublas::sys::culib();
+    // RED (base API) called culib(), which panicked. GREEN calls the
+    // fallible check, which must return the typed error instead.
+    let result = catch_unwind(AssertUnwindSafe(|| unsafe {
+        cudarc::cublas::sys::try_culib().map(|_| ())
     }));
-    print_maps("c", "libcublas");
-    assert!(loaded.is_ok(), "loading cuBLAS panicked");
+    let m = print_maps("c", "libcublas");
+    let e = result
+        .expect("the fallible check panicked")
+        .expect_err("no cuBLAS is resolvable");
+    println!("RESULT c try_culib(): {e}");
+    assert!(m.is_empty(), "cuBLAS mapped: {m:?}");
+    assert_eq!((e.library, e.cuda_major), ("cublas", 12));
+    let names: Vec<&str> = e.tried.iter().map(|(n, _)| n.as_str()).collect();
+    assert_eq!(names, ["libcublas.so.12", "libcublas.so"]);
+    assert!(e
+        .tried
+        .iter()
+        .all(|(_, r)| matches!(r, RejectReason::NotFound)));
+    assert!(e.to_string().contains("CUDA 12"), "{e}");
+    assert!(!unsafe { cudarc::cublas::sys::is_culib_present() });
+    assert!(cudarc::cublas::sys::loaded_library().is_none());
 }
 
 /// (d) A 12.x build in a process where the CUDA 13 cuFile is already
 /// mapped: an earlier `dlopen("libcufile.so")` resolved the decoy to the
 /// cu13 `libcufile.so.0`, which stays mapped after `dlclose`
 /// (`DF_1_NODELETE`). The build must not use it.
-#[cfg(feature = "cufile")]
+// the cuFileGetVersion binding starts at cuda-12030
+#[cfg(all(
+    feature = "cufile",
+    not(any(
+        feature = "cuda-11040",
+        feature = "cuda-11050",
+        feature = "cuda-11060",
+        feature = "cuda-11070",
+        feature = "cuda-11080",
+        feature = "cuda-12000",
+        feature = "cuda-12010",
+        feature = "cuda-12020"
+    ))
+))]
 #[test]
 #[ignore = "T-DEV (d): run by fathomdb/scripts/t-dev-lib-major.sh"]
 fn cuda12_build_rejects_an_already_loaded_cuda13_cufile() {
@@ -186,6 +245,25 @@ fn cuda12_build_rejects_an_already_loaded_cuda13_cufile() {
             "a CUDA 12 build uses the CUDA 13 cuFile (version {v})"
         );
     }
+    // the fallible check (new API, checked only at GREEN)
+    let e = unsafe { cudarc::cufile::sys::try_culib() }
+        .map(|_| ())
+        .expect_err("the cu13 cuFile is already loaded");
+    println!("RESULT d try_culib(): {e}");
+    assert!(
+        matches!(
+            e.tried.last(),
+            Some((n, RejectReason::AlreadyLoadedWrongVersion(v)))
+                if n == "libcufile.so.0" && (v.major, v.minor) == (1, 15)
+        ),
+        "{:?}",
+        e.tried
+    );
+    let after = print_maps("d-after", "libcufile.so");
+    assert!(
+        after.iter().all(|p| p.starts_with(&cu13)) && !after.is_empty(),
+        "only the cu13 cuFile stays mapped: {after:?}"
+    );
 }
 
 /// (e) The driver loads when only `libcuda.so.1` exists (no `libcuda.so`
@@ -233,6 +311,13 @@ fn driver_loads_with_only_libcuda_so_1() {
     let m = print_maps("e", "libcuda.so");
     assert!(loaded.is_ok(), "the driver did not load");
     assert!(!m.is_empty(), "no libcuda mapping");
+    // the driver report (new API, checked only at GREEN)
+    let r = cudarc::driver::sys::loaded_library().expect("a driver report");
+    println!("REPORT e {r}");
+    assert!(
+        r.path.as_ref().is_some_and(|p| m.contains(p)),
+        "{r} vs {m:?}"
+    );
 }
 
 /// (f) NVTX (out of scope of item 9) loads when only `libnvToolsExt.so.1`
