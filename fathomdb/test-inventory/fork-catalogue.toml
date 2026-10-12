@@ -915,7 +915,7 @@ binary = "unittests:cudarc"
 kind = "P"
 cells = ["t-unit"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.4"
 serves = "CF-AC-11"
@@ -929,7 +929,7 @@ binary = "unittests:cudarc"
 kind = "P"
 cells = ["t-unit"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.4"
 serves = "CF-AC-11"
@@ -943,7 +943,7 @@ binary = "unittests:cudarc"
 kind = "P"
 cells = ["t-unit"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.4"
 serves = "CF-AC-11"
@@ -957,7 +957,7 @@ binary = "unittests:cudarc"
 kind = "P"
 cells = ["t-unit"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.4"
 serves = "CF-AC-11"
@@ -971,7 +971,7 @@ binary = "unittests:cudarc"
 kind = "P"
 cells = ["t-unit"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.4"
 serves = "CF-AC-11"
@@ -985,7 +985,7 @@ binary = "unittests:cudarc"
 kind = "P"
 cells = ["t-unit"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.4"
 serves = "CF-AC-11"
@@ -999,7 +999,7 @@ binary = "unittests:cudarc"
 kind = "P"
 cells = ["t-unit"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.4"
 serves = "CF-AC-11"
@@ -1013,7 +1013,7 @@ binary = "unittests:cudarc"
 kind = "P"
 cells = ["t-unit"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.4"
 serves = "CF-AC-11"
@@ -1027,7 +1027,7 @@ binary = "unittests:cudarc"
 kind = "P"
 cells = ["t-unit"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.4"
 serves = "CF-AC-11"
@@ -1036,72 +1036,112 @@ cfg = {  }
 
 [[test]]
 name = "template_loader_tail_matches_the_checked_in_cublas_loader"
-module = ""
+module = "loader_tail::tests"
 binary = "unittests:bindings_generator"
 kind = "P"
 cells = ["pure"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.4"
 serves = "design D-F4 (R-FC-DES L10)"
 red = "FC6-b"
 cfg = {  }
-note = "module chosen at FC6-b; if bindings_generator cannot host it, fathomdb/scripts/check-loader-template.sh replaces it"
+note = "bindings_generator/src/loader_tail.rs; cell pure, run by the fork CI job pure-test-generator (cargo test in bindings_generator, once), not by the per-feature cudarc pure-test steps"
 
-# T-DEV cases of test plan § 3.4 (integration test tests/fathomdb_lib_major.rs,
-# run by fathomdb/scripts/t-dev-lib-major.sh). The test plan does not name
-# their functions; FC6-b names each and moves it to a [[test]] row.
-[[unnamed]]
-case = "T-DEV (a)"
+# T-DEV cases (a)-(f) of test plan § 3.4: ignored tests of the integration
+# test tests/fathomdb_lib_major.rs (top-level names, so module = ""), each
+# run as its own process by fathomdb/scripts/t-dev-lib-major.sh. The cfg
+# omits dynamic-loading: the file needs it, and every cell builds with it
+# (build.rs sets it for fallback-dynamic-loading, which count-tests cannot
+# model).
+
+[[test]]
+name = "cuda12_build_skips_an_unversioned_cuda13_cublas"
+module = ""
 binary = "test:fathomdb_lib_major"
 kind = "D"
 cells = ["G1"]
-build = 12060
+ignored = true
+landed = true
+origin = "test-plan"
+section = "3.4"
 serves = "CF-AC-11"
 red = "FC6-b: maps libcublas.so.13 at ec1cac71"
+case = "T-DEV (a)"
+cfg = { features = ["cublas"], os = ["linux"] }
 
-[[unnamed]]
-case = "T-DEV (b)"
+[[test]]
+name = "cuda13_build_rejects_the_cuda12_cublas_from_the_loader_cache"
+module = ""
 binary = "test:fathomdb_lib_major"
 kind = "D"
 cells = ["G1"]
-build = 13000
+ignored = true
+landed = true
+origin = "test-plan"
+section = "3.4"
 serves = "CF-AC-11"
 red = "FC6-b: maps libcublas.so.12 at ec1cac71"
+case = "T-DEV (b)"
+cfg = { features = ["cublas"], os = ["linux"] }
 
-[[unnamed]]
-case = "T-DEV (c)"
+[[test]]
+name = "no_acceptable_cublas_is_a_typed_error_not_a_panic"
+module = ""
 binary = "test:fathomdb_lib_major"
 kind = "D"
 cells = ["G1"]
-build = 12060
+ignored = true
+landed = true
+origin = "test-plan"
+section = "3.4"
 serves = "CF-AC-11"
 red = "FC6-b: panics at ec1cac71"
+case = "T-DEV (c)"
+cfg = { features = ["cublas"], os = ["linux"] }
 
-[[unnamed]]
-case = "T-DEV (d)"
+[[test]]
+name = "cuda12_build_rejects_an_already_loaded_cuda13_cufile"
+module = ""
 binary = "test:fathomdb_lib_major"
 kind = "D"
 cells = ["G1"]
-build = 12060
+ignored = true
+landed = true
+origin = "test-plan"
+section = "3.4"
 serves = "CF-AC-11"
 red = "FC6-b: maps cu13 cuFile at ec1cac71"
+case = "T-DEV (d)"
+cfg = { features = ["cufile"], os = ["linux"], min_version = 12030 }
 
-[[unnamed]]
-case = "T-DEV (e)"
+[[test]]
+name = "driver_loads_with_only_libcuda_so_1"
+module = ""
 binary = "test:fathomdb_lib_major"
 kind = "D"
 cells = ["G5b"]
-build = 12060
+ignored = true
+landed = true
+origin = "test-plan"
+section = "3.4"
 serves = "CF-AC-11"
 red = "no RED: loads at base and at C"
+case = "T-DEV (e)"
+cfg = { features = ["driver"], os = ["linux"] }
 
-[[unnamed]]
-case = "T-DEV (f)"
+[[test]]
+name = "nvtx_loads_with_only_libnvtoolsext_so_1"
+module = ""
 binary = "test:fathomdb_lib_major"
 kind = "D"
 cells = ["G1"]
-build = 12060
+ignored = true
+landed = true
+origin = "test-plan"
+section = "3.4"
 serves = "CF-AC-11"
 red = "no RED: loads at base and at C"
+case = "T-DEV (f)"
+cfg = { features = ["nvtx"], os = ["linux"] }
