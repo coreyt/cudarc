@@ -4535,5 +4535,164 @@ mod fathomdb_private_pool {
             }
         );
     }
+
+    /// A pool on device 0 and a new stream of a private context using it.
+    fn private_stream(props: &MemPoolProps) -> (Arc<CudaMemPool>, Arc<CudaStream>) {
+        let pool = Arc::new(CudaMemPool::create(0, props).unwrap());
+        let ctx = CudaContext::new_with_mem_pool(0, pool.clone()).unwrap();
+        (pool, ctx.new_stream().unwrap())
+    }
+
+    /// What [grow_until_failure] saw.
+    struct Growth {
+        /// The buffers that were allocated, still live.
+        live: Vec<CudaSlice<u8>>,
+        /// The error of the first failing request, if one failed.
+        error: Option<DriverError>,
+        /// `RESERVED_MEM_CURRENT` and `USED_MEM_CURRENT` right after the
+        /// failure (or after the last request).
+        reserved: u64,
+        used: u64,
+    }
+
+    /// Allocates `size`-byte buffers on `stream` until a request fails or
+    /// the requests would pass `cap + size` bytes in total, so no call asks
+    /// for more than the cap plus one request (requirements CF-AC-02). The
+    /// test plan's "M-2 limit" for `size` is `live.len() * size` when a
+    /// request failed.
+    fn grow_until_failure(
+        pool: &CudaMemPool,
+        stream: &Arc<CudaStream>,
+        size: usize,
+        cap: usize,
+    ) -> Growth {
+        let mut live = Vec::new();
+        let mut error = None;
+        for _ in 0..=cap / size {
+            match unsafe { stream.alloc::<u8>(size) } {
+                Ok(buffer) => live.push(buffer),
+                Err(e) => {
+                    error = Some(e);
+                    break;
+                }
+            }
+        }
+        Growth {
+            live,
+            error,
+            reserved: pool.reserved_current().unwrap(),
+            used: pool.used_current().unwrap(),
+        }
+    }
+
+    /// M-1 (test plan § 8): the step in `RESERVED_MEM_CURRENT` made by the
+    /// first and the second allocation of each size in an empty pool.
+    #[test]
+    #[ignore = "measurement M-1 (test plan § 8); run alone with --nocapture"]
+    fn measure_reservation_steps() {
+        for size in [1usize, 1 << 20, 32 << 20, 256 << 20] {
+            let (pool, stream) = private_stream(&MemPoolProps::default());
+            let empty = pool.reserved_current().unwrap();
+            let first = unsafe { stream.alloc::<u8>(size) }.unwrap();
+            let one = pool.reserved_current().unwrap();
+            let second = unsafe { stream.alloc::<u8>(size) }.unwrap();
+            let two = pool.reserved_current().unwrap();
+            stream.synchronize().unwrap();
+            let used = pool.used_current().unwrap();
+            let (free, total) = result::mem_get_info().unwrap();
+            std::println!(
+                "M-1 size={size} empty={empty} first_step={} second_step={} used_after_two={used} device_free={free} device_total={total}",
+                one - empty,
+                two - one
+            );
+            drop((first, second));
+            stream.synchronize().unwrap();
+            assert_eq!(pool.used_current(), Ok(0));
+        }
+    }
+
+    /// M-2 (test plan § 8): one allocation size grown until the first
+    /// failure in a pool capped at `SMALL_POOL.max_size`, at release
+    /// thresholds 0 and the cap; reserved and used at the failure.
+    #[test]
+    #[ignore = "measurement M-2 (test plan § 8); run alone with --nocapture"]
+    fn measure_max_size_semantics() {
+        let cap = SMALL_POOL.max_size;
+        let size = 1 << 20;
+        for threshold in [0, cap as u64] {
+            let (pool, stream) = private_stream(&MemPoolProps {
+                max_size: cap,
+                release_threshold: threshold,
+            });
+            let grown = grow_until_failure(&pool, &stream, size, cap);
+            std::println!(
+                "M-2 cap={cap} size={size} threshold={threshold} successes={} limit={} error={:?} reserved_at_failure={} used_at_failure={} max_size()={:?}",
+                grown.live.len(),
+                grown.live.len() * size,
+                grown.error,
+                grown.reserved,
+                grown.used,
+                pool.max_size()
+            );
+            drop(grown.live);
+            stream.synchronize().unwrap();
+        }
+    }
+
+    /// M-3 (test plan § 8): what driver 580 answers for the attributes that
+    /// first appear in the 13.2 header (9-14) and the 13.4 header (15),
+    /// asked directly through the result layer. An observation only: the
+    /// driver-version gate never relies on it (design D-4).
+    #[cfg(not(any(
+        feature = "cuda-11040",
+        feature = "cuda-11050",
+        feature = "cuda-11060",
+        feature = "cuda-11070",
+        feature = "cuda-11080",
+        feature = "cuda-12000",
+        feature = "cuda-12010",
+        feature = "cuda-12020",
+        feature = "cuda-12030",
+        feature = "cuda-12040",
+        feature = "cuda-12050",
+        feature = "cuda-12060",
+        feature = "cuda-12080",
+        feature = "cuda-12090",
+        feature = "cuda-13000",
+        feature = "cuda-13010"
+    )))]
+    #[test]
+    #[ignore = "observation M-3 (test plan § 8); run alone with --nocapture"]
+    fn observe_new_attributes_on_driver_580() {
+        use sys::CUmemPool_attribute::*;
+        let pool = CudaMemPool::create(0, &SMALL_POOL).unwrap();
+        let mut driver = 0;
+        unsafe { sys::cuDriverGetVersion(&mut driver) }
+            .result()
+            .unwrap();
+        #[allow(unused_mut)]
+        let mut attributes = std::vec![
+            CU_MEMPOOL_ATTR_ALLOCATION_TYPE,
+            CU_MEMPOOL_ATTR_EXPORT_HANDLE_TYPES,
+            CU_MEMPOOL_ATTR_LOCATION_ID,
+            CU_MEMPOOL_ATTR_LOCATION_TYPE,
+            CU_MEMPOOL_ATTR_MAX_POOL_SIZE,
+            CU_MEMPOOL_ATTR_HW_DECOMPRESS_ENABLED,
+        ];
+        #[cfg(not(any(feature = "cuda-13020", feature = "cuda-13030")))]
+        attributes.push(CU_MEMPOOL_ATTR_LOCALITY_DOMAIN_ID);
+        for attr in attributes {
+            // Wider than any pool attribute, so no value can overrun it.
+            let mut value = [0u64; 4];
+            let status = unsafe {
+                result::mem_pool::get_attribute(pool.raw(), attr, value.as_mut_ptr().cast())
+            };
+            std::println!(
+                "M-3 driver={driver} attribute={} ({attr:?}) result={status:?} value={:#x}",
+                attr as u32,
+                value[0]
+            );
+        }
+    }
 }
 // FATHOMDB PATCH END
