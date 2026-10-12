@@ -727,6 +727,32 @@ pub(crate) mod lib_major {
         }
     }
 
+    /// The version query of `lib`, if it has one.
+    pub(crate) fn query_symbol(lib: &str) -> Option<&'static str> {
+        Some(match lib {
+            "cudart" => "cudaRuntimeGetVersion",
+            "cublas" => "cublasGetProperty",
+            "cublasLt" => "cublasLtGetProperty",
+            "nvrtc" => "nvrtcVersion",
+            "cupti" => "cuptiGetVersion",
+            "cufft" => "cufftGetProperty",
+            "cusolver" => "cusolverGetProperty",
+            "cusparse" => "cusparseGetProperty",
+            "curand" => "curandGetVersion",
+            "cufile" => "cuFileGetVersion",
+            _ => return None,
+        })
+    }
+
+    /// An exported function of `lib`, for resolving the loaded file.
+    pub(crate) fn address_symbol(lib: &str) -> &'static str {
+        match lib {
+            "cusolverMg" => "cusolverMgCreate",
+            "cuda" => "cuDriverGetVersion",
+            _ => query_symbol(lib).unwrap_or("cudaRuntimeGetVersion"),
+        }
+    }
+
     // a build with only the driver uses driver_report alone
     #[cfg(feature = "dynamic-loading")]
     #[allow(unused_imports)]
@@ -735,9 +761,9 @@ pub(crate) mod lib_major {
     #[cfg(feature = "dynamic-loading")]
     mod loader {
         use super::{
-            built_version, decode_version, lib_candidates, uses_checked_candidates,
-            version_verdict, versioned_candidates, LibLoadError, LoadedLibrary, Observed,
-            RejectReason, TargetOs, Verdict, IN_SCOPE,
+            address_symbol, built_version, decode_version, lib_candidates, query_symbol,
+            uses_checked_candidates, version_verdict, versioned_candidates, LibLoadError,
+            LoadedLibrary, Observed, RejectReason, TargetOs, Verdict, IN_SCOPE,
         };
         use core::ffi::c_int;
         use libloading::Library;
@@ -747,31 +773,6 @@ pub(crate) mod lib_major {
         /// `culib()`'s panic on a failed load.
         pub(crate) fn panic_lib_load_error(e: &LibLoadError) -> ! {
             panic!("{e}")
-        }
-
-        fn query_symbol(lib: &str) -> Option<&'static str> {
-            Some(match lib {
-                "cudart" => "cudaRuntimeGetVersion",
-                "cublas" => "cublasGetProperty",
-                "cublasLt" => "cublasLtGetProperty",
-                "nvrtc" => "nvrtcVersion",
-                "cupti" => "cuptiGetVersion",
-                "cufft" => "cufftGetProperty",
-                "cusolver" => "cusolverGetProperty",
-                "cusparse" => "cusparseGetProperty",
-                "curand" => "curandGetVersion",
-                "cufile" => "cuFileGetVersion",
-                _ => return None,
-            })
-        }
-
-        /// An exported function of `lib`, for resolving the loaded file.
-        fn address_symbol(lib: &str) -> &'static str {
-            match lib {
-                "cusolverMg" => "cusolverMgCreate",
-                "cuda" => "cuDriverGetVersion",
-                _ => query_symbol(lib).unwrap_or("cudaRuntimeGetVersion"),
-            }
         }
 
         #[repr(C)]
@@ -1209,7 +1210,8 @@ pub(crate) mod lib_major {
 #[cfg(test)]
 mod fathomdb_lib_major {
     use crate::lib_major::{
-        lib_candidates, linked_report, version_verdict, LibCell, Observed, TargetOs, Verdict,
+        address_symbol, lib_candidates, linked_report, query_symbol, version_verdict, LibCell,
+        Observed, TargetOs, Verdict,
     };
     use crate::{LibLoadError, LibVersion, LoadedLibrary, RejectReason};
     use std::string::{String, ToString};
@@ -1808,5 +1810,71 @@ mod fathomdb_lib_major {
                 "{text:?}"
             );
         }
+    }
+
+    /// The checked-in binding file of each library whose loaded file the
+    /// report resolves.
+    fn binding_source(lib: &str) -> &'static str {
+        match lib {
+            "cuda" => include_str!("driver/sys/mod.rs"),
+            "cudart" => include_str!("runtime/sys/mod.rs"),
+            "cublas" => include_str!("cublas/sys/mod.rs"),
+            "cublasLt" => include_str!("cublaslt/sys/mod.rs"),
+            "nvrtc" => include_str!("nvrtc/sys/mod.rs"),
+            "cupti" => include_str!("cupti/sys/mod.rs"),
+            "cufft" => include_str!("cufft/sys/mod.rs"),
+            "cusolver" => include_str!("cusolver/sys/mod.rs"),
+            "cusolverMg" => include_str!("cusolvermg/sys/mod.rs"),
+            "cusparse" => include_str!("cusparse/sys/mod.rs"),
+            "curand" => include_str!("curand/sys/mod.rs"),
+            "cufile" => include_str!("cufile/sys/mod.rs"),
+            _ => panic!("no binding file for {lib}"),
+        }
+    }
+
+    /// The `cuda-*` features of [VERSIONS] for which `lib`'s module exists
+    /// (`src/lib.rs`: cuFFT is not built for CUDA 11.x).
+    fn module_features(lib: &str) -> Vec<String> {
+        VERSIONS
+            .iter()
+            .filter(|(major, _)| !(lib == "cufft" && *major == 11))
+            .map(|(major, minor)| std::format!("cuda-{}{:03}", major, minor * 10))
+            .collect()
+    }
+
+    /// The `cuda-*` features of `features` for which the binding file binds
+    /// `symbol` (no `cfg` on the function, or a `cfg(any(...))` naming the
+    /// feature). All of them are missing if the function is not bound.
+    fn features_without(source: &str, symbol: &str, features: &[String]) -> Vec<String> {
+        let decl = std::format!("pub unsafe fn {symbol}(");
+        let Some(at) = source.find(&decl) else {
+            return features.to_vec();
+        };
+        let before = source[..at].trim_end_matches([' ', '\n']);
+        let prev = before.rsplit('\n').next().unwrap_or("");
+        if !prev.starts_with("#[cfg(") {
+            return Vec::new();
+        }
+        features
+            .iter()
+            .filter(|f| !prev.contains(&std::format!("feature = \"{f}\"")))
+            .cloned()
+            .collect()
+    }
+
+    #[test]
+    fn report_address_symbols_are_bound_wherever_the_library_is() {
+        let mut bad = Vec::new();
+        for lib in IN_SCOPE.iter().copied().chain(["cuda"]) {
+            let symbol = address_symbol(lib);
+            let missing = features_without(binding_source(lib), symbol, &module_features(lib));
+            if !missing.is_empty() {
+                bad.push(std::format!("{lib}: {symbol} not bound for {missing:?}"));
+            }
+        }
+        assert!(bad.is_empty(), "{bad:#?}");
+        // A cuFile before 1.8 has no `cuFileGetVersion` and is still accepted
+        // for CUDA 12, so its path must come from another symbol.
+        assert_ne!(Some(address_symbol("cufile")), query_symbol("cufile"));
     }
 }
