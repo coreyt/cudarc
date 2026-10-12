@@ -20,6 +20,10 @@ reviewer re-runs each RED; the last column holds that result.
 | 2026-10-12 | FC5-b `max_pool_size_reads_back_at_least_the_request` | — (no RED at FC5: needs a driver ≥ 13020; ignored, G5b) | — | `c44d3b7` | — |
 | 2026-10-12 | FC5-c typed reads; 3 characterization tests | — (no RED: the vendored code already behaves) | — | `75f13fa`, `a11a045` | — |
 | 2026-10-12 | FC5-d `# Safety` text; 2 of 3 § 3.2 tests | — (no RED: doc and characterization) | — | `9602202` | — |
+| 2026-10-12 | FC6-a measurements M-1, M-2, M-3 | — (measurement) | — | `6c37447` | — |
+| 2026-10-12 | FC6-a § 3.1, 16 tests | — (no RED: characterization; none failed) | — | `32f49c7`, `51a2073` | — |
+| 2026-10-12 | FC6-a § 3.2 revised test; `# Safety` caveat | — (no RED: characterization and doc) | — | `6db7d69` | — |
+| 2026-10-12 | FC6-a § 3.3, 3 tests | — (no RED: characterization; base comparison) | — | `bfdff00` | — |
 
 ## FC4-0 (class D)
 
@@ -399,6 +403,213 @@ the host in the session scratchpad.
   The FC4-W "expected CI failures" (13020+ compile error, x86_64
   `in_fresh_process`) are fixed.
 
+## FC6-a (classes U, L and D)
+
+Test plan § 10 row FC6-a: the § 3.1 and § 3.3 characterization tests and
+the revised § 3.2 test. None has a RED, and **no test failed against the
+code**, so no product code changed. Host `windchill3`; every GPU run used
+`CUDA_DEVICE_ORDER=PCI_BUS_ID`, `CUDA_VISIBLE_DEVICES=0` (NVIDIA GeForce RTX
+3090, 00000000:41:00.0) or `0,1` for G2 (adds 00000000:42:00.0; the K620,
+index 2, was never visible), `CUDARC_CUDA_VERSION` = the feature,
+`Cargo.lock.baseline` in place (SHA-256 `3d399b4e…747923`) and `--locked`.
+The guard was taken before and after every GPU run (first
+2026-10-12T08:16:01-05:00, last 2026-10-12T08:40:41-05:00): driver
+`580.178.04` on all three GPUs, `/usr/local/cuda` → `/usr/local/cuda-12.6`,
+never changed. Logs are kept on the host in the session scratchpad.
+
+### Measurements (M-1, M-2, M-3)
+
+Landed first (`6c37447`) as ignored tests that only print. Verbatim, from
+the default-12060 run at `51a2073` (the driver-only 12060, 13000 and 13040
+runs printed identical lines):
+
+```text
+M-1 size=1 empty=0 first_step=33554432 second_step=0 used_after_two=2 device_free=24983568384 device_total=25296044032
+M-1 size=1048576 empty=0 first_step=33554432 second_step=0 used_after_two=2097152 device_free=24983568384 device_total=25296044032
+M-1 size=33554432 empty=0 first_step=33554432 second_step=33554432 used_after_two=67108864 device_free=24950013952 device_total=25296044032
+M-1 size=268435456 empty=0 first_step=268435456 second_step=268435456 used_after_two=536870912 device_free=24480251904 device_total=25296044032
+M-2 cap=67108864 size=1048576 threshold=0 successes=64 limit=67108864 error=Some(DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")) reserved_at_failure=67108864 used_at_failure=67108864 max_size()=None
+M-2 cap=67108864 size=1048576 threshold=67108864 successes=64 limit=67108864 error=Some(DriverError(CUDA_ERROR_OUT_OF_MEMORY, "out of memory")) reserved_at_failure=67108864 used_at_failure=67108864 max_size()=None
+```
+
+M-3, driver-only cuda-13040 (cuda-13020 printed the same for 9–14; it has
+no attribute 15):
+
+```text
+M-3 driver=13000 attribute=9 (CU_MEMPOOL_ATTR_ALLOCATION_TYPE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=10 (CU_MEMPOOL_ATTR_EXPORT_HANDLE_TYPES) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=11 (CU_MEMPOOL_ATTR_LOCATION_ID) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=12 (CU_MEMPOOL_ATTR_LOCATION_TYPE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=13 (CU_MEMPOOL_ATTR_MAX_POOL_SIZE) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=14 (CU_MEMPOOL_ATTR_HW_DECOMPRESS_ENABLED) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+M-3 driver=13000 attribute=15 (CU_MEMPOOL_ATTR_LOCALITY_DOMAIN_ID) result=Err(DriverError(CUDA_ERROR_INVALID_VALUE, "invalid argument")) value=0x0
+```
+
+- **M-1.** A pool reserves 32 MiB for its first allocation up to 32 MiB;
+  smaller allocations share that chunk. Above 32 MiB the step equals the
+  allocation (256 MiB → 256 MiB). `USED_MEM_CURRENT` counts the exact bytes
+  requested (two 1-byte allocations read 2).
+- **M-2.** With `maxSize` 64 MiB and 1 MiB requests, 64 succeed and the
+  65th fails with `CUDA_ERROR_OUT_OF_MEMORY`, at reserved = used = 64 MiB,
+  at both thresholds. So the cap bounds reserved memory, and the "M-2
+  limit" for 1 MiB is exactly the cap. `grow_until_failure` is the M-2
+  procedure; the capacity tests and the model test call it (through
+  `m2_limit`) in-process instead of using a constant.
+- **M-3.** Driver 580 rejects every attribute above 8 with
+  `CUDA_ERROR_INVALID_VALUE`. This is an observation only; the gate never
+  relies on it (design D-4).
+
+### Tests landed
+
+- **§ 3.1 (`32f49c7`, U).** The 16 remaining tests. Notes:
+  - threshold and trim measure their chunk in-process
+    (`reservation_step`: 32 MiB for a 32 MiB working size) and assert the
+    precondition reserved > max(T or k, used) + chunk before acting
+    (4 × 32 MiB reserved, one live). The threshold test reads its
+    precondition after `cuStreamQuery` reports the stream idle, so no
+    synchronize applies the threshold early;
+  - the capacity tests derive the limit with `m2_limit` in a pool of their
+    own, then work in a fresh pool. `requests_within_the_cap_succeed` also
+    asserts limit ≤ cap and limit + chunk > cap;
+  - T-CONC printed `65 requests, 64 succeeded, 1 failed, limit 67108864`;
+  - stream order: with the latch held, C's buffer did not reuse X's
+    address and B read X's pattern. **Mutation check, not committed:** with
+    event tracking disabled, C reused X's address and B read 1048576 bytes
+    of C's pattern (test FAILED), so the test is not vacuous;
+  - `pool_model_property`: 256 cases (seed = case index) × 64 operations.
+    Each case uses one size from {1, 4, 32} MiB, so the capped pool cannot
+    fragment and "success iff live + s ≤ limit" is exact. A free on another
+    stream is `join` + `leak` + `cuMemFreeAsync`. Totals: `5732 allocations,
+    814 out-of-memory as predicted, 4100 frees (2778 on another stream),
+    3245 synchronizes, 2493 trims; limits [67108864, 67108864, 67108864]`.
+    It takes about 48 s in a debug build;
+  - T-CAPTURE succeeded on G1 (required): alloc and free captured on a
+    private context with `maxSize` 64 MiB instantiate and launch; graph
+    `USED_MEM_CURRENT` rose `0 -> 33554432`; private and default pool
+    counters were unchanged. This also answers design D-9's unconfirmed
+    point for driver 580: an allocation node accepts the parameters of a
+    pool with nonzero `maxSize`;
+  - `drops_after_a_sticky_error_neither_panic_nor_abort` (ignored, needs
+    `nvrtc`): the child printed `CHILD sticky error:
+    DriverError(CUDA_ERROR_ASSERT, "device-side assert triggered")` and
+    `CHILD dropped everything`, and exited with status 0;
+  - `exit_with_a_live_pool_is_clean`: the child printed `CHILD live: used
+    1048576` and `process::exit(0)` gave status 0.
+- **§ 3.2 (`6db7d69`, U).**
+  `a_private_pointer_freed_synchronously_releases_its_memory` per the
+  revised row: three 32 MiB pointers freed with `result::free_sync` after a
+  synchronize; `trim_to(0)` left reserved ≤ one chunk and `cuMemGetInfo`
+  recovered to within one chunk (preconditions: more than one chunk
+  reserved and at least two chunks taken). `USED_MEM_CURRENT` printed
+  `Ok(100663296)` (cuda-12060 and 13040): stale, as design D-2 says. The
+  `upgrade_device_ptr` `# Safety` text gains the measured caveat and the
+  advice to prefer `cuMemFreeAsync` for pool memory.
+- **§ 3.3 (`bfdff00`, L).** A `cfg(test)` thread-local counter in
+  `result::device::get_default_mem_pool`.
+  - `off_target_constructors_never_query_the_default_pool`: positive
+    control 1, then 0 queries across `new`, `new_non_primary`, `new_cig`
+    and `from_raw_context`. On Linux `new_cig` returns
+    `CUDA_ERROR_NOT_SUPPORTED` (it needs a D3D12 queue), so that arm builds
+    no context on G1; the other three must succeed. **Mutation check, not
+    committed:** a default-pool query in the off-target
+    `select_async_alloc` failed the test with `left: 3, right: 0`.
+  - `off_target_choice_equals_the_upstream_inline_rule`: `has_async_alloc()`
+    equals `MEMORY_POOLS_SUPPORTED > 0` for each context built.
+  - `off_target_zero_length_sync_behaviour_matches_the_base`: base run
+    first. `git archive` of `../cudarc-baseline` (`ec1cac71`, left
+    unmodified) into the scratchpad, a probe module appended to
+    `src/driver/safe/core.rs` whose `zero_length_sync_outcomes` has the same
+    text as the fork's (rustfmt wraps one line differently; diff of the
+    probe against the base file, SHA-256 `81a42696…df20e39`), run
+    `-F cuda-12060 -- --exact
+    driver::safe::core::fathomdb_base_probe::base_zero_length_sync_outcomes`
+    on the same GPU:
+
+    ```text
+    BASE cuMemAlloc(0): Err(CUDA_ERROR_INVALID_VALUE)
+    BASE alloc(0): Err(CUDA_ERROR_INVALID_VALUE)
+    BASE alloc_zeros(0): Err(CUDA_ERROR_INVALID_VALUE)
+    BASE null(): Err(CUDA_ERROR_INVALID_VALUE)
+    BASE check_err: Ok(())
+    test driver::safe::core::fathomdb_base_probe::base_zero_length_sync_outcomes ... ok
+    ```
+
+    The fork test asserts these five lines as constants, and it passes. So
+    the test can be expressed against base API (`has_async_alloc` is a
+    `pub(crate)` field at the base too).
+- **`51a2073` (U).** The child-process tests printed the child's own
+  libtest lines, which `count-tests.py` then counted as the parent's under
+  `--nocapture` (count-tests FAIL on a passing run). The child's lines are
+  now prefixed `child| `. Nothing asserted changed.
+- **Catalogue (D):** `1b9116a`, `666634f`, `1062281`, `b6d99bc`. Every
+  § 3.1–3.3 row is now `landed = true`; only the ten item-9 rows (§ 3.4)
+  remain unlanded.
+
+### Runs at `51a2073`
+
+Each run is `cargo test --locked --lib <features> -- fathomdb_
+--test-threads=1 --nocapture`, then each ignored fork test the cell can run
+alone with `-- --ignored --exact <name> --nocapture`, each checked by
+`count-tests.py check` against `expect` for the same set, version and
+filter. No run printed a `SKIP` line.
+
+| Cell | Main run | count-tests | Ignored, one by one |
+| --- | --- | --- | --- |
+| G1 default 12060 | 45 passed; 0 failed; 5 ignored; 75 filtered out | PASS | `drops_after_a_sticky_error_…`, `measure_max_size_semantics`, `measure_reservation_steps`: 1 passed each, PASS |
+| driver-only 12060 | 45 passed; 0 failed; 4 ignored; 28 filtered out | PASS | `measure_max_size_semantics`, `measure_reservation_steps`: PASS |
+| driver-only 13000 | 45 passed; 0 failed; 4 ignored; 26 filtered out | PASS | the same two: PASS |
+| driver-only 13040 | 48 passed; 0 failed; 6 ignored; 23 filtered out | PASS | the two measurements and `observe_new_attributes_on_driver_580`: PASS. `max_pool_size_reads_back_at_least_the_request` fails its precondition as designed (`driver 13000 cannot report MAX_POOL_SIZE`; G5b only) |
+| G2 default 12060, `CUDA_VISIBLE_DEVICES=0,1` | — | — | `two_pools_on_two_devices_are_independent`, `a_pool_of_device_1_is_rejected_for_device_0`: 1 passed each, PASS |
+
+Main-run log SHA-256: default 12060 `a22ab61e…8f191`, driver-only 12060
+`eb43aac5…f9050`, 13000 `e77b443e…20432`, 13040 `5f183b0d…4d720`.
+
+Also checked at `51a2073`:
+
+- hosted-job simulation (driver-only 12060, `CUDA_VISIBLE_DEVICES=` empty):
+  45 passed, 4 ignored, `count-tests: PASS`, 31 SKIP lines;
+- `cargo fmt --check` clean; `cargo clippy --locked --lib --tests -- -D
+  warnings` clean with default features at cuda-12060 and cuda-13040;
+  driver-only `--tests` clippy at 11040, 12060 and 13040 shows only the five
+  upstream `launch.rs` errors listed under FC5;
+- `cargo check --locked --lib`, driver-only, all 19 features: no
+  diagnostics. `cargo check --lib --tests`, driver-only, all 19 features:
+  no fork diagnostics;
+- module listings (`-- fathomdb_ --list`) at driver-only 11040, 12010,
+  12050, 13010 and 13030, and full listings at default 12060 and
+  driver-only 12060, 13000, 13020 and 13040: `count-tests unlanded: PASS`
+  and `check --mode list: PASS`;
+- `python3 -I fathomdb/scripts/test_count_tests.py`: OK.
+
+### Deviations
+
+- `observe_new_attributes_on_driver_580` compiles from cuda-13020 and runs
+  in G3 (13020–13040), not G1: the cuda-12060 bindings that G1 builds have
+  no attributes 9–15. Attribute 15 is asked only from cuda-13040. Test plan
+  § 3.1 needs the same edit.
+- The two X tests run their child role in the same test function, chosen
+  by the environment variable `FATHOMDB_CUDARC_TEST_CHILD`, because the
+  catalogue names are binding and a separate helper test would add a name.
+- `drops_after_a_sticky_error_neither_panic_nor_abort` compiles only with
+  `nvrtc` (catalogue cfg `features = ["driver", "nvrtc"]`), so the
+  driver-only cells do not run it.
+- The three § 3.3 tests compile off aarch64 Linux only; their catalogue cfg
+  is `arch = ["x86_64"]`.
+- The model test fixes one allocation size per case (see above); the test
+  plan's "allocate size s" does not say whether sizes mix within a case.
+- The aarch64 build was not compiled locally (no aarch64 target installed);
+  fork CI's aarch64 jobs cover it. The new private-pool tests have no arch
+  cfg; the new fallback items are all cfg'd off aarch64 Linux.
+
+### Notes for the orchestrator (not changed; outside FC6-a)
+
+- The doc of `CudaContext::new_with_mem_pool` still says a leaked pointer
+  "must be freed with `cuMemFreeAsync`, so it may be upgraded only onto a
+  context whose `has_async_alloc` is `true`". That contradicts design D-2
+  and the corrected `upgrade_device_ptr` `# Safety` text.
+- Design D-9 decides to document on `new_with_mem_pool` that graph memory
+  is outside the pool's budget; that doc is not present.
+
 ## Code commits since `ec1cac71` (CF-AC-01)
 
 | Commit | Class | Purpose |
@@ -424,3 +635,8 @@ the host in the session scratchpad.
 | `a11a045` | U | FC5-c characterization tests |
 | `9602202` | U | FC5-d `# Safety` text and two § 3.2 tests |
 | `265ce42` | U | seam modules moved last (clippy `items_after_test_module`) |
+| `6c37447` | U | FC6-a measurement tests M-1, M-2, M-3 |
+| `32f49c7` | U | FC6-a § 3.1 characterization tests |
+| `6db7d69` | U | FC6-a § 3.2 test; `# Safety` caveat on `cuMemFree` |
+| `bfdff00` | L | FC6-a § 3.3 tests and the default-pool query counter |
+| `51a2073` | U | child-process output prefixed |
