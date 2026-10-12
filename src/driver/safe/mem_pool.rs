@@ -9,9 +9,11 @@ use crate::driver::{
 /// Properties of a [CudaMemPool].
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct MemPoolProps {
-    /// The pool's `maxSize` in bytes; 0 asks for the driver's default. Applied
-    /// only when the bindings have the field (`cuda-12020` and later);
-    /// earlier bindings ignore it.
+    /// The pool's `maxSize` in bytes; 0 asks for the driver's default ("a
+    /// system dependent value"). A nonzero value needs bindings with the field
+    /// (`cuda-12020` and later) and a driver of 12.2 or later;
+    /// [CudaMemPool::create] returns `CUDA_ERROR_NOT_SUPPORTED` otherwise,
+    /// and never ignores it.
     pub max_size: usize,
     /// `CU_MEMPOOL_ATTR_RELEASE_THRESHOLD`: bytes of freed memory the pool may
     /// keep at a synchronization point (`u64::MAX` keeps everything).
@@ -114,6 +116,28 @@ fn set_max_size(raw: &mut sys::CUmemPoolProps, max_size: usize) {
 ))]
 fn set_max_size(_raw: &mut sys::CUmemPoolProps, _max_size: usize) {}
 
+/// Whether the bindings have `CUmemPoolProps::maxSize` (`cuda-12020` on).
+const BINDINGS_HAVE_MAX_SIZE: bool = cfg!(not(any(
+    feature = "cuda-11040",
+    feature = "cuda-11050",
+    feature = "cuda-11060",
+    feature = "cuda-11070",
+    feature = "cuda-11080",
+    feature = "cuda-12000",
+    feature = "cuda-12010"
+)));
+
+/// The loaded driver's version (`cuDriverGetVersion`), for example 13000.
+fn driver_version() -> Result<i32, DriverError> {
+    #[cfg(test)]
+    if let Some(version) = seams::DRIVER_VERSION.get() {
+        return Ok(version);
+    }
+    let mut version = 0;
+    unsafe { sys::cuDriverGetVersion(&mut version) }.result()?;
+    Ok(version)
+}
+
 /// A memory pool for one device (`cuMemPoolCreate`), created and owned by the
 /// caller.
 ///
@@ -139,15 +163,29 @@ impl CudaMemPool {
     /// `props`. Initializes the driver if needed; needs no current context.
     ///
     /// # Errors
-    /// The driver error of `cuInit`, `cuDeviceGet`, `cuMemPoolCreate` (for
-    /// example `CUDA_ERROR_OUT_OF_MEMORY` when the process has no room for the
-    /// pool's address range) or of setting the release threshold; on the
-    /// last, the pool is destroyed before returning.
+    /// - `CUDA_ERROR_NOT_SUPPORTED` for a nonzero `max_size` when the bindings
+    ///   predate `cuda-12020` (before any driver call) or when
+    ///   `cuDriverGetVersion` reports a driver older than 12020 (before the
+    ///   pool is created);
+    /// - the driver error of `cuInit`, `cuDeviceGet`, `cuDriverGetVersion`,
+    ///   `cuMemPoolCreate` (for example `CUDA_ERROR_OUT_OF_MEMORY` when the
+    ///   process has no room for the pool's address range) or of setting the
+    ///   release threshold; on the last, the pool is destroyed before
+    ///   returning.
     pub fn create(ordinal: usize, props: &MemPoolProps) -> Result<Self, DriverError> {
+        let not_supported = DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED);
+        if props.max_size > 0 && !BINDINGS_HAVE_MAX_SIZE {
+            return Err(not_supported);
+        }
         #[cfg(test)]
         seams::enter_driver()?;
         result::init()?;
         let cu_device = result::device::get(ordinal as i32)?;
+        // A driver before 12.2 reads `maxSize` as part of `reserved`, which
+        // must be 0.
+        if props.max_size > 0 && driver_version()? < 12020 {
+            return Err(not_supported);
+        }
         let raw = pool_props(ordinal as i32, props);
         #[cfg(test)]
         seams::POOL_CREATES.set(seams::POOL_CREATES.get() + 1);
