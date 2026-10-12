@@ -100,3 +100,45 @@ Every review is an independent Opus subagent, read-only (plan § 9).
 | L8 | aarch64 RED seeded a shared table | moot (H1) |
 | L9 | open-ended 13.x ranges accept a future same-soname CUDA 14 library | recorded trade-off, FC9b note |
 | L10 | hand edits vs template could drift; files unnamed | files named; template-vs-file unit test (or fork-CI script) |
+
+## R-FC-TEST, 2026-10-12
+
+- Model: `opus` (Claude Opus), general-purpose, read-only.
+- Reviewed: `fathomdb/test-plan.md` and `fathomdb/test-inventory/*` at
+  `936c25e`, against requirements revision 4, design revision 2, plan
+  §§ 1 and 6–9, the earlier review dispositions, the vendored patches,
+  `src/` at `ec1cac71`, the `windchill3` loader cache and PyPI.
+- Verdict: APPROVE-WITH-FIXES. Inventories verified correct. Every finding
+  is fixed in test plan revision 2 and requirements revision 5; none was
+  deferred.
+
+| Finding | Defect (short) | Disposition |
+| --- | --- | --- |
+| H1 | bound tests could pass a no-op (weak precondition, hand-set chunk) | each test measures its chunk in-process; precondition reserved > max + chunk; no env var |
+| H2 | T-DEV (d) RED false: the base never tries `.so.0` and maps 12.6 cuFile via the cache | decoy `libcufile.so` → cu13 `.so.0`; requirements revision 5 (d) |
+| H3 | T-DEV (a) RED false: cu13 cuBLAS `RUNPATH $ORIGIN` needs `libcublasLt.so.13` beside the symlink | decoy dir then the cu13 venv lib dir; precondition probe; requirements revision 5 (a) |
+| H4 | pure tests named "CI" ran in no job | new fork pure-test job (19 features, names checked); plan § 1.4 |
+| M1 | property test predicted nothing | the model predicts success vs the M-2 limit, used ≥ live sum, per-buffer patterns, default pool unchanged; G3 13000 added |
+| M2 | stream-order test could not observe premature reuse | `cuLaunchHostFunc` latch; reuse by a third stream with a different pattern |
+| M3 | exhaustion assertions too weak; not multi-threaded | at least one OOM; successful sum ≤ limit; total ≤ cap + chunk; 2 threads × 2 streams |
+| M4 | FC5-c REDs false (vendored code already correct) | marked characterization, no RED |
+| M5 | gate and read-back REDs unobservable at FC5 | staged ungated read-back then gate (RED on G3 13020); seam-driven read-back test on G1; real read-back observed at G5b |
+| M6 | counters without positive control | every counter test makes one counted call first |
+| M7 | T-CAPTURE passed on failure | success required on G1/G5b; only G6 may record a Tegra limit |
+| M8 | lost-context and `cuMemPoolCreate` OOM deferred without reason | `drops_after_a_sticky_error_neither_panic_nor_abort` (by itself, as upstream's device-side assert); OOM seam test; fork-after-init stays with FathomDB D-15 |
+| M9 | totals only; fork inventories generated from the build | name-set comparison per module; fork expectations from `fork-catalogue.toml` |
+| M10 | G4 filtered out `launch`/`unified_memory` | G4 runs the whole `--lib` |
+| M11 | G3 omitted ignored tests; T-MULTI not ignored | ignored one by one in every cell; T-MULTI `#[ignore = "must be executed with multiple gpus"]` |
+| M12 | baselines load different libraries; G5b per-build paths missing | baseline maps recorded and explained; per-build `LD_LIBRARY_PATH` on G5b |
+| M13 | G5b driver unnamed; fallback contradicted CF-AC-04c; no budget | 615.71.09 open (prebuilt for `7.0.0-1014-gcp`); 595 fallback fails 04c for 13030/13040; budget 100 min; cross-built binaries; second session needs owner approval |
+| M14 | several ACs and dispositions without tests | template test; CF-AC-07a/07b commands; CF-AC-08/08b name lists and T-PERF; `is_culib_present` agreement, memoized failure and linked-build report tests |
+| M15 | T-DEV REDs relied on new API | REDs use only base API plus `/proc/self/maps` |
+| L1 | aarch64 test split wrong | 3 + 2 |
+| L2 | T-DEV (e) had no precondition | `ldconfig -p` and file checks |
+| L3 | `CUDA_COMPUTE_CAP` unused by cudarc | dropped |
+| L4 | no G7 row; gate-cell inconsistency | G7 row (Q5); map and catalogue agree |
+| L5 | weak destroy check; `CudaContext` Send/Sync; oracle could not cover 11.x | `cuMemGetInfo` recovery; `CudaContext` added; parameterized copy of the base function |
+| L6 | design-only tests claimed CF-AC tracing | marked "design" |
+| L7 | device order by enumeration | `CUDA_DEVICE_ORDER=PCI_BUS_ID`; device name logged |
+| L8 | vendored test breaks at 13020+; RED ordering | FC5-a edits it with the helper; location fix before the 13030 `maxSize` RED |
+| L9 | G8 sub-cells incomplete; features unspecified | completed; `-F …,cusparse,cusolver,cufile` |

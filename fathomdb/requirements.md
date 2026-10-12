@@ -1,10 +1,12 @@
 # cudarc-fathomdb requirements (FC1)
 
-- Status: FC1 revision 4, 2026-10-12.
+- Status: FC1 revision 5, 2026-10-12.
   - Revision 1 (`f774dc3`) was reviewed by R-FC-REQ (APPROVE-WITH-FIXES).
   - Revision 2 (`761d7a4`) fixed every finding.
   - Revision 3 (`8259c14`) applied the FC2 research.
   - Revision 4 applies the R-FC-DES findings ([design](design.md) § 13).
+  - Revision 5 corrects the T-DEV (a) and (d) setups after R-FC-TEST
+    (H2, H3).
 
   Dispositions are in [review.md](review.md). The file finalizes
   [plan](plan.md) § 4. Where it and plan § 4 differ, this file governs.
@@ -498,8 +500,11 @@ These rules apply to CUDA 12.x and 13.x builds:
 - **T-DEV (G1)**, observed through `/proc/self/maps`, not through the new
   API. The CUDA 13 cuBLAS comes from a scratch cu13 venv (as G4).
   - (a) A 12060 build, with a directory first on `LD_LIBRARY_PATH` holding
-    an unversioned `libcublas.so` → cu13 `libcublas.so.13`. At `ec1cac71`
-    the process maps `libcublas.so.13`: RED. After the change it maps the
+    an unversioned `libcublas.so` → cu13 `libcublas.so.13`, followed by the
+    cu13 venv's library directory. The second directory is needed because
+    the cu13 cuBLAS needs `libcublasLt.so.13` and its `$ORIGIN` is the
+    symlink's directory. At `ec1cac71` the process maps `libcublas.so.13`:
+    RED. After the change it maps the
     system's `libcublas.so.12`, and the report names it.
   - (b) A 13000 build where no CUDA 13 cuBLAS is reachable, and the
     unversioned name resolves to 12.6 through the loader cache. At
@@ -508,8 +513,11 @@ These rules apply to CUDA 12.x and 13.x builds:
     mapping remains.
   - (c) No acceptable library at all: the check returns the typed error,
     and the process neither panics nor aborts.
-  - (d) A 12060 build with cu13 `libcufile.so.0` first on the path: it is
-    rejected, stays mapped (`DF_1_NODELETE`), and the check returns
+  - (d) A 12060 build with a decoy directory first on the path holding
+    `libcufile.so` → cu13 `libcufile.so.0`. `ec1cac71` never tries `.so.0`
+    and opens `libcufile.so` first. At `ec1cac71` the process maps the cu13
+    cuFile: RED. After the change, the cu13 cuFile is rejected but stays
+    mapped (`DF_1_NODELETE`), and the check returns
     `AlreadyLoadedWrongVersion`.
 - **Driver with only `libcuda.so.1`** (a lab VM or container where no
   `libcuda.so` dev link exists). The driver loads at `C` as at `ec1cac71`.

@@ -101,6 +101,11 @@ It adds:
   without a GPU. The job also runs once with FathomDB's `Cargo.lock`
   seeded, as FathomDB's retired `test_vendored_cudarc.sh` did; FC2 D-F2
   says where that lock comes from (the latest FathomDB pin commit);
+- **a fork pure-test job** (test plan § 4) on Linux x86_64: for each of
+  the 19 features, the driver-only feature set, run the pure tests of
+  `fathomdb_private_pool` by name (and the generator template test). The
+  receipt checks the expected names per feature from
+  `fathomdb/test-inventory/fork-catalogue.toml`;
 - **a T-UNIT job** (requirements CF-AC-11) on Linux x86_64 and Windows:
   for each of the 19 features, with every library feature enabled, run the
   item-9 test module by name. The receipt asserts a nonzero count per
