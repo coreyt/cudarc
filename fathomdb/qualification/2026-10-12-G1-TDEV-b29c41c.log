@@ -1,0 +1,324 @@
+===== run-1.out =====
+GUARD before 2026-10-12T10:35:51-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+DEVICE 0, NVIDIA GeForce RTX 3090, 00000000:41:00.0
+DEVICE 1, NVIDIA GeForce RTX 3090, 00000000:42:00.0
+DEVICE 2, Quadro K620, 00000000:61:00.0
+SRC /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C (not a git checkout)
+OUT /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/out/TDEV-C/run-1
+use-baseline-lock: /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C/fathomdb/qualification/Cargo.lock.baseline -> Cargo.lock (root cudarc-fathomdb)
+BIN 12060 /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C/target/debug/deps/fathomdb_lib_major-239bac29c9010c70
+use-baseline-lock: /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C/fathomdb/qualification/Cargo.lock.baseline -> Cargo.lock (root cudarc-fathomdb)
+BIN 13000 /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C/target/debug/deps/fathomdb_lib_major-afe9dcfbd52d4a96
+== case a
+HELPER dlopen(libcublas.so) opened
+HELPER maps /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcublas.so.13
+HELPER maps /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcublasLt.so.13
+  MAPS a /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12.6.1.4
+  REPORT a cublas: opened as libcublas.so.12, path /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12.6.1.4, version 12.6.1, checked against CUDA 12
+CASE a cuda12_build_skips_an_unversioned_cuda13_cublas: test ok (exit 0)
+== case b
+HELPER ldconfig -p: libcublas.so => /usr/local/cuda/targets/x86_64-linux/lib/libcublas.so -> /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12.6.1.4
+HELPER dlopen(libcublas.so.13) failed
+  panicked at src/lib.rs:778:13:
+  RESULT b culib() panicked
+  MAPS b (no libcublas mapping)
+  RESULT b try_culib(): Unable to dynamically load the "cublas" shared library for CUDA 13. Tried: libcublas.so.13 (not found), libcublas.so (wrong version 12.6.1). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 13 copy of the library.
+  message: Unable to dynamically load the "cublas" shared library for CUDA 13. Tried: libcublas.so.13 (not found), libcublas.so (wrong version 12.6.1). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 13 copy of the library.
+CASE b cuda13_build_rejects_the_cuda12_cublas_from_the_loader_cache: test ok (exit 0)
+== case c
+HELPER dlopen(libcublas.so) failed
+HELPER dlopen(libcublas.so.12) failed
+HELPER dlopen(libcublas.so.13) failed
+  MAPS c (no libcublas mapping)
+  RESULT c try_culib(): Unable to dynamically load the "cublas" shared library for CUDA 12. Tried: libcublas.so.12 (not found), libcublas.so (not found). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 12 copy of the library.
+CASE c no_acceptable_cublas_is_a_typed_error_not_a_panic: test ok (exit 0)
+== case d
+HELPER dlopen(libcufile.so) opened
+HELPER maps /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+  MAPS d-precondition /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+  panicked at src/lib.rs:778:13:
+  RESULT d cuFileGetVersion through culib(): Err(Any { .. })
+  MAPS d /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+  RESULT d try_culib(): Unable to dynamically load the "cufile" shared library for CUDA 12. Tried: libcufile.so.0 (already loaded with wrong version 1.15). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 12 copy of the library.
+  MAPS d-after /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+  message: Unable to dynamically load the "cufile" shared library for CUDA 12. Tried: libcufile.so.0 (already loaded with wrong version 1.15). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 12 copy of the library.
+CASE d cuda12_build_rejects_an_already_loaded_cuda13_cufile: test ok (exit 0)
+== case f
+HELPER dlopen(libnvToolsExt.so.1) opened
+HELPER dlopen(libnvToolsExt.so) failed
+HELPER maps /usr/local/cuda-12.6/targets/x86_64-linux/lib/libnvToolsExt.so.1.0.0
+  MAPS f /usr/local/cuda-12.6/targets/x86_64-linux/lib/libnvToolsExt.so.1.0.0
+CASE f nvtx_loads_with_only_libnvtoolsext_so_1: test ok (exit 0)
+GUARD after 2026-10-12T10:36:07-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+===== run-1/case-a.log =====
+
+running 1 test
+test cuda12_build_skips_an_unversioned_cuda13_cublas ... MAPS a /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12.6.1.4
+REPORT a cublas: opened as libcublas.so.12, path /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12.6.1.4, version 12.6.1, checked against CUDA 12
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.04s
+
+===== run-1/case-b.log =====
+
+running 1 test
+test cuda13_build_rejects_the_cuda12_cublas_from_the_loader_cache ... 
+thread 'cuda13_build_rejects_the_cuda12_cublas_from_the_loader_cache' (1979640) panicked at src/lib.rs:778:13:
+Unable to dynamically load the "cublas" shared library for CUDA 13. Tried: libcublas.so.13 (not found), libcublas.so (wrong version 12.6.1). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 13 copy of the library.
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+RESULT b culib() panicked
+MAPS b (no libcublas mapping)
+RESULT b try_culib(): Unable to dynamically load the "cublas" shared library for CUDA 13. Tried: libcublas.so.13 (not found), libcublas.so (wrong version 12.6.1). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 13 copy of the library.
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.06s
+
+===== run-1/case-c.log =====
+
+running 1 test
+test no_acceptable_cublas_is_a_typed_error_not_a_panic ... MAPS c (no libcublas mapping)
+RESULT c try_culib(): Unable to dynamically load the "cublas" shared library for CUDA 12. Tried: libcublas.so.12 (not found), libcublas.so (not found). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 12 copy of the library.
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+===== run-1/case-d.log =====
+
+running 1 test
+test cuda12_build_rejects_an_already_loaded_cuda13_cufile ... MAPS d-precondition /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+
+thread 'cuda12_build_rejects_an_already_loaded_cuda13_cufile' (1979706) panicked at src/lib.rs:778:13:
+Unable to dynamically load the "cufile" shared library for CUDA 12. Tried: libcufile.so.0 (already loaded with wrong version 1.15). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 12 copy of the library.
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+RESULT d cuFileGetVersion through culib(): Err(Any { .. })
+MAPS d /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+RESULT d try_culib(): Unable to dynamically load the "cufile" shared library for CUDA 12. Tried: libcufile.so.0 (already loaded with wrong version 1.15). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 12 copy of the library.
+MAPS d-after /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+===== run-1/case-f.log =====
+
+running 1 test
+test nvtx_loads_with_only_libnvtoolsext_so_1 ... MAPS f /usr/local/cuda-12.6/targets/x86_64-linux/lib/libnvToolsExt.so.1.0.0
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+===== run-2.out =====
+GUARD before 2026-10-12T10:36:07-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+DEVICE 0, NVIDIA GeForce RTX 3090, 00000000:41:00.0
+DEVICE 1, NVIDIA GeForce RTX 3090, 00000000:42:00.0
+DEVICE 2, Quadro K620, 00000000:61:00.0
+SRC /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C (not a git checkout)
+OUT /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/out/TDEV-C/run-2
+use-baseline-lock: /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C/fathomdb/qualification/Cargo.lock.baseline -> Cargo.lock (root cudarc-fathomdb)
+BIN 12060 /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C/target/debug/deps/fathomdb_lib_major-239bac29c9010c70
+use-baseline-lock: /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C/fathomdb/qualification/Cargo.lock.baseline -> Cargo.lock (root cudarc-fathomdb)
+BIN 13000 /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C/target/debug/deps/fathomdb_lib_major-afe9dcfbd52d4a96
+== case a
+HELPER dlopen(libcublas.so) opened
+HELPER maps /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcublas.so.13
+HELPER maps /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcublasLt.so.13
+  MAPS a /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12.6.1.4
+  REPORT a cublas: opened as libcublas.so.12, path /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12.6.1.4, version 12.6.1, checked against CUDA 12
+CASE a cuda12_build_skips_an_unversioned_cuda13_cublas: test ok (exit 0)
+== case b
+HELPER ldconfig -p: libcublas.so => /usr/local/cuda/targets/x86_64-linux/lib/libcublas.so -> /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12.6.1.4
+HELPER dlopen(libcublas.so.13) failed
+  panicked at src/lib.rs:778:13:
+  RESULT b culib() panicked
+  MAPS b (no libcublas mapping)
+  RESULT b try_culib(): Unable to dynamically load the "cublas" shared library for CUDA 13. Tried: libcublas.so.13 (not found), libcublas.so (wrong version 12.6.1). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 13 copy of the library.
+  message: Unable to dynamically load the "cublas" shared library for CUDA 13. Tried: libcublas.so.13 (not found), libcublas.so (wrong version 12.6.1). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 13 copy of the library.
+CASE b cuda13_build_rejects_the_cuda12_cublas_from_the_loader_cache: test ok (exit 0)
+== case c
+HELPER dlopen(libcublas.so) failed
+HELPER dlopen(libcublas.so.12) failed
+HELPER dlopen(libcublas.so.13) failed
+  MAPS c (no libcublas mapping)
+  RESULT c try_culib(): Unable to dynamically load the "cublas" shared library for CUDA 12. Tried: libcublas.so.12 (not found), libcublas.so (not found). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 12 copy of the library.
+CASE c no_acceptable_cublas_is_a_typed_error_not_a_panic: test ok (exit 0)
+== case d
+HELPER dlopen(libcufile.so) opened
+HELPER maps /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+  MAPS d-precondition /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+  panicked at src/lib.rs:778:13:
+  RESULT d cuFileGetVersion through culib(): Err(Any { .. })
+  MAPS d /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+  RESULT d try_culib(): Unable to dynamically load the "cufile" shared library for CUDA 12. Tried: libcufile.so.0 (already loaded with wrong version 1.15). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 12 copy of the library.
+  MAPS d-after /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+  message: Unable to dynamically load the "cufile" shared library for CUDA 12. Tried: libcufile.so.0 (already loaded with wrong version 1.15). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 12 copy of the library.
+CASE d cuda12_build_rejects_an_already_loaded_cuda13_cufile: test ok (exit 0)
+== case f
+HELPER dlopen(libnvToolsExt.so.1) opened
+HELPER dlopen(libnvToolsExt.so) failed
+HELPER maps /usr/local/cuda-12.6/targets/x86_64-linux/lib/libnvToolsExt.so.1.0.0
+  MAPS f /usr/local/cuda-12.6/targets/x86_64-linux/lib/libnvToolsExt.so.1.0.0
+CASE f nvtx_loads_with_only_libnvtoolsext_so_1: test ok (exit 0)
+GUARD after 2026-10-12T10:36:07-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+===== run-2/case-a.log =====
+
+running 1 test
+test cuda12_build_skips_an_unversioned_cuda13_cublas ... MAPS a /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12.6.1.4
+REPORT a cublas: opened as libcublas.so.12, path /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12.6.1.4, version 12.6.1, checked against CUDA 12
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.04s
+
+===== run-2/case-b.log =====
+
+running 1 test
+test cuda13_build_rejects_the_cuda12_cublas_from_the_loader_cache ... 
+thread 'cuda13_build_rejects_the_cuda12_cublas_from_the_loader_cache' (1979948) panicked at src/lib.rs:778:13:
+Unable to dynamically load the "cublas" shared library for CUDA 13. Tried: libcublas.so.13 (not found), libcublas.so (wrong version 12.6.1). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 13 copy of the library.
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+RESULT b culib() panicked
+MAPS b (no libcublas mapping)
+RESULT b try_culib(): Unable to dynamically load the "cublas" shared library for CUDA 13. Tried: libcublas.so.13 (not found), libcublas.so (wrong version 12.6.1). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 13 copy of the library.
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.05s
+
+===== run-2/case-c.log =====
+
+running 1 test
+test no_acceptable_cublas_is_a_typed_error_not_a_panic ... MAPS c (no libcublas mapping)
+RESULT c try_culib(): Unable to dynamically load the "cublas" shared library for CUDA 12. Tried: libcublas.so.12 (not found), libcublas.so (not found). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 12 copy of the library.
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+===== run-2/case-d.log =====
+
+running 1 test
+test cuda12_build_rejects_an_already_loaded_cuda13_cufile ... MAPS d-precondition /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+
+thread 'cuda12_build_rejects_an_already_loaded_cuda13_cufile' (1980001) panicked at src/lib.rs:778:13:
+Unable to dynamically load the "cufile" shared library for CUDA 12. Tried: libcufile.so.0 (already loaded with wrong version 1.15). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 12 copy of the library.
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+RESULT d cuFileGetVersion through culib(): Err(Any { .. })
+MAPS d /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+RESULT d try_culib(): Unable to dynamically load the "cufile" shared library for CUDA 12. Tried: libcufile.so.0 (already loaded with wrong version 1.15). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 12 copy of the library.
+MAPS d-after /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+===== run-2/case-f.log =====
+
+running 1 test
+test nvtx_loads_with_only_libnvtoolsext_so_1 ... MAPS f /usr/local/cuda-12.6/targets/x86_64-linux/lib/libnvToolsExt.so.1.0.0
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+===== run-3.out =====
+GUARD before 2026-10-12T10:36:07-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+DEVICE 0, NVIDIA GeForce RTX 3090, 00000000:41:00.0
+DEVICE 1, NVIDIA GeForce RTX 3090, 00000000:42:00.0
+DEVICE 2, Quadro K620, 00000000:61:00.0
+SRC /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C (not a git checkout)
+OUT /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/out/TDEV-C/run-3
+use-baseline-lock: /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C/fathomdb/qualification/Cargo.lock.baseline -> Cargo.lock (root cudarc-fathomdb)
+BIN 12060 /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C/target/debug/deps/fathomdb_lib_major-239bac29c9010c70
+use-baseline-lock: /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C/fathomdb/qualification/Cargo.lock.baseline -> Cargo.lock (root cudarc-fathomdb)
+BIN 13000 /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C/target/debug/deps/fathomdb_lib_major-afe9dcfbd52d4a96
+== case a
+HELPER dlopen(libcublas.so) opened
+HELPER maps /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcublas.so.13
+HELPER maps /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcublasLt.so.13
+  MAPS a /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12.6.1.4
+  REPORT a cublas: opened as libcublas.so.12, path /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12.6.1.4, version 12.6.1, checked against CUDA 12
+CASE a cuda12_build_skips_an_unversioned_cuda13_cublas: test ok (exit 0)
+== case b
+HELPER ldconfig -p: libcublas.so => /usr/local/cuda/targets/x86_64-linux/lib/libcublas.so -> /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12.6.1.4
+HELPER dlopen(libcublas.so.13) failed
+  panicked at src/lib.rs:778:13:
+  RESULT b culib() panicked
+  MAPS b (no libcublas mapping)
+  RESULT b try_culib(): Unable to dynamically load the "cublas" shared library for CUDA 13. Tried: libcublas.so.13 (not found), libcublas.so (wrong version 12.6.1). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 13 copy of the library.
+  message: Unable to dynamically load the "cublas" shared library for CUDA 13. Tried: libcublas.so.13 (not found), libcublas.so (wrong version 12.6.1). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 13 copy of the library.
+CASE b cuda13_build_rejects_the_cuda12_cublas_from_the_loader_cache: test ok (exit 0)
+== case c
+HELPER dlopen(libcublas.so) failed
+HELPER dlopen(libcublas.so.12) failed
+HELPER dlopen(libcublas.so.13) failed
+  MAPS c (no libcublas mapping)
+  RESULT c try_culib(): Unable to dynamically load the "cublas" shared library for CUDA 12. Tried: libcublas.so.12 (not found), libcublas.so (not found). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 12 copy of the library.
+CASE c no_acceptable_cublas_is_a_typed_error_not_a_panic: test ok (exit 0)
+== case d
+HELPER dlopen(libcufile.so) opened
+HELPER maps /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+  MAPS d-precondition /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+  panicked at src/lib.rs:778:13:
+  RESULT d cuFileGetVersion through culib(): Err(Any { .. })
+  MAPS d /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+  RESULT d try_culib(): Unable to dynamically load the "cufile" shared library for CUDA 12. Tried: libcufile.so.0 (already loaded with wrong version 1.15). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 12 copy of the library.
+  MAPS d-after /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+  message: Unable to dynamically load the "cufile" shared library for CUDA 12. Tried: libcufile.so.0 (already loaded with wrong version 1.15). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 12 copy of the library.
+CASE d cuda12_build_rejects_an_already_loaded_cuda13_cufile: test ok (exit 0)
+== case f
+HELPER dlopen(libnvToolsExt.so.1) opened
+HELPER dlopen(libnvToolsExt.so) failed
+HELPER maps /usr/local/cuda-12.6/targets/x86_64-linux/lib/libnvToolsExt.so.1.0.0
+  MAPS f /usr/local/cuda-12.6/targets/x86_64-linux/lib/libnvToolsExt.so.1.0.0
+CASE f nvtx_loads_with_only_libnvtoolsext_so_1: test ok (exit 0)
+GUARD after 2026-10-12T10:36:08-05:00 driver=580.178.04 cuda=/usr/local/cuda-12.6
+===== run-3/case-a.log =====
+
+running 1 test
+test cuda12_build_skips_an_unversioned_cuda13_cublas ... MAPS a /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12.6.1.4
+REPORT a cublas: opened as libcublas.so.12, path /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcublas.so.12.6.1.4, version 12.6.1, checked against CUDA 12
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.04s
+
+===== run-3/case-b.log =====
+
+running 1 test
+test cuda13_build_rejects_the_cuda12_cublas_from_the_loader_cache ... 
+thread 'cuda13_build_rejects_the_cuda12_cublas_from_the_loader_cache' (1980103) panicked at src/lib.rs:778:13:
+Unable to dynamically load the "cublas" shared library for CUDA 13. Tried: libcublas.so.13 (not found), libcublas.so (wrong version 12.6.1). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 13 copy of the library.
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+RESULT b culib() panicked
+MAPS b (no libcublas mapping)
+RESULT b try_culib(): Unable to dynamically load the "cublas" shared library for CUDA 13. Tried: libcublas.so.13 (not found), libcublas.so (wrong version 12.6.1). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 13 copy of the library.
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.05s
+
+===== run-3/case-c.log =====
+
+running 1 test
+test no_acceptable_cublas_is_a_typed_error_not_a_panic ... MAPS c (no libcublas mapping)
+RESULT c try_culib(): Unable to dynamically load the "cublas" shared library for CUDA 12. Tried: libcublas.so.12 (not found), libcublas.so (not found). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 12 copy of the library.
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+===== run-3/case-d.log =====
+
+running 1 test
+test cuda12_build_rejects_an_already_loaded_cuda13_cufile ... MAPS d-precondition /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+
+thread 'cuda12_build_rejects_an_already_loaded_cuda13_cufile' (1980131) panicked at src/lib.rs:778:13:
+Unable to dynamically load the "cufile" shared library for CUDA 12. Tried: libcufile.so.0 (already loaded with wrong version 1.15). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 12 copy of the library.
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+RESULT d cuFileGetVersion through culib(): Err(Any { .. })
+MAPS d /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+RESULT d try_culib(): Unable to dynamically load the "cufile" shared library for CUDA 12. Tried: libcufile.so.0 (already loaded with wrong version 1.15). Ensure that `LD_LIBRARY_PATH` has the correct path to a CUDA 12 copy of the library.
+MAPS d-after /home/coreyt/fathomdb-forks/venvs/cu13-130/lib/python3.12/site-packages/nvidia/cu13/lib/libcufile.so.0
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+===== run-3/case-f.log =====
+
+running 1 test
+test nvtx_loads_with_only_libnvtoolsext_so_1 ... MAPS f /usr/local/cuda-12.6/targets/x86_64-linux/lib/libnvToolsExt.so.1.0.0
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+

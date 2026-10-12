@@ -1,0 +1,360 @@
+
+===== baseline/env.txt =====
+host windchill3 Linux 7.0.0-38-generic x86_64
+src /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-base
+features -F cuda-12060
+V 12060 CVD 0,1 LLP 
+lock-sha256 3d399b4e43bfa2c4078f2ff607145b6a35216041054225905a74fc1094747923
+rustc 1.95.0 (59807616e 2026-04-14)
+cargo 1.95.0 (f2d3ce0bd 2026-03-21)
+
+===== baseline/guard.log =====
+2026-10-12T10:37:33-05:00 GUARD-FIRST driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:34-05:00 GUARD before ign-peer_transfer_contexts-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:35-05:00 GUARD after ign-peer_transfer_contexts-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:35-05:00 GUARD before ign-re_associate_context_for_memory_op-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:35-05:00 GUARD after ign-re_associate_context_for_memory_op-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:35-05:00 GUARD before ign-test_peer_memcpy_waits_for_src_stream-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:36-05:00 GUARD after ign-test_peer_memcpy_waits_for_src_stream-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:36-05:00 GUARD before ign-peer_transfer_contexts-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:37-05:00 GUARD after ign-peer_transfer_contexts-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:37-05:00 GUARD before ign-re_associate_context_for_memory_op-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:37-05:00 GUARD after ign-re_associate_context_for_memory_op-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:38-05:00 GUARD before ign-test_peer_memcpy_waits_for_src_stream-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:38-05:00 GUARD after ign-test_peer_memcpy_waits_for_src_stream-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:38-05:00 GUARD before ign-peer_transfer_contexts-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:39-05:00 GUARD after ign-peer_transfer_contexts-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:39-05:00 GUARD before ign-re_associate_context_for_memory_op-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:40-05:00 GUARD after ign-re_associate_context_for_memory_op-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:40-05:00 GUARD before ign-test_peer_memcpy_waits_for_src_stream-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:41-05:00 GUARD after ign-test_peer_memcpy_waits_for_src_stream-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:41-05:00 GUARD-LAST driver=580.178.04 cuda=/usr/local/cuda-12.6
+
+===== baseline/runs.tsv =====
+ign-peer_transfer_contexts-1	0	2026-10-12T10:37:34-05:00	2026-10-12T10:37:34-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::result::tests::peer_transfer_contexts --nocapture --test-threads=1
+ign-re_associate_context_for_memory_op-1	0	2026-10-12T10:37:35-05:00	2026-10-12T10:37:35-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::result::tests::re_associate_context_for_memory_op --nocapture --test-threads=1
+ign-test_peer_memcpy_waits_for_src_stream-1	0	2026-10-12T10:37:35-05:00	2026-10-12T10:37:36-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::safe::launch::tests::test_peer_memcpy_waits_for_src_stream --nocapture --test-threads=1
+ign-peer_transfer_contexts-2	0	2026-10-12T10:37:36-05:00	2026-10-12T10:37:37-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::result::tests::peer_transfer_contexts --nocapture --test-threads=1
+ign-re_associate_context_for_memory_op-2	0	2026-10-12T10:37:37-05:00	2026-10-12T10:37:37-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::result::tests::re_associate_context_for_memory_op --nocapture --test-threads=1
+ign-test_peer_memcpy_waits_for_src_stream-2	0	2026-10-12T10:37:38-05:00	2026-10-12T10:37:38-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::safe::launch::tests::test_peer_memcpy_waits_for_src_stream --nocapture --test-threads=1
+ign-peer_transfer_contexts-3	0	2026-10-12T10:37:38-05:00	2026-10-12T10:37:39-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::result::tests::peer_transfer_contexts --nocapture --test-threads=1
+ign-re_associate_context_for_memory_op-3	0	2026-10-12T10:37:39-05:00	2026-10-12T10:37:40-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::result::tests::re_associate_context_for_memory_op --nocapture --test-threads=1
+ign-test_peer_memcpy_waits_for_src_stream-3	0	2026-10-12T10:37:40-05:00	2026-10-12T10:37:41-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::safe::launch::tests::test_peer_memcpy_waits_for_src_stream --nocapture --test-threads=1
+
+===== baseline/cargo-tree.txt =====
+cudarc v0.19.10 (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-base)
+└── libloading v0.9.0
+    └── cfg-if v1.0.5
+
+===== baseline/build.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+  Executable unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-f07f6d9517dd4825)
+
+===== baseline/ign-peer_transfer_contexts-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-f07f6d9517dd4825)
+
+running 1 test
+test driver::result::tests::peer_transfer_contexts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.76s
+
+
+===== baseline/ign-re_associate_context_for_memory_op-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-f07f6d9517dd4825)
+
+running 1 test
+test driver::result::tests::re_associate_context_for_memory_op ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.53s
+
+
+===== baseline/ign-test_peer_memcpy_waits_for_src_stream-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-f07f6d9517dd4825)
+
+running 1 test
+test driver::safe::launch::tests::test_peer_memcpy_waits_for_src_stream ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.72s
+
+
+===== baseline/ign-peer_transfer_contexts-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-f07f6d9517dd4825)
+
+running 1 test
+test driver::result::tests::peer_transfer_contexts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.53s
+
+
+===== baseline/ign-re_associate_context_for_memory_op-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-f07f6d9517dd4825)
+
+running 1 test
+test driver::result::tests::re_associate_context_for_memory_op ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.50s
+
+
+===== baseline/ign-test_peer_memcpy_waits_for_src_stream-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-f07f6d9517dd4825)
+
+running 1 test
+test driver::safe::launch::tests::test_peer_memcpy_waits_for_src_stream ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.73s
+
+
+===== baseline/ign-peer_transfer_contexts-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-f07f6d9517dd4825)
+
+running 1 test
+test driver::result::tests::peer_transfer_contexts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.49s
+
+
+===== baseline/ign-re_associate_context_for_memory_op-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-f07f6d9517dd4825)
+
+running 1 test
+test driver::result::tests::re_associate_context_for_memory_op ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.50s
+
+
+===== baseline/ign-test_peer_memcpy_waits_for_src_stream-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-base/debug/deps/cudarc-f07f6d9517dd4825)
+
+running 1 test
+test driver::safe::launch::tests::test_peer_memcpy_waits_for_src_stream ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 74 filtered out; finished in 0.71s
+
+
+===== C/env.txt =====
+host windchill3 Linux 7.0.0-38-generic x86_64
+src /tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C
+features -F cuda-12060
+V 12060 CVD 0,1 LLP 
+lock-sha256 d20e4d909773e7a9a42e97a4a7e7029006da73e42124d3f1f01b61654fe404ca
+rustc 1.95.0 (59807616e 2026-04-14)
+cargo 1.95.0 (f2d3ce0bd 2026-03-21)
+
+===== C/guard.log =====
+2026-10-12T10:37:41-05:00 GUARD-FIRST driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:41-05:00 GUARD before ign-peer_transfer_contexts-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:41-05:00 GUARD after ign-peer_transfer_contexts-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:41-05:00 GUARD before ign-re_associate_context_for_memory_op-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:42-05:00 GUARD after ign-re_associate_context_for_memory_op-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:42-05:00 GUARD before ign-test_peer_memcpy_waits_for_src_stream-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:43-05:00 GUARD after ign-test_peer_memcpy_waits_for_src_stream-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:43-05:00 GUARD before ign-two_pools_on_two_devices_are_independent-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:44-05:00 GUARD after ign-two_pools_on_two_devices_are_independent-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:44-05:00 GUARD before ign-a_pool_of_device_1_is_rejected_for_device_0-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:44-05:00 GUARD after ign-a_pool_of_device_1_is_rejected_for_device_0-1 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:44-05:00 GUARD before ign-peer_transfer_contexts-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:45-05:00 GUARD after ign-peer_transfer_contexts-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:45-05:00 GUARD before ign-re_associate_context_for_memory_op-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:45-05:00 GUARD after ign-re_associate_context_for_memory_op-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:46-05:00 GUARD before ign-test_peer_memcpy_waits_for_src_stream-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:46-05:00 GUARD after ign-test_peer_memcpy_waits_for_src_stream-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:46-05:00 GUARD before ign-two_pools_on_two_devices_are_independent-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:47-05:00 GUARD after ign-two_pools_on_two_devices_are_independent-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:47-05:00 GUARD before ign-a_pool_of_device_1_is_rejected_for_device_0-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:48-05:00 GUARD after ign-a_pool_of_device_1_is_rejected_for_device_0-2 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:48-05:00 GUARD before ign-peer_transfer_contexts-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:48-05:00 GUARD after ign-peer_transfer_contexts-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:48-05:00 GUARD before ign-re_associate_context_for_memory_op-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:49-05:00 GUARD after ign-re_associate_context_for_memory_op-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:49-05:00 GUARD before ign-test_peer_memcpy_waits_for_src_stream-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:50-05:00 GUARD after ign-test_peer_memcpy_waits_for_src_stream-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:50-05:00 GUARD before ign-two_pools_on_two_devices_are_independent-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:50-05:00 GUARD after ign-two_pools_on_two_devices_are_independent-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:51-05:00 GUARD before ign-a_pool_of_device_1_is_rejected_for_device_0-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:51-05:00 GUARD after ign-a_pool_of_device_1_is_rejected_for_device_0-3 driver=580.178.04 cuda=/usr/local/cuda-12.6
+2026-10-12T10:37:51-05:00 GUARD-LAST driver=580.178.04 cuda=/usr/local/cuda-12.6
+
+===== C/runs.tsv =====
+ign-peer_transfer_contexts-1	0	2026-10-12T10:37:41-05:00	2026-10-12T10:37:41-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::result::tests::peer_transfer_contexts --nocapture --test-threads=1
+ign-re_associate_context_for_memory_op-1	0	2026-10-12T10:37:41-05:00	2026-10-12T10:37:42-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::result::tests::re_associate_context_for_memory_op --nocapture --test-threads=1
+ign-test_peer_memcpy_waits_for_src_stream-1	0	2026-10-12T10:37:42-05:00	2026-10-12T10:37:43-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::safe::launch::tests::test_peer_memcpy_waits_for_src_stream --nocapture --test-threads=1
+ign-two_pools_on_two_devices_are_independent-1	0	2026-10-12T10:37:43-05:00	2026-10-12T10:37:44-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::safe::core::fathomdb_private_pool::two_pools_on_two_devices_are_independent --nocapture --test-threads=1
+ign-a_pool_of_device_1_is_rejected_for_device_0-1	0	2026-10-12T10:37:44-05:00	2026-10-12T10:37:44-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::safe::core::fathomdb_private_pool::a_pool_of_device_1_is_rejected_for_device_0 --nocapture --test-threads=1
+ign-peer_transfer_contexts-2	0	2026-10-12T10:37:44-05:00	2026-10-12T10:37:45-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::result::tests::peer_transfer_contexts --nocapture --test-threads=1
+ign-re_associate_context_for_memory_op-2	0	2026-10-12T10:37:45-05:00	2026-10-12T10:37:45-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::result::tests::re_associate_context_for_memory_op --nocapture --test-threads=1
+ign-test_peer_memcpy_waits_for_src_stream-2	0	2026-10-12T10:37:46-05:00	2026-10-12T10:37:46-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::safe::launch::tests::test_peer_memcpy_waits_for_src_stream --nocapture --test-threads=1
+ign-two_pools_on_two_devices_are_independent-2	0	2026-10-12T10:37:46-05:00	2026-10-12T10:37:47-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::safe::core::fathomdb_private_pool::two_pools_on_two_devices_are_independent --nocapture --test-threads=1
+ign-a_pool_of_device_1_is_rejected_for_device_0-2	0	2026-10-12T10:37:47-05:00	2026-10-12T10:37:48-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::safe::core::fathomdb_private_pool::a_pool_of_device_1_is_rejected_for_device_0 --nocapture --test-threads=1
+ign-peer_transfer_contexts-3	0	2026-10-12T10:37:48-05:00	2026-10-12T10:37:48-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::result::tests::peer_transfer_contexts --nocapture --test-threads=1
+ign-re_associate_context_for_memory_op-3	0	2026-10-12T10:37:48-05:00	2026-10-12T10:37:49-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::result::tests::re_associate_context_for_memory_op --nocapture --test-threads=1
+ign-test_peer_memcpy_waits_for_src_stream-3	0	2026-10-12T10:37:49-05:00	2026-10-12T10:37:50-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::safe::launch::tests::test_peer_memcpy_waits_for_src_stream --nocapture --test-threads=1
+ign-two_pools_on_two_devices_are_independent-3	0	2026-10-12T10:37:50-05:00	2026-10-12T10:37:50-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::safe::core::fathomdb_private_pool::two_pools_on_two_devices_are_independent --nocapture --test-threads=1
+ign-a_pool_of_device_1_is_rejected_for_device_0-3	0	2026-10-12T10:37:51-05:00	2026-10-12T10:37:51-05:00	cargo test --locked --lib -F cuda-12060 -- --ignored --exact driver::safe::core::fathomdb_private_pool::a_pool_of_device_1_is_rejected_for_device_0 --nocapture --test-threads=1
+
+===== C/cargo-tree.txt =====
+cudarc-fathomdb v0.19.10 (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/src-C)
+└── libloading v0.9.0
+    └── cfg-if v1.0.5
+
+===== C/build.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+  Executable unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-7ad525fe0600809d)
+
+===== C/ign-peer_transfer_contexts-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-7ad525fe0600809d)
+
+running 1 test
+test driver::result::tests::peer_transfer_contexts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.49s
+
+
+===== C/ign-re_associate_context_for_memory_op-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-7ad525fe0600809d)
+
+running 1 test
+test driver::result::tests::re_associate_context_for_memory_op ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.49s
+
+
+===== C/ign-test_peer_memcpy_waits_for_src_stream-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-7ad525fe0600809d)
+
+running 1 test
+test driver::safe::launch::tests::test_peer_memcpy_waits_for_src_stream ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.72s
+
+
+===== C/ign-two_pools_on_two_devices_are_independent-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-7ad525fe0600809d)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::two_pools_on_two_devices_are_independent ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.51s
+
+
+===== C/ign-a_pool_of_device_1_is_rejected_for_device_0-1.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-7ad525fe0600809d)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::a_pool_of_device_1_is_rejected_for_device_0 ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.32s
+
+
+===== C/ign-peer_transfer_contexts-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-7ad525fe0600809d)
+
+running 1 test
+test driver::result::tests::peer_transfer_contexts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.50s
+
+
+===== C/ign-re_associate_context_for_memory_op-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-7ad525fe0600809d)
+
+running 1 test
+test driver::result::tests::re_associate_context_for_memory_op ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.50s
+
+
+===== C/ign-test_peer_memcpy_waits_for_src_stream-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-7ad525fe0600809d)
+
+running 1 test
+test driver::safe::launch::tests::test_peer_memcpy_waits_for_src_stream ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.72s
+
+
+===== C/ign-two_pools_on_two_devices_are_independent-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-7ad525fe0600809d)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::two_pools_on_two_devices_are_independent ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.50s
+
+
+===== C/ign-a_pool_of_device_1_is_rejected_for_device_0-2.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-7ad525fe0600809d)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::a_pool_of_device_1_is_rejected_for_device_0 ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.32s
+
+
+===== C/ign-peer_transfer_contexts-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-7ad525fe0600809d)
+
+running 1 test
+test driver::result::tests::peer_transfer_contexts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.50s
+
+
+===== C/ign-re_associate_context_for_memory_op-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-7ad525fe0600809d)
+
+running 1 test
+test driver::result::tests::re_associate_context_for_memory_op ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.52s
+
+
+===== C/ign-test_peer_memcpy_waits_for_src_stream-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-7ad525fe0600809d)
+
+running 1 test
+test driver::safe::launch::tests::test_peer_memcpy_waits_for_src_stream ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.72s
+
+
+===== C/ign-two_pools_on_two_devices_are_independent-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-7ad525fe0600809d)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::two_pools_on_two_devices_are_independent ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.50s
+
+
+===== C/ign-a_pool_of_device_1_is_rejected_for_device_0-3.log =====
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.01s
+     Running unittests src/lib.rs (/tmp/claude-1000/-home-coreyt-projects-fathomdb/a9720f76-333b-48d0-ad12-5233c37b0381/scratchpad/fc8/tgt-C/debug/deps/cudarc-7ad525fe0600809d)
+
+running 1 test
+test driver::safe::core::fathomdb_private_pool::a_pool_of_device_1_is_rejected_for_device_0 ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 134 filtered out; finished in 0.33s
+
