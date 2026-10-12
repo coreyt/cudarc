@@ -4132,6 +4132,47 @@ mod fathomdb_private_pool {
         assert_eq!(seams::POOL_DESTROYS.get(), 0);
     }
 
+    /// CF-AC-04c: on a driver of 13020 or later the real read-back is at
+    /// least the request. Ignored because driver 580 (13000) cannot run it;
+    /// G5b runs it with `--ignored --exact`.
+    #[cfg(not(any(
+        feature = "cuda-11040",
+        feature = "cuda-11050",
+        feature = "cuda-11060",
+        feature = "cuda-11070",
+        feature = "cuda-11080",
+        feature = "cuda-12000",
+        feature = "cuda-12010",
+        feature = "cuda-12020",
+        feature = "cuda-12030",
+        feature = "cuda-12040",
+        feature = "cuda-12050",
+        feature = "cuda-12060",
+        feature = "cuda-12080",
+        feature = "cuda-12090",
+        feature = "cuda-13000",
+        feature = "cuda-13010"
+    )))]
+    #[test]
+    #[ignore = "needs a driver of 13020 or later (test plan G5b)"]
+    fn max_pool_size_reads_back_at_least_the_request() {
+        let mut driver = 0;
+        unsafe { sys::cuDriverGetVersion(&mut driver) }
+            .result()
+            .unwrap();
+        assert!(
+            driver >= 13020,
+            "driver {driver} cannot report MAX_POOL_SIZE"
+        );
+        let pool = CudaMemPool::create(0, &SMALL_POOL).unwrap();
+        let reported = pool.max_size().expect("MAX_POOL_SIZE read back");
+        assert!(
+            reported >= SMALL_POOL.max_size as u64,
+            "reported {reported} < requested {}",
+            SMALL_POOL.max_size
+        );
+    }
+
     /// Design D-8: one helper builds the location from zeroed memory on every
     /// binding, the union's `id` included.
     #[test]
