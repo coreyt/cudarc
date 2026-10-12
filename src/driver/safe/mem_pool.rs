@@ -268,7 +268,11 @@ impl CudaMemPool {
     ///   `cuMemPoolCreate` (for example `CUDA_ERROR_OUT_OF_MEMORY` when the
     ///   process has no room for the pool's address range) or of setting the
     ///   release threshold; on the last, the pool is destroyed before
-    ///   returning.
+    ///   returning;
+    /// - `CUDA_ERROR_INVALID_VALUE`, after destroying the pool, when the
+    ///   driver reports a `MAX_POOL_SIZE` below a nonzero `max_size`. A
+    ///   failed read of that attribute is not an error: [Self::max_size]
+    ///   is then `None`.
     pub fn create(ordinal: usize, props: &MemPoolProps) -> Result<Self, DriverError> {
         let not_supported = DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED);
         if props.max_size > 0 && !BINDINGS_HAVE_MAX_SIZE {
@@ -306,13 +310,21 @@ impl CudaMemPool {
                 (&mut threshold as *mut u64).cast(),
             )
         }?;
-        created.max_size = read_max_pool_size(pool, driver)?;
+        // The driver may report more than was asked for (CUDA 13.4 Driver
+        // API, CUmemPool_attribute). A failed read leaves the size unknown.
+        created.max_size = read_max_pool_size(pool, driver).ok().flatten();
+        if let Some(reported) = created.max_size {
+            if props.max_size > 0 && reported < props.max_size as u64 {
+                return Err(DriverError(sys::CUresult::CUDA_ERROR_INVALID_VALUE));
+            }
+        }
         Ok(created)
     }
 
-    /// The pool's maximum size as the driver reports it
-    /// (`CU_MEMPOOL_ATTR_MAX_POOL_SIZE`, read once at creation), or `None`
-    /// when the bindings predate `cuda-13020`.
+    /// The pool's maximum size as the driver reported it at creation
+    /// (`CU_MEMPOOL_ATTR_MAX_POOL_SIZE`; it may exceed the request), or
+    /// `None` when it was not read: bindings before `cuda-13020`, a driver
+    /// before 13020, or a failed read.
     pub fn max_size(&self) -> Option<u64> {
         self.max_size
     }
