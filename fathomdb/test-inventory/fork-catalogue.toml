@@ -836,7 +836,7 @@ red = "no RED: characterization (requirements CF-AC-03)"
 cfg = { features = ["driver"] }
 
 [[test]]
-name = "a_private_pointer_freed_synchronously_returns_to_its_pool"
+name = "a_private_pointer_freed_synchronously_releases_its_memory"
 module = "driver::safe::core::fathomdb_private_pool"
 binary = "unittests:cudarc"
 kind = "D"
@@ -846,7 +846,7 @@ landed = false
 origin = "test-plan"
 section = "3.2"
 serves = "CF-AC-03"
-red = "NOT LANDED at FC5-d: on driver 580.178.04 cuMemFree of a pool allocation leaves USED_MEM_CURRENT unchanged (status.md FC5-d finding); needs a design disposition"
+red = "no RED: characterization; renamed after the FC5-d finding (design D-2: driver 580 leaves USED_MEM_CURRENT stale after cuMemFree); lands at FC6"
 cfg = { features = ["driver"] }
 
 [[test]]

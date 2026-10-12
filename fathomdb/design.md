@@ -165,7 +165,17 @@ Design:
     context, and after drop and a synchronize the private pool's
     `USED_MEM_CURRENT` is 0;
   - a private-pool pointer is leaked and freed with `result::free_sync`
-    after a synchronize, giving the same result;
+    after a synchronize. **Measured at FC5 (driver 580.178.04, RTX 3090):**
+    `cuMemFree` of a pool allocation releases the memory (reserved bytes
+    fall and `cuMemGetInfo` free memory rises), but the pool's
+    `USED_MEM_CURRENT` is never decremented, for private and default pools
+    alike, even after later alloc/free cycles. The test therefore asserts
+    physical release: `trim_to(0)` brings reserved to at most one chunk,
+    and free memory recovers to within one chunk. It records
+    `USED_MEM_CURRENT` as an observation, not an assertion. The `# Safety`
+    text states the caveat and advises `cuMemFreeAsync` for pool memory,
+    because a stale `USED_MEM_CURRENT` misleads any consumer that reads it.
+    FathomDB's `doctor cuda-allocator` is one such consumer.
   - a `result::malloc_sync` pointer is upgraded onto a private context and
     dropped, with no error and `check_err()` clean.
 

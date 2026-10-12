@@ -192,9 +192,9 @@ trim fails the bound. No environment variable is involved.
 | `max_size_without_binding_support_is_not_supported` | P | CF-AC-04 | fork pure-test job (11040–12010) | `create` returns `CUDA_ERROR_NOT_SUPPORTED` before any driver call (counter with positive control) | FC5-b: the vendored code silently ignores it |
 | `max_size_on_a_driver_older_than_12020_is_not_supported` | F | CF-AC-04 (D-4) | G1, G3 | a `cfg(test)` driver-version override of 12010 makes `create` return `NOT_SUPPORTED`; the pool-create counter (with positive control) is 0 | FC5-b: the vendored code creates the pool |
 | `attributes_newer_than_the_driver_are_never_requested` | F+D | CF-AC-04b (gate) | G3 (13020–13040) | `max_size > 0`; the result-layer counter of requests for attributes > 8 (with positive control) is 0 on driver 13000; a second counter shows the gate branch ran | FC5-b, staged: an ungated read-back is committed first, so this test is RED on G3 13020 on driver 580 (counter > 0); the gate commit turns it GREEN |
-| `max_pool_size_read_back_uses_the_driver_value` | F | CF-AC-04 (D-4) | G1 | `cfg(test)` seams set the driver version to 13020 and the read-back value. A value ≥ the request gives `max_size() == Some(value)`; a lower value makes `create` fail with `INVALID_VALUE` after destroying the pool | FC5-b |
+| `max_pool_size_read_back_uses_the_driver_value` | F | CF-AC-04 (D-4) | G3 (13020+; the read-back path exists only from the 13020 bindings) | `cfg(test)` seams set the driver version to 13020 and the read-back value. A value ≥ the request gives `max_size() == Some(value)`; a lower value makes `create` fail with `INVALID_VALUE` after destroying the pool | FC5-b |
 | `max_pool_size_reads_back_at_least_the_request` | D | CF-AC-04c | G5b (13020–13040) | real read-back ≥ request; `max_size()` is `Some` | no RED at FC5 (needs a newer driver); observed at FC8 on G5b |
-| `a_failed_max_pool_size_read_leaves_create_successful` | F | CF-AC-04 (D-4) | G1 | a seam-forced read error: `create` succeeds and `max_size()` is `None` | FC5-b |
+| `a_failed_max_pool_size_read_leaves_create_successful` | F | CF-AC-04 (D-4) | G3 (13020+) | a seam-forced read error: `create` succeeds and `max_size()` is `None` | FC5-b |
 | `typed_reads_return_64_bit_values` | D | CF-AC-04 (D-4) | G1, G6 | a threshold of 2^33 round-trips through `result::mem_pool::set_attribute` and `release_threshold()` | no RED: the vendored `attribute()` already reads a `u64`; characterization |
 | `create_destroys_the_pool_when_setting_the_threshold_fails` | F | CF-AC-02 (D-2) | G1 | the seam fails `set_attribute`; the destroy counter (with positive control) is 1 | no RED: the vendored `create` already owns the pool before `set_attribute`; characterization |
 | `a_pool_create_out_of_memory_returns_the_error_and_no_pool` | F | CF-AC-02 (T-FAULT) | G1 | the seam makes `cuMemPoolCreate` return OOM; `create` returns `CUDA_ERROR_OUT_OF_MEMORY` and the destroy counter is 0 | no RED: characterization |
@@ -246,7 +246,7 @@ case is `drops_after_a_sticky_error_neither_panic_nor_abort`.
 | Test | Kind | Cells | Expected |
 | --- | --- | --- | --- |
 | `a_private_pointer_upgraded_onto_a_default_context_returns_to_its_pool` | D | G1, G6 | private `USED_MEM_CURRENT` = 0 after drop and sync; `check_err()` clean |
-| `a_private_pointer_freed_synchronously_returns_to_its_pool` | D | G1, G6 | same, after `result::free_sync` following a synchronize |
+| `a_private_pointer_freed_synchronously_releases_its_memory` | D | G1, G6 | after `result::free_sync` following a synchronize: `trim_to(0)` leaves reserved ≤ one chunk; `cuMemGetInfo` free memory recovers within one chunk; `USED_MEM_CURRENT` printed as an observation (stale on driver 580, design D-2) |
 | `a_synchronous_pointer_upgraded_onto_a_private_context_frees_cleanly` | D | G1, G6 | no error; private pool unchanged |
 
 These are characterization tests with no RED (requirements CF-AC-03).

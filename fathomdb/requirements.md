@@ -174,8 +174,12 @@ tests on G1 pass (design D-2):
   synchronize;
 - a `result::malloc_sync` pointer upgraded onto a private context.
 
-After each, the private pool's `USED_MEM_CURRENT` returns to 0 and
-`check_err()` is clean. No behaviour changes, so these tests need no RED;
+After the first and third, the private pool's `USED_MEM_CURRENT` returns to
+0 and `check_err()` is clean. After the second, the memory is physically
+released (reserved at most one chunk after `trim_to(0)`; `cuMemGetInfo`
+recovers within one chunk). Driver 580 leaves `USED_MEM_CURRENT` stale after
+a `cuMemFree` of pool memory (measured at FC5, design D-2). The `# Safety`
+text states that caveat. No behaviour changes, so these tests need no RED;
 the TDD exception is recorded in `status.md`.
 
 ### CF-REQ-04 Every CUDA feature [REQ31-03]
