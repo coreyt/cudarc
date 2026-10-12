@@ -138,19 +138,24 @@ Behaviour to know about:
 Measured on a Jetson AGX Orin (JetPack 6, L4T R36.5.2, CUDA 12.6). NVIDIA
 does not document these values.
 
-- **A `maxSize` cap gives about a third of the cap.** A pool with a nonzero
-  `max_size` returns `CUDA_ERROR_OUT_OF_MEMORY` after about a third of it
-  (64 MiB cap: 32 MiB; 512 MiB: 192 MiB; 4096 MiB: 1376 MiB). The fork
-  passes `max_size` to the driver unchanged, so size the cap at about three
-  times the memory needed. On an RTX 3090 the whole cap is usable.
-- **About four uncapped pools per process.** Each pool with `max_size` 0
-  takes a large range of GPU virtual address space, and a fresh process has
-  room for about four. The device's default pool (which item 1 obtains on
+- **A large `maxSize` cap gives about a third of the cap.** A pool with a
+  nonzero `max_size` returns `CUDA_ERROR_OUT_OF_MEMORY` after about a third
+  of a large cap (512 MiB: 192 MiB; 1024 MiB: 352 MiB; 4096 MiB:
+  1376 MiB). Small caps round to 32 MiB steps: a cap of 32 to 96 MiB gives
+  32 MiB, and 97 to 192 MiB gives 64 MiB. The fork passes `max_size` to the
+  driver unchanged, so size the cap at about three times the memory needed.
+  On an RTX 3090 the whole cap is usable.
+- **Four uncapped pools per process.** Each pool with `max_size` 0 takes
+  20.47 GiB of GPU virtual address space (not memory), and a fresh process
+  has room for four. The device's default pool (which item 1 obtains on
   `CudaContext::new`) takes one, and graph memory takes one for the rest of
   the process once a graph with a memory allocation is instantiated. A pool
   dropped while an allocation is outstanding keeps its range until the
-  allocation is freed. When no range is left, `CudaContext::new` selects
-  synchronous allocation (item 1). Capped pools take less.
+  allocation is freed. With four uncapped pools live, the default-pool query
+  returns `CUDA_ERROR_OUT_OF_MEMORY` and `CudaContext::new` selects
+  synchronous allocation (item 1, measured); the selection is per process,
+  so it stays synchronous after the pools are dropped. Capped pools take
+  less.
 - **`cuMemGetInfo` is not a release signal.** Free memory is the kernel's
   `MemAvailable` and barely moves when device memory is allocated or freed.
   Read the pool's counters (`reserved_current`, `used_current`) or the
