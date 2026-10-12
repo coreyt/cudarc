@@ -5,7 +5,9 @@
 - Owner: Corey Thompson. Consumer: FathomDB 0.8.28 Slice 31
   (`fathomadb/fathomdb`, `dev/plans/0.8.28/features/slice-31/plan.md` on
   `release/0.8.28`).
-- Status: plan revision 4 (2026-10-12): FC1 requirements
+- Status: plan revision 5 (2026-10-12): § 1.4 lists how the mirrored
+  upstream jobs differ from upstream's workflows (R-FC-CODE finding L5).
+  Revision 4 (2026-10-12): FC1 requirements
   ([requirements.md](requirements.md) revision 2, after R-FC-REQ) supersede
   § 4; owner ruling Q-F1 splits G5 into G5a (`windchill3`) and G5b (GCP T4);
   § 1.4 adds the T-UNIT job and aarch64 `no-std`; § 8 adds an item 9 row;
@@ -115,6 +117,20 @@ It adds:
 - **a name-agnostic publish dry run** (`cargo publish --dry-run`, no `-p`),
   so it works before the packaging commit and on `ci/proposal-*`, where the
   crate is still `cudarc`.
+
+The mirrored jobs differ from upstream's workflows in these ways too, none
+of which changes what a job checks:
+
+- `actions/checkout@v2` becomes `actions/checkout@v4`;
+- `actions-rs/toolchain@v1` and `actions-rs/cargo@v1` become
+  `dtolnay/rust-toolchain@stable` and plain `cargo` commands (actionlint
+  reports the runners of all three upstream actions as too old to run on
+  GitHub Actions);
+- the workflow sets `permissions: contents: read`;
+- `CARGO_TERM_COLOR: never`, so logs carry no colour codes for the receipt
+  parsers;
+- job names carry the matrix values (for example
+  `cargo-check (<os>, <version>)`), so each cell is named in the CI receipt.
 
 GitHub-hosted runners have no GPU and no CUDA toolkit. cudarc's bindings are
 pre-generated and loaded dynamically, so these jobs need neither; the GPU
