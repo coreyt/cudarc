@@ -534,12 +534,21 @@ class Cli(unittest.TestCase):
             catalogue, None, manifest=root.parent / "Cargo.toml", feature_set="drv", version=12060,
             arch="x86_64", os_name="linux", extra_features=(),
         )
-        self.assertEqual(sorted(landed_x86), sorted(vendored))
+        # The vendored tests stay landed; later steps add more landed tests.
+        self.assertLessEqual(set(vendored), set(landed_x86))
         landed_arm = ct.cell_names(
             catalogue, None, manifest=root.parent / "Cargo.toml", feature_set="drv", version=12060,
             arch="aarch64", os_name="linux", extra_features=(),
         )
-        self.assertEqual(len(landed_arm), 24)
+        aarch64_only = {
+            "driver::safe::core::fathomdb_alloc_fallback::wrappers_of_one_device_share_the_allocator",
+            "driver::safe::core::fathomdb_alloc_fallback::sync_zero_byte_request_is_a_null_pointer_without_a_driver_call",
+            "driver::safe::core::fathomdb_alloc_fallback::sync_zero_length_allocations_are_null_and_free_cleanly",
+            "driver::safe::core::fathomdb_private_pool::a_private_context_never_consults_or_records_the_process_decision",
+            "driver::safe::core::fathomdb_private_pool::private_context_in_a_fresh_process",
+        }
+        self.assertLessEqual(set(vendored) | aarch64_only, set(landed_arm))
+        self.assertEqual(set(landed_arm) - set(landed_x86), aarch64_only)
 
 
 if __name__ == "__main__":
