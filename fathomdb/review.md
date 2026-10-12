@@ -142,3 +142,52 @@ Every review is an independent Opus subagent, read-only (plan § 9).
 | L7 | device order by enumeration | `CUDA_DEVICE_ORDER=PCI_BUS_ID`; device name logged |
 | L8 | vendored test breaks at 13020+; RED ordering | FC5-a edits it with the helper; location fix before the 13030 `maxSize` RED |
 | L9 | G8 sub-cells incomplete; features unspecified | completed; `-F …,cusparse,cusolver,cufile` |
+
+## R-FC-CODE, 2026-10-12
+
+- Model: `opus` (Claude Opus), general-purpose, read-only.
+- Reviewed: the whole branch `ec1cac71..56bb4b7` (84 commits) against
+  plan revision 4, requirements revision 5, design revision 2, test plan
+  revision 2, the catalogue and `status.md`. Scratch worktrees only; the
+  main checkout was not touched.
+- Checks, all measured unless marked:
+  - class and trailer check: 84 commits, one trailer each, no path
+    violation;
+  - tree A reproduced (`diff -r` empty);
+  - RED re-runs at their RED commits, each failing for the stated reason
+    and passing at GREEN, with isolated target dirs: the D-4 gate, two
+    FC5-a REDs, the FC6-a mutation, T-UNIT at 12060 and 13000, the
+    generator template, `use-baseline-lock` and its CRLF case, and GPU
+    T-DEV (a), (b), (d);
+  - no hiding: upstream `mod tests` byte-identical, no `--skip`, the
+    catalogue's `upstream_ignored` equals the 5 `#[ignore]` tests at
+    `ec1cac71`;
+  - the deprecated-API grep is empty (offline, from the 12.6 and 13.0
+    `cuda.h` deprecation markers and the legacy families);
+  - no duplicated upstream functionality (CF-AC-06);
+  - fork CI compared with upstream's four workflows;
+  - `cargo package --list` (135 files, no `fathomdb/`, no fork CI file) and
+    `cargo publish --dry-run -F cuda-13040`;
+  - fork CI run `38266905198` at `56bb4b7`: 139 of 139 jobs passed.
+- Inferred from reading the code only: L3, L6, and the 11.x loader
+  behaviour in L2.
+- Verdict: APPROVE-WITH-FIXES. No High finding. Every finding is fixed
+  in `ccdc7b9..c0510c0`; none was deferred.
+
+| Finding | Defect (short) | Disposition |
+| --- | --- | --- |
+| M1 | `core.rs` item-2 comments still gave the false cross-family free hazard | `ccdc7b9` (L): corrected rationale (one allocator per device, the measured configuration), pointing at the `upgrade_device_ptr` `# Safety` text |
+| L1 | 10 source comments cited `FATHOMDB-PATCH.md` or "upstream 0.19.7", two of them in public rustdoc | `ccdc7b9` (L), `1663adc` (U): cite `FATHOMDB.md` with item numbers and 0.19.10; the Orin pointer now names FathomDB's `dev/plans/runs/0.8.27-slice-110-tegra/pool-teardown-evidence/`; the grep is empty |
+| L2 | `FATHOMDB.md` said 11.x builds were unchanged; only their candidate lists are | `b29c41c` (P): behaviour split into 12.x/13.x only, every build, and unchanged for 11.x; Windows path code noted as compile-checked only |
+| L3 | the cuFile report path was always `None` without `cuFileGetVersion` (the address symbol was the missing query) | RED `480db3f`, GREEN `3647a60` (U): pure test `report_address_symbols_are_bound_wherever_the_library_is`; cuFile now uses `cuFileDriverOpen`; catalogue `4ec4cf3`; the path from `dladdr` for a pre-1.8 cuFile stays UNMEASURED (none on this host) |
+| L4 | the T-DEV (d) setup in the test plan could not give its GREEN | ruled a faithful reading of R-FC-DES M2; `59e8f08` (D) states the in-process decoy preload and the no-preload outcome |
+| L5 | CI drift from upstream not listed in plan § 1.4 | `88acf7f` (D): plan revision 5 lists the five items |
+| L6 (info) | Windows `GetModuleHandleExW`/`GetModuleFileNameW` are compiled but never run | stated in `FATHOMDB.md` (`b29c41c`); a known gap in the receipts |
+| L7 (info) | P commit `d04ea18` also edited the item-6 marker comment in `Cargo.toml` | accepted: a citation-only change |
+
+Found while verifying the fix round: `g8-common.sh` wrote
+`cudarc = { path = … }` into the G8 report project, which stopped
+resolving after the rename. Fixed in `f37c698` (D).
+
+Re-qualification (plan § 8): the fix round is a code change, so fork CI
+must pass at the new tip, and FC8 runs at that tip.
