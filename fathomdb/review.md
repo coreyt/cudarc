@@ -240,3 +240,58 @@ Re-qualification at `b777f8d`, all k = 3; receipts under
 | CF-AC-07a | file list byte-identical (`83db814a…`) |
 
 G2, G5a and G8 are unchanged areas. G5b runs at `b777f8d`.
+
+## R-FC-VERIFY, 2026-10-12
+
+- Model: `opus` (Claude Opus), general-purpose, read-only.
+- Verified at `C' = b777f8d`: CF-AC-01…06 (including 05b), 07a and 09…12,
+  from the tip `fca515e`. `git diff b777f8d fca515e -- . ':(exclude)fathomdb'`
+  is empty.
+- **Independent re-derivations (measured):**
+  - Tree A was rebuilt from the FathomDB patches; `diff -r` is empty, and
+    the 46 code commits match the status table in order and class.
+  - Class check over 114 commits.
+  - `cargo package --list` at `b777f8d`: 135 files, a byte-identical list
+    and `.crate` SHA-256, with `.cargo_vcs_info.json` naming `b777f8d`.
+  - No hiding: all 21 upstream `mod tests` blocks are byte-identical.
+  - Every failure in every receipt at `C'` was classified from the raw
+    logs or TSVs, and all fall in the closed host-dependent list or the
+    approved § 9 G6 list.
+  - The G5b receipts were checked section by section against the raw
+    output: `max_pool_size_reads_back_at_least_the_request` passes 3/3 at
+    13020–13040, and all 17 tests UNMEASURED on G5a pass 3/3 on G5b.
+  - An RTX 3090 spot run of the fork modules at `b777f8d`: 55 passed,
+    identical to G1.
+  - RED re-runs of R-FC-CODE-2 M1 (Orin), M2 (RTX 3090) and L3.
+  - The T-DEV (e) `dpkg-divert` setup was judged a faithful realization of
+    its precondition.
+- Verdict: **APPROVE-WITH-NOTES**. No defect in the code or its
+  qualification; `b777f8d` is fit to pin. Every note is disposed of
+  below; none was deferred.
+
+| Finding | Defect (short) | Disposition |
+| --- | --- | --- |
+| F1 (M) | No CI run had `head_sha = b777f8d` | The ref `ci/qualify-b777f8d` was pushed at `b777f8d`. Run 38304919654 passed 139/139, with T-UNIT 10 per job on all 38 jobs; receipt `2026-10-12-CI-b777f8d.md` |
+| F2 (L) | `35d3fec` and `fca515e` have no parseable `Fork-Class:` trailer, because a blank line separated it from `Claude-Session:` | Accepted, without a history rewrite or force-push. Both commits are D-only (all paths under `fathomdb/`). From `1554afe` on, every commit puts both trailers in one final paragraph, and `git interpret-trailers --parse` sees both. R-FC-PUB's class check should list these two commits as known exceptions |
+| F3 (L) | Upstream rows in the G1/G3/G4 receipts at `b777f8d` were labelled "(fork test, no baseline)" | `1554afe`: relabelled "upstream; baseline in `<cell>-b29c41c.md`", with a note in each receipt |
+| F4 (L) | The G5b receipts left the `libnvidia-ptxjitcompiler` map difference unexplained | `51958d6`: both sides JIT PTX in their main runs (the 18 `launch`/`unified_memory` tests), and the maps are taken at exit; no fork test JITs PTX in the main run. Which C' process keeps the JIT compiler mapped at exit is recorded as "observation: not explained"; the receipts class no test as a regression |
+| F5 (L) | The G5b receipts use `/proc/maps`, but requirements named the CF-REQ-11 report | `062f34d`: requirements revision 7 matches test plan § 1.2. Every cell records the maps; item-9 cells (T-DEV) also record the report |
+| F6 (L) | Stale "pending" text; the reviewer RED re-run column was empty | `062f34d` (test plan revision 6: § 9 G6 list marked approved; `dpkg-divert` step added to the § 4 G5b session) and `d83e213` (status updated; RED re-run column filled from the reviews), plus the main thread's correction of the FC6-a rows |
+| F7 (L) | Imprecise hosted-test counts in the CI receipt | `492eebd`: per job and per lock, re-derived from the log zip; also in the `b777f8d` CI receipt |
+
+Info items applied:
+
+- the Windows path code's compile-only gap is stated in the CI receipts;
+- the G6 receipt notes that L4T R36.5.2 is JetPack 6;
+- the G5a receipts' "F-G5a-1 open" is historical and was disposed of in
+  requirements revision 6.
+
+**Status:** the cudarc fork is qualified at `C' = b777f8d`. Next, per plan
+§ 9:
+
+1. the Candle fork's FK2 bump to `b777f8d` and its qualification;
+2. FathomDB R-PIN;
+3. later, FC9/FC9b (proposals, not posted) and FC10 (publish preparation;
+   the owner publishes).
+
+G7 stays UNMEASURED (Q5).
