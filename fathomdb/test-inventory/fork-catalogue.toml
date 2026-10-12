@@ -1,0 +1,1105 @@
+# Fork test catalogue: a machine-readable copy of test-plan.md § 3
+# (revision 2). Expected lists for fork tests are generated from this file
+# by `fathomdb/scripts/count-tests.py`, never from the build.
+#
+# Each [[test]] row:
+#   name      the test function name (binding, test plan § 3)
+#   module    its module path inside `binary`
+#   binary    count-tests label: unittests:<crate> | test:<target>
+#   kind      P pure, D device, F fault seam, X fresh process, C compile-time
+#             (F+D: a fault seam on a device)
+#   cells     G1..G8 and G5a/G5b (test plan § 4), plus the hosted CI jobs:
+#             "hosted" (fathomdb_ test job), "pure" (fork pure-test job),
+#             "t-unit" (T-UNIT job)
+#   ignored   #[ignore]d in the code
+#   landed    true once the test exists on fathomdb/0.19.10. Only landed rows
+#             are expected; a test that exists while its row says false fails
+#             `count-tests.py unlanded`. FC5/FC6 flip this in the commit that
+#             adds the test.
+#   cfg       compile condition: features (all required, closed over
+#             Cargo.toml implications), arch, os, min_version, max_version
+#             (CUDA feature number). Absent keys mean "any". For rows not yet
+#             landed the cfg is provisional; the landing commit makes it exact.
+#   red       the test plan's "RED at" entry
+schema = 1
+source = "fathomdb/test-plan.md § 3, revision 2 (31b1579)"
+
+# Upstream tests carrying #[ignore] at ec1cac71 (test plan § 2.1).
+[[upstream_ignored]]
+name = "driver::result::tests::peer_transfer_contexts"
+[[upstream_ignored]]
+name = "driver::result::tests::re_associate_context_for_memory_op"
+[[upstream_ignored]]
+name = "driver::safe::core::tests::test_post_alloc_memory"
+[[upstream_ignored]]
+name = "driver::safe::launch::tests::test_device_side_assert"
+[[upstream_ignored]]
+name = "driver::safe::launch::tests::test_peer_memcpy_waits_for_src_stream"
+
+
+[[test]]
+name = "off_target_selection_is_the_upstream_rule_whatever_the_pool_would_say"
+module = "driver::safe::core::fathomdb_alloc_fallback"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["G1", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.3"
+serves = "CF-AC-05"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "off_target_zero_length_sync_handling_is_upstream"
+module = "driver::safe::core::fathomdb_alloc_fallback"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["G1", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.3"
+serves = "CF-AC-05"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "on_target_zero_length_sync_buffers_are_null_and_never_freed"
+module = "driver::safe::core::fathomdb_alloc_fallback"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["G1", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.3"
+serves = "CF-AC-05"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "async_alloc_requires_pool_support_and_an_obtainable_default_pool"
+module = "driver::safe::core::fathomdb_alloc_fallback"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["G1", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.3"
+serves = "CF-AC-05"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "only_pool_unavailable_errors_select_the_synchronous_allocator"
+module = "driver::safe::core::fathomdb_alloc_fallback"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["G1", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.3"
+serves = "CF-AC-05"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "unrelated_pool_query_errors_are_propagated_not_downgraded"
+module = "driver::safe::core::fathomdb_alloc_fallback"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["G1", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.3"
+serves = "CF-AC-05"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "every_wrapper_of_a_device_reuses_the_first_decision"
+module = "driver::safe::core::fathomdb_alloc_fallback"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["G1", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.3"
+serves = "CF-AC-05"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "a_failed_decision_is_not_remembered"
+module = "driver::safe::core::fathomdb_alloc_fallback"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["G1", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.3"
+serves = "CF-AC-05"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "concurrent_wrappers_of_a_device_agree"
+module = "driver::safe::core::fathomdb_alloc_fallback"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["G1", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.3"
+serves = "CF-AC-05"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "new_context_selection_matches_default_pool_availability"
+module = "driver::safe::core::fathomdb_alloc_fallback"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.3"
+serves = "CF-AC-05"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "sync_context_round_trips_data"
+module = "driver::safe::core::fathomdb_alloc_fallback"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.3"
+serves = "CF-AC-05"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "wrappers_of_one_device_share_the_allocator"
+module = "driver::safe::core::fathomdb_alloc_fallback"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.3"
+serves = "CF-AC-05"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"], arch = ["aarch64"], os = ["linux"] }
+
+[[test]]
+name = "sync_zero_byte_request_is_a_null_pointer_without_a_driver_call"
+module = "driver::safe::core::fathomdb_alloc_fallback"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.3"
+serves = "CF-AC-05"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"], arch = ["aarch64"], os = ["linux"] }
+
+[[test]]
+name = "sync_zero_length_allocations_are_null_and_free_cleanly"
+module = "driver::safe::core::fathomdb_alloc_fallback"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.3"
+serves = "CF-AC-05"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"], arch = ["aarch64"], os = ["linux"] }
+
+[[test]]
+name = "a_context_with_its_own_pool_is_private_whatever_the_device_decided"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["G1", "G3", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.1"
+serves = "CF-AC-02"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+note = "G3 13020+ only after FC5-a (mem_pool.rs does not compile there)"
+
+[[test]]
+name = "pool_props_are_pinned_device_memory_on_the_ordinal"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["G1", "G3", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.1"
+serves = "CF-AC-02"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+note = "G3 13020+ only after FC5-a (mem_pool.rs does not compile there)"
+
+[[test]]
+name = "a_created_pool_carries_its_release_threshold"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G3", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.1"
+serves = "CF-AC-02"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+note = "G3 13020+ only after FC5-a (mem_pool.rs does not compile there)"
+
+[[test]]
+name = "a_private_context_allocates_from_its_pool_and_leaves_the_current_pool_alone"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G3", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.1"
+serves = "CF-AC-02"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+note = "G3 13020+ only after FC5-a (mem_pool.rs does not compile there)"
+
+[[test]]
+name = "zero_length_private_allocations_are_null_and_free_cleanly"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G3", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.1"
+serves = "CF-AC-02"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+note = "G3 13020+ only after FC5-a (mem_pool.rs does not compile there)"
+
+[[test]]
+name = "the_pool_is_destroyed_last_and_cleanly"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G3", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.1"
+serves = "CF-AC-02"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+note = "G3 13020+ only after FC5-a (mem_pool.rs does not compile there)"
+
+[[test]]
+name = "a_pool_of_another_device_is_rejected"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G3", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.1"
+serves = "CF-AC-02"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+note = "G3 13020+ only after FC5-a (mem_pool.rs does not compile there)"
+
+[[test]]
+name = "ordinary_contexts_report_default_or_synchronous"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G3", "G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.1"
+serves = "CF-AC-02"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"] }
+note = "G3 13020+ only after FC5-a (mem_pool.rs does not compile there)"
+
+[[test]]
+name = "a_private_context_never_consults_or_records_the_process_decision"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "X"
+cells = ["G6", "hosted"]
+ignored = false
+landed = true
+origin = "vendored"
+section = "3.1"
+serves = "CF-AC-02"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"], arch = ["aarch64"], os = ["linux"] }
+
+[[test]]
+name = "private_context_in_a_fresh_process"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "X"
+cells = ["G6", "hosted"]
+ignored = true
+landed = true
+origin = "vendored"
+section = "3.1"
+serves = "CF-AC-02"
+red = "FC4-port (compile failure on bare ec1cac71; plan § 9 FC4 exception)"
+cfg = { features = ["driver"], arch = ["aarch64"], os = ["linux"] }
+
+[[test]]
+name = "default_and_current_pool_are_untouched_while_live"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G3", "G6"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-02 isolation"
+red = "no RED: characterization"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "accounting_returns_to_zero_after_drop_and_sync"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G3", "G6"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-02 accounting"
+red = "no RED: characterization"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "release_threshold_bounds_reserved_after_sync"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G3", "G5b", "G6"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-02 threshold"
+red = "no RED: characterization"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "trim_to_keeps_the_floor_and_releases_above_it"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G3", "G5b", "G6"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-02 trim"
+red = "no RED: characterization"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "requests_within_the_cap_succeed"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G3", "G5b", "G6"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-02 capacity"
+red = "no RED: characterization"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "a_request_over_the_cap_is_out_of_memory"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G3", "G5b", "G6"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-02 capacity"
+red = "no RED: characterization"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "exhaustion_under_two_threads_and_four_streams_fails_only_the_excess"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G3", "G6"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-02 capacity (T-CONC)"
+red = "no RED: characterization"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "a_buffer_freed_on_one_stream_is_not_reused_before_its_reader_finishes"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G3", "G6"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-02 stream order (T-CONC)"
+red = "no RED: characterization of event tracking"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "the_pool_outlives_its_context_while_slices_live"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G3", "G6"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-02 lifetime"
+red = "no RED: characterization"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "mem_pool_and_private_context_are_send_and_sync"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "C"
+cells = ["pure"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-02 Send/Sync (D-6)"
+red = "no RED: compile-time assertion"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "pool_model_property"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G3", "G6"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-02 property"
+red = "no RED: characterization"
+cfg = { features = ["driver"] }
+note = "G3 at 13000"
+
+[[test]]
+name = "device_location_is_the_ordinal_on_every_binding"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["pure"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-04 (D-8)"
+red = "FC5-a (13020+ compile failure of the vendored literal; the D-8 defect)"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "pool_props_are_zeroed_then_written"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["pure"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-04 (D-8)"
+red = "FC5-a (13030/13040 maxSize stays 0)"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "max_size_without_binding_support_is_not_supported"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["pure"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-04"
+red = "FC5-b"
+cfg = { features = ["driver"], max_version = 12010 }
+
+[[test]]
+name = "max_size_on_a_driver_older_than_12020_is_not_supported"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "F"
+cells = ["G1", "G3"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-04 (D-4)"
+red = "FC5-b"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "attributes_newer_than_the_driver_are_never_requested"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "F+D"
+cells = ["G3"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-04b (gate)"
+red = "FC5-b, staged (RED on G3 13020 after the ungated read-back commit)"
+cfg = { features = ["driver"] }
+note = "cells: G3 13020-13040 builds"
+
+[[test]]
+name = "max_pool_size_read_back_uses_the_driver_value"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "F"
+cells = ["G1"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-04 (D-4)"
+red = "FC5-b"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "max_pool_size_reads_back_at_least_the_request"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G5b"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-04c"
+red = "no RED at FC5 (needs a newer driver); observed at FC8 on G5b"
+cfg = { features = ["driver"] }
+note = "cells: G5b 13020-13040 builds"
+
+[[test]]
+name = "a_failed_max_pool_size_read_leaves_create_successful"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "F"
+cells = ["G1"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-04 (D-4)"
+red = "FC5-b"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "typed_reads_return_64_bit_values"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G6"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-04 (D-4)"
+red = "no RED: characterization"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "create_destroys_the_pool_when_setting_the_threshold_fails"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "F"
+cells = ["G1"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-02 (D-2)"
+red = "no RED: characterization"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "a_pool_create_out_of_memory_returns_the_error_and_no_pool"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "F"
+cells = ["G1"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "CF-AC-02 (T-FAULT)"
+red = "no RED: characterization"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "destroy_with_outstanding_allocations_is_deferred"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G6"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "design D-2"
+red = "no RED: characterization"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "drops_after_a_sticky_error_neither_panic_nor_abort"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "X"
+cells = ["G1", "G5b"]
+ignored = true
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "design D-2 (T-FAULT, lost context)"
+red = "no RED: characterization"
+cfg = { features = ["driver"] }
+note = "ignored, run alone"
+
+[[test]]
+name = "capture_on_a_private_context_uses_graph_memory"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G5b", "G6"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "design D-9 (T-CAPTURE)"
+red = "no RED: characterization"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "two_pools_on_two_devices_are_independent"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G2"]
+ignored = true
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "design D-13 (T-MULTI)"
+red = "no RED: characterization"
+cfg = { features = ["driver"] }
+note = "#[ignore = \"must be executed with multiple gpus\"]"
+
+[[test]]
+name = "a_pool_of_device_1_is_rejected_for_device_0"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G2"]
+ignored = true
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "design D-13 (T-MULTI)"
+red = "no RED: the vendored code rejects already"
+cfg = { features = ["driver"] }
+note = "#[ignore = \"must be executed with multiple gpus\"]"
+
+[[test]]
+name = "exit_with_a_live_pool_is_clean"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "X"
+cells = ["G1", "G6"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "design D-2 (T-TEARDOWN)"
+red = "no RED: characterization"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "measure_reservation_steps"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G5b", "G6"]
+ignored = true
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "M-1"
+red = "measurement"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "measure_max_size_semantics"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1"]
+ignored = true
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "M-2"
+red = "measurement"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "observe_new_attributes_on_driver_580"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1"]
+ignored = true
+landed = false
+origin = "test-plan"
+section = "3.1"
+serves = "M-3"
+red = "observation"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "a_private_pointer_upgraded_onto_a_default_context_returns_to_its_pool"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G6"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.2"
+serves = "CF-AC-03"
+red = "no RED: characterization (requirements CF-AC-03)"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "a_private_pointer_freed_synchronously_returns_to_its_pool"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G6"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.2"
+serves = "CF-AC-03"
+red = "no RED: characterization (requirements CF-AC-03)"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "a_synchronous_pointer_upgraded_onto_a_private_context_frees_cleanly"
+module = "driver::safe::core::fathomdb_private_pool"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1", "G6"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.2"
+serves = "CF-AC-03"
+red = "no RED: characterization (requirements CF-AC-03)"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "off_target_constructors_never_query_the_default_pool"
+module = "driver::safe::core::fathomdb_alloc_fallback"
+binary = "unittests:cudarc"
+kind = "F+D"
+cells = ["G1"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.3"
+serves = "CF-AC-05"
+red = "no RED: characterization"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "off_target_choice_equals_the_upstream_inline_rule"
+module = "driver::safe::core::fathomdb_alloc_fallback"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.3"
+serves = "CF-AC-05"
+red = "no RED: equality check"
+cfg = { features = ["driver"] }
+
+[[test]]
+name = "off_target_zero_length_sync_behaviour_matches_the_base"
+module = "driver::safe::core::fathomdb_alloc_fallback"
+binary = "unittests:cudarc"
+kind = "D"
+cells = ["G1"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.3"
+serves = "CF-AC-05"
+red = "no RED: compared with the base"
+cfg = { features = ["driver"] }
+note = "cells: G1 + baseline"
+
+[[test]]
+name = "in_scope_candidates_never_name_another_major"
+module = "fathomdb_lib_major"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["t-unit"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.4"
+serves = "CF-AC-11"
+red = "FC6-b"
+cfg = {  }
+
+[[test]]
+name = "versioned_names_come_before_unversioned_names"
+module = "fathomdb_lib_major"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["t-unit"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.4"
+serves = "CF-AC-11"
+red = "FC6-b"
+cfg = {  }
+
+[[test]]
+name = "out_of_scope_and_cuda11_candidates_equal_the_base"
+module = "fathomdb_lib_major"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["t-unit"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.4"
+serves = "CF-AC-11"
+red = "no RED: regression guard"
+cfg = {  }
+
+[[test]]
+name = "version_lines_accept_their_major_and_reject_neighbours"
+module = "fathomdb_lib_major"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["t-unit"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.4"
+serves = "CF-AC-11"
+red = "FC6-b"
+cfg = {  }
+
+[[test]]
+name = "load_error_names_library_major_and_tried_names"
+module = "fathomdb_lib_major"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["t-unit"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.4"
+serves = "CF-AC-11"
+red = "FC6-b"
+cfg = {  }
+
+[[test]]
+name = "windows_dll_names_match_nvidia_wheels"
+module = "fathomdb_lib_major"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["t-unit"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.4"
+serves = "CF-AC-11"
+red = "FC6-b"
+cfg = {  }
+
+[[test]]
+name = "is_culib_present_agrees_with_try_culib"
+module = "fathomdb_lib_major"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["t-unit"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.4"
+serves = "CF-AC-11"
+red = "FC6-b"
+cfg = {  }
+
+[[test]]
+name = "a_failed_load_is_memoized"
+module = "fathomdb_lib_major"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["t-unit"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.4"
+serves = "CF-AC-11"
+red = "FC6-b"
+cfg = {  }
+
+[[test]]
+name = "the_report_says_linked_at_build_time_when_linked"
+module = "fathomdb_lib_major"
+binary = "unittests:cudarc"
+kind = "P"
+cells = ["t-unit"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.4"
+serves = "CF-AC-11"
+red = "FC6-b"
+cfg = {  }
+
+[[test]]
+name = "template_loader_tail_matches_the_checked_in_cublas_loader"
+module = ""
+binary = "unittests:bindings_generator"
+kind = "P"
+cells = ["pure"]
+ignored = false
+landed = false
+origin = "test-plan"
+section = "3.4"
+serves = "design D-F4 (R-FC-DES L10)"
+red = "FC6-b"
+cfg = {  }
+note = "module chosen at FC6-b; if bindings_generator cannot host it, fathomdb/scripts/check-loader-template.sh replaces it"
+
+# T-DEV cases of test plan § 3.4 (integration test tests/fathomdb_lib_major.rs,
+# run by fathomdb/scripts/t-dev-lib-major.sh). The test plan does not name
+# their functions; FC6-b names each and moves it to a [[test]] row.
+[[unnamed]]
+case = "T-DEV (a)"
+binary = "test:fathomdb_lib_major"
+kind = "D"
+cells = ["G1"]
+build = 12060
+serves = "CF-AC-11"
+red = "FC6-b: maps libcublas.so.13 at ec1cac71"
+
+[[unnamed]]
+case = "T-DEV (b)"
+binary = "test:fathomdb_lib_major"
+kind = "D"
+cells = ["G1"]
+build = 13000
+serves = "CF-AC-11"
+red = "FC6-b: maps libcublas.so.12 at ec1cac71"
+
+[[unnamed]]
+case = "T-DEV (c)"
+binary = "test:fathomdb_lib_major"
+kind = "D"
+cells = ["G1"]
+build = 12060
+serves = "CF-AC-11"
+red = "FC6-b: panics at ec1cac71"
+
+[[unnamed]]
+case = "T-DEV (d)"
+binary = "test:fathomdb_lib_major"
+kind = "D"
+cells = ["G1"]
+build = 12060
+serves = "CF-AC-11"
+red = "FC6-b: maps cu13 cuFile at ec1cac71"
+
+[[unnamed]]
+case = "T-DEV (e)"
+binary = "test:fathomdb_lib_major"
+kind = "D"
+cells = ["G5b"]
+build = 12060
+serves = "CF-AC-11"
+red = "no RED: loads at base and at C"
+
+[[unnamed]]
+case = "T-DEV (f)"
+binary = "test:fathomdb_lib_major"
+kind = "D"
+cells = ["G1"]
+build = 12060
+serves = "CF-AC-11"
+red = "no RED: loads at base and at C"
