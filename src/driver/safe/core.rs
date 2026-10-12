@@ -2912,7 +2912,11 @@ impl CudaStream {
     ///   `cudaMalloc()` may be freed with `cudaFreeAsync()` and memory from
     ///   `cudaMallocAsync()` with `cudaFree()` (CUDA Programming Guide,
     ///   stream-ordered memory allocation). `cuMemFreeAsync` returns pool
-    ///   memory to the pool that owns it.
+    ///   memory to the pool that owns it. Freeing pool memory with
+    ///   `cuMemFree` (a context whose [CudaContext::has_async_alloc] is
+    ///   `false`) releases it, but on driver 580 (measured) the pool's
+    ///   `CU_MEMPOOL_ATTR_USED_MEM_CURRENT` is left unchanged, so prefer
+    ///   `cuMemFreeAsync` for pool memory.
     /// - The memory may not be valid for type `T`, so some sort of memset
     ///   operation should be called on the memory.
     pub unsafe fn upgrade_device_ptr<T>(
@@ -4280,6 +4284,55 @@ mod fathomdb_private_pool {
         assert_eq!(pool.used_current(), Ok(0));
         ordinary.check_err().unwrap();
         private.check_err().unwrap();
+    }
+
+    /// CF-AC-03: private-pool pointers freed with `cuMemFree` after their
+    /// accesses completed are physically released: `trim_to(0)` leaves at
+    /// most one chunk reserved, and free device memory recovers to within
+    /// one chunk. `USED_MEM_CURRENT` is only printed: driver 580 leaves it
+    /// stale after `cuMemFree` (design D-2).
+    #[test]
+    fn a_private_pointer_freed_synchronously_releases_its_memory() {
+        if !have_device() {
+            return;
+        }
+        const WORK: usize = 32 << 20;
+        let (pool, stream) = private_stream(&MemPoolProps::default());
+        let ctx = stream.context().clone();
+        let chunk = reservation_step(&pool, &stream, WORK);
+        assert_eq!(pool.reserved_current(), Ok(0));
+        ctx.bind_to_thread().unwrap();
+        let (free_before, _) = result::mem_get_info().unwrap();
+
+        let pointers: Vec<_> = (0..3)
+            .map(|_| stream.alloc_zeros::<u8>(WORK).unwrap().leak())
+            .collect();
+        stream.synchronize().unwrap();
+        let reserved_live = pool.reserved_current().unwrap();
+        let (free_live, _) = result::mem_get_info().unwrap();
+        assert!(
+            reserved_live > chunk && free_live as u64 + 2 * chunk <= free_before as u64,
+            "precondition: reserved {reserved_live}, free {free_before} -> {free_live}, chunk {chunk}"
+        );
+
+        ctx.bind_to_thread().unwrap();
+        for ptr in pointers {
+            unsafe { result::free_sync(ptr) }.unwrap();
+        }
+        stream.synchronize().unwrap();
+        pool.trim_to(0).unwrap();
+        let reserved = pool.reserved_current().unwrap();
+        let (free_after, _) = result::mem_get_info().unwrap();
+        std::println!(
+            "USED_MEM_CURRENT after cuMemFree: {:?} (observation; design D-2)",
+            pool.used_current()
+        );
+        assert!(reserved <= chunk, "reserved {reserved} > chunk {chunk}");
+        assert!(
+            free_after as u64 + chunk >= free_before as u64,
+            "free {free_before} -> {free_after}, more than one chunk ({chunk}) short"
+        );
+        ctx.check_err().unwrap();
     }
 
     /// CF-AC-03: a `cuMemAlloc` pointer upgraded onto a private context is
