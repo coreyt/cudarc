@@ -744,10 +744,13 @@ pub(crate) mod lib_major {
         })
     }
 
-    /// An exported function of `lib`, for resolving the loaded file.
+    /// An exported function of `lib`, for resolving the loaded file. It must
+    /// exist in every accepted version: cuFile before 1.8 has no
+    /// `cuFileGetVersion`, so cuFile uses `cuFileDriverOpen`.
     pub(crate) fn address_symbol(lib: &str) -> &'static str {
         match lib {
             "cusolverMg" => "cusolverMgCreate",
+            "cufile" => "cuFileDriverOpen",
             "cuda" => "cuDriverGetVersion",
             _ => query_symbol(lib).unwrap_or("cudaRuntimeGetVersion"),
         }
