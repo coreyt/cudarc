@@ -36,6 +36,7 @@ reviewer re-runs each RED; the last column holds that result.
 | 2026-10-12 | FC7 packaging (item 8) | — (packaging; test plan § 10: no RED) | — | `d04ea18` | — |
 | 2026-10-12 | FC7 `use-baseline-lock.py`, 9 fixture tests | `ace64e1` | 7 of 9 fail against a stub (`NotImplementedError`) | `9aef7c0` (9 pass) | pending (R-FC-CODE) |
 | 2026-10-12 | FC7 `test_crlf_line_endings_are_kept` | `0c66c4d` | 1 of 10 fails: `expected exactly one root entry (name = "cudarc", no source), found 0` | `27fa9c5` (10 pass) | pending (R-FC-CODE) |
+| 2026-10-12 | R-FC-CODE L3 `report_address_symbols_are_bound_wherever_the_library_is` | `480db3f` | 9 passed, 1 failed at 12060, 11040 and 13000: `cufile: cuFileGetVersion not bound for [cuda-11040 … cuda-12020]` | `3647a60` (10 of 10) | pending |
 
 ## FC4-0 (class D)
 
@@ -980,6 +981,66 @@ Checks at `b8f9777`:
 
 The helper's self-tests are not run by fork CI (nor are `count-tests`'s).
 
+## R-FC-CODE fix round (classes L, U, D, P)
+
+R-FC-CODE gave APPROVE-WITH-FIXES on `56bb4b7`; the review and its
+dispositions are recorded in `review.md` by the main thread.
+
+| Commit | Class | Finding | Change |
+| --- | --- | --- | --- |
+| `ccdc7b9` | L | M1, L1 | `core.rs`: the per-device decision's doc no longer claims a cross-family free hazard (it keeps one allocator per device, the measured configuration; NVIDIA allows cross-family frees, see the `upgrade_device_ptr` `# Safety` text); the Orin teardown measurements are cited where they are (FathomDB repository, `dev/plans/runs/0.8.27-slice-110-tegra/pool-teardown-evidence/`); item 1–4 markers cite `FATHOMDB.md`; "upstream 0.19.7" → 0.19.10 (2 places). Comments only |
+| `1663adc` | U | L1 | `mem_pool.rs:1`, `core.rs` pool markers and the `new_with_mem_pool` doc cite `FATHOMDB.md`, item 5. Comments only. `grep -rn -E 'FATHOMDB-PATCH\|0\.19\.7' src` is now empty |
+| `480db3f` | U | L3 RED | T-UNIT test `report_address_symbols_are_bound_wherever_the_library_is` (pure: reads the checked-in bindings with `include_str!`); `query_symbol`/`address_symbol` move, unchanged, out of the dynamic-loading `loader` module so the test can call them |
+| `4ec4cf3` | D | L3 | catalogue row (cell `t-unit`, landed); test plan revision 3: § 3.4 lists the test, T-UNIT has 10 names per feature, 190 per OS. The CI expectations come from the catalogue, so the workflow is unchanged |
+| `3647a60` | U | L3 GREEN | cuFile's address symbol is `cuFileDriverOpen` (bound for every cuda feature, no `cfg`) |
+| `f37c698` | D | (found while verifying L3) | `g8-common.sh` wrote `cudarc = { path = … }` into the G8 report project, which stopped resolving at `d04ea18`; it now reads the package name from `$G8_SRC/Cargo.toml` |
+| `88acf7f` | D | L5 | plan revision 5: § 1.4 lists fork CI's drift from upstream's workflows |
+| `59e8f08` | D | L4 | test plan T-DEV (d) setup states the in-process decoy preload; ruling and no-preload outcome recorded |
+| `b29c41c` | P | L2 | `FATHOMDB.md`: what item 9 changes in CUDA 11.x builds (shared loader: memoization, loading `is_culib_present`, panic text, version query at load, new API; candidates and first-that-opens acceptance unchanged); Windows path code compile-checked only; the `FATHOMDB-PATCH.md` note removed |
+
+### L3 RED and GREEN
+
+`cargo test --locked --lib -F cuda-<v>,$CHECK_DEFAULT_FEATURES --
+fathomdb_lib_major::`, no GPU:
+
+- RED `480db3f`, at 12060, 11040 and 13000 alike:
+  `test fathomdb_lib_major::report_address_symbols_are_bound_wherever_the_library_is ... FAILED`,
+  `"cufile: cuFileGetVersion not bound for [\"cuda-11040\", \"cuda-11050\", \"cuda-11060\", \"cuda-11070\", \"cuda-11080\", \"cuda-12000\", \"cuda-12010\", \"cuda-12020\"]"`,
+  `test result: FAILED. 9 passed; 1 failed`. Log SHA-256: 12060
+  `6e92830d…986d3c8`, 11040 `a5567e45…6abc6`, 13000 `82a1934f…2f22`.
+- GREEN `3647a60`: 10 passed at 11040, 12060 and 13000;
+  `count-tests check` against `expect --set def --features
+  $CHECK_DEFAULT_FEATURES --filter fathomdb_lib_major:: --binary
+  unittests:cudarc` PASS and `unlanded` PASS at each.
+- **Not covered:** the path of a cuFile without `cuFileGetVersion` (before
+  1.8). No such cuFile is on this host (12.6 ships 1.11), so the test checks
+  the symbol choice, not `dladdr` on a pre-1.8 file. With the system cuFile
+  1.11, the G8 report binary at `3647a60` printed `REPORT cufile: opened as
+  libcufile.so.0, path
+  /usr/local/cuda-12.6/targets/x86_64-linux/lib/libcufile.so.1.11.1, version
+  1.11, checked against CUDA 12`, `G8-REPORT PASS` (path now resolved
+  through `cuFileDriverOpen`).
+
+### Checks at `b29c41c`
+
+| Check | Result |
+| --- | --- |
+| G1, items 1–4: `cargo test --locked --lib -F cuda-12060 -- fathomdb_alloc_fallback --test-threads=1`, RTX 3090 index 0 | 14 passed; 0 failed; `count-tests` PASS, `unlanded` PASS; log SHA-256 `f48f8039…8d7903` |
+| G1, all fork modules, same build, `-- fathomdb_` | 55 passed; 0 failed; 5 ignored; 75 filtered out; `count-tests` PASS |
+| T-DEV case (d) (`t-dev-lib-major.sh d`) | `CASE d cuda12_build_rejects_an_already_loaded_cuda13_cufile: test ok (exit 0)` |
+| G8-e (`g8-e.sh`, after `f37c698`) | `G8 g8-e: PASS`; report project tree `cudarc-fathomdb v0.19.10` |
+| `cargo fmt --all -- --check` | clean |
+| fork CI clippy (`--all-targets`, `$CLIPPY_FEATURES`, `--locked`), 13040 and 12060 | clean |
+| `cargo check --locked --lib`, default features, 11040, 12060, 13000, 13040 | clean |
+| `test_count_tests.py` / `test_use_baseline_lock.py` | OK / OK |
+| `actionlint` (fork workflow), `shellcheck -x fathomdb/scripts/*.sh` | clean |
+| `cargo package --list` (scratch `git worktree add --detach b29c41c`, removed after) | 135 files; no `fathomdb/` path; no `fathomdb-ci.yaml`; `FATHOMDB.md` present; list identical to `d04ea18`'s (SHA-256 `83db814a…f6ddac7`) |
+
+Guards (driver `580.178.04`, `/usr/local/cuda` → `/usr/local/cuda-12.6`,
+unchanged each time): T-DEV (d) ended 2026-10-12T10:18:19-05:00; G8-e ended
+10:19:00; cuFile report 10:19:05 before and after; items 1–4 run
+10:20:19–10:20:23; all-modules run 10:20:30–10:21:20.
+
 ## Code commits since `ec1cac71` (CF-AC-01)
 
 | Commit | Class | Purpose |
@@ -1020,3 +1081,8 @@ The helper's self-tests are not run by fork CI (nor are `count-tests`'s).
 | `d04ea18` | P | item 8: `cudarc-fathomdb` package, `exclude`, README notice, `FATHOMDB.md` |
 | `7475fa7` | W | fork CI: baseline lock through `use-baseline-lock.py` |
 | `b8f9777` | P | example 07 depends on `cudarc-fathomdb` by path |
+| `ccdc7b9` | L | item 2 rationale; FATHOMDB.md pointers in fallback code (comments) |
+| `1663adc` | U | FATHOMDB.md pointers in pool code (comments) |
+| `480db3f` | U | L3 RED: report address-symbol test |
+| `3647a60` | U | L3 GREEN: cuFile address symbol `cuFileDriverOpen` |
+| `b29c41c` | P | FATHOMDB.md: item 9 in CUDA 11.x builds; Windows path code compile-checked only |
