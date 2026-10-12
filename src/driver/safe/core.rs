@@ -5711,7 +5711,9 @@ mod fathomdb_private_pool {
     }
 
     /// Runs this module's test `name` alone in a child test process, with
-    /// [CHILD] set.
+    /// [CHILD] set. Returns its exit status and its stdout then stderr, each
+    /// line prefixed with `child| `, so that printing them cannot be taken
+    /// for the parent's own libtest lines.
     fn run_in_child(name: &str, ignored: bool) -> (std::process::ExitStatus, String) {
         let full = std::format!("driver::safe::core::fathomdb_private_pool::{name}");
         let mut command = std::process::Command::new(std::env::current_exe().unwrap());
@@ -5722,11 +5724,15 @@ mod fathomdb_private_pool {
             command.arg("--ignored");
         }
         let output = command.output().unwrap();
-        let text = std::format!(
-            "{}\n{}",
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
-        );
+        let text = [&output.stdout, &output.stderr]
+            .into_iter()
+            .flat_map(|stream| {
+                String::from_utf8_lossy(stream)
+                    .lines()
+                    .map(|line| std::format!("child| {line}\n"))
+                    .collect::<Vec<_>>()
+            })
+            .collect();
         (output.status, text)
     }
 
