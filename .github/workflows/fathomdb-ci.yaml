@@ -353,7 +353,9 @@ jobs:
           set -euo pipefail
           ct=(python3 -I -B fathomdb/scripts/count-tests.py)
           cell=(--set drv --version "$CUDARC_CUDA_VERSION" --arch x86_64 --os linux)
-          "${ct[@]}" names "${cell[@]}" --cell pure --with-binary | tee names.tsv
+          # the bindings_generator rows run in the pure-test-generator job
+          "${ct[@]}" names "${cell[@]}" --cell pure --with-binary |
+            awk -F '\t' '$1 != "unittests:bindings_generator"' | tee names.tsv
           if [ ! -s names.tsv ]; then
             echo "expected names: none yet (fork-catalogue.toml has no landed test in cell 'pure' for ${{ matrix.version }})"
             exit 0
@@ -369,6 +371,38 @@ jobs:
           "${ct[@]}" expect "${cell[@]}" --exact "${filters[@]}" | tee expected.txt
           set +e
           cargo test --locked --lib --no-default-features -F "std,driver,dynamic-loading,${{ matrix.version }}" -- --exact "${names[@]}" --test-threads=1 2>&1 | tee run.log
+          status=${PIPESTATUS[0]}
+          set -e
+          "${ct[@]}" check --expected expected.txt run.log || status=1
+          exit "$status"
+
+  pure-test-generator:
+    # Test plan § 3.4 (design D-F4): the pure tests of cell "pure" that live
+    # in the bindings_generator crate (the loader-tail template test), by
+    # name. They do not depend on a cuda-* feature, so they run once.
+    name: pure-test (bindings_generator)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Run the cell's bindings_generator tests by name
+        run: |
+          set -euo pipefail
+          ct=(python3 -I -B fathomdb/scripts/count-tests.py)
+          cell=(--set drv --version 12060 --arch x86_64 --os linux)
+          mapfile -t names < <("${ct[@]}" names "${cell[@]}" --cell pure --with-binary |
+            awk -F '\t' '$1 == "unittests:bindings_generator" {print $2}')
+          if [ ${#names[@]} -eq 0 ]; then
+            echo "::error::no landed bindings_generator test in cell 'pure'"
+            exit 1
+          fi
+          filters=()
+          for n in "${names[@]}"; do filters+=(--filter "$n"); done
+          "${ct[@]}" expect "${cell[@]}" --binary unittests:bindings_generator --exact "${filters[@]}" | tee expected.txt
+          set +e
+          (cd bindings_generator && cargo test --locked -- --exact "${names[@]}" --test-threads=1) 2>&1 | tee run.log
           status=${PIPESTATUS[0]}
           set -e
           "${ct[@]}" check --expected expected.txt run.log || status=1
