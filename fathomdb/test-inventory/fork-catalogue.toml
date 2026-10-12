@@ -543,11 +543,11 @@ binary = "unittests:cudarc"
 kind = "P"
 cells = ["pure"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.1"
 serves = "CF-AC-04 (D-8)"
-red = "FC5-a (13020+ compile failure of the vendored literal; the D-8 defect)"
+red = "FC5-a dfff1a1: at cuda-13020+ the crate does not build (error[E0560] no field `id` on CUmemLocation_st, mem_pool.rs:31, the D-8 defect); GREEN 6f4c67a"
 cfg = { features = ["driver"] }
 
 [[test]]
@@ -557,11 +557,11 @@ binary = "unittests:cudarc"
 kind = "P"
 cells = ["pure"]
 ignored = false
-landed = false
+landed = true
 origin = "test-plan"
 section = "3.1"
 serves = "CF-AC-04 (D-8)"
-red = "FC5-a (13030/13040 maxSize stays 0)"
+red = "FC5-a 49ef889: behavioural at cuda-13030/13040, maxSize left 0 right 4096; GREEN e37097d"
 cfg = { features = ["driver"] }
 
 [[test]]
