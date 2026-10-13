@@ -318,7 +318,7 @@ G7 stays UNMEASURED (Q5).
 
 | Finding | Defect (short) | Disposition |
 | --- | --- | --- |
-| 1 (M) | The packaged README's relative `FATHOMDB.md` link resolves against the repository's default branch `main`, which has no `FATHOMDB.md`, so it would 404 on crates.io | Owner decision before R-PUB, now stated in the receipt: make `fathomdb/0.19.10` the default branch of `coreyt/cudarc`, or accept the broken link until the next metadata change. Open until the owner decides |
+| 1 (M) | The packaged README's relative `FATHOMDB.md` link resolves against the repository's default branch `main`, which has no `FATHOMDB.md`, so it would 404 on crates.io | Owner decision (2026-10-13): make `fathomdb/0.19.10` the default branch of `coreyt/cudarc`. Done the same day (GitHub API: `default_branch` = `fathomdb/0.19.10`; `FATHOMDB.md` resolves from it). `C` is unchanged. Proposal branches keep upstream's README |
 | 2 (L/M) | The owner's commands did not check the receipt's own conditions | Fixed: the command block now checks the R-VERIFY approval, the empty code diff after `C`, the clean checkout at `C`, and the token step before `cargo publish` |
 | 3 (L) | "Same `.crate` bytes" depends on an unchanged crates.io index (the untracked `Cargo.lock` is regenerated) | Fixed: the receipt states the condition and how to compare later |
 | 4 (L) | The receipt's output block was an excerpt presented as full output | Fixed: marked as an excerpt; the command block points at the `.log` |

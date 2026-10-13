@@ -1443,3 +1443,16 @@ qualified at `853324fc` (coreyt/candle-fathomdb, `fathomdb/status.md`).
   first publish needs a token that may publish new crates.
 - **Next:** R-FC-PUB (Opus), then owner R-PUB after FathomDB's R-VERIFY,
   then the owner's `cargo publish` (the commands are in the receipt).
+
+### Owner rulings before publication (2026-10-13)
+
+- **R-FC-PUB finding 1:** the owner chose to make `fathomdb/0.19.10` the
+  default branch of `coreyt/cudarc`, so the repository page and the
+  packaged README's relative `FATHOMDB.md` link show the fork's records.
+  Done with the GitHub API the same day. The package at `C` is unchanged.
+  The upstream proposal branches (FC9, FC9b, not started) keep upstream's
+  README and no FathomDB material.
+- **Publication order:** the owner directed publishing `cudarc-fathomdb`
+  0.19.10 now, before FathomDB's W1–W3, W6 and R-VERIFY (plan § 9 had FC10
+  wait for R-VERIFY), and approved R-PUB. Any later code change becomes a
+  new version, not a change to 0.19.10.
