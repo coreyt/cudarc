@@ -1,0 +1,12 @@
+    Updating crates.io index
+   Packaging cudarc-fathomdb v0.19.10 (…/pub-cudarc)
+    Updating crates.io index
+    Packaged 135 files, 7.8MiB (637.0KiB compressed)
+   Verifying cudarc-fathomdb v0.19.10 (…/pub-cudarc)
+   Compiling cudarc-fathomdb v0.19.10 (…/pub-cudarc-target/package/cudarc-fathomdb-0.19.10)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.39s
+   Uploading cudarc-fathomdb v0.19.10 (…/pub-cudarc)
+    Uploaded cudarc-fathomdb v0.19.10 to registry `crates-io`
+note: waiting for cudarc-fathomdb v0.19.10 to be available at registry `crates-io`
+help: you may press ctrl-c to skip waiting; the crate should be available shortly
+   Published cudarc-fathomdb v0.19.10 at registry `crates-io`

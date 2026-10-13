@@ -1456,3 +1456,15 @@ qualified at `853324fc` (coreyt/candle-fathomdb, `fathomdb/status.md`).
   0.19.10 now, before FathomDB's W1–W3, W6 and R-VERIFY (plan § 9 had FC10
   wait for R-VERIFY), and approved R-PUB. Any later code change becomes a
   new version, not a change to 0.19.10.
+
+### Published (2026-10-13)
+
+- `cudarc-fathomdb` 0.19.10 is on crates.io, published from a clean
+  detached checkout of `C = b777f8d` at 14:02Z. Receipt
+  `qualification/2026-10-13-FC10-publish-b777f8d.md`.
+- The registry `.crate` is byte-identical to the CF-AC-07b dry run
+  (`8780d2fe…caf2`); its `.cargo_vcs_info.json` names `C`, and every
+  packaged source file equals `C`.
+- **Next:** Candle FK5 (K8) moves `coreyt/candle-fathomdb` from the git pin
+  to registry `cudarc-fathomdb` 0.19.10. FC9 and FC9b (upstream proposals)
+  are not started and wait for the owner.
