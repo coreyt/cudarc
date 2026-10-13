@@ -295,3 +295,31 @@ Info items applied:
    the owner publishes).
 
 G7 stays UNMEASURED (Q5).
+
+## R-FC-PUB, 2026-10-13
+
+- Model: `opus` (Claude Opus), general-purpose, read-only.
+- Reviewed: CF-AC-07b at `C = b777f8d` (receipt
+  `qualification/2026-10-13-CF-AC-07b-b777f8d.md`, tip `a6d49c41`).
+- **Re-derived (measured):** a detached worktree of `C`; `cargo package
+  --list` (135 names, list identical to CF-AC-07a); `cargo publish
+  --dry-run -F cuda-13040` exit 0; `.crate` SHA-256 `8780d2fe…caf2` and its
+  names and `.cargo_vcs_info.json`; manifest metadata against crates.io
+  limits; a docs.rs-style build of the extracted crate with no CUDA on the
+  host (it builds); `FATHOMDB.md` items against the code at `C`; licences
+  unchanged from `ec1cac71`; no local paths or secrets in the crate.
+- **Class check over `ec1cac71..a6d49c41` (121 commits):** 119 have exactly
+  one `Fork-Class:` trailer (D 73, U 34, P 5, L 4, W 3); the two without
+  are the known R-FC-VERIFY F2 exceptions `35d3fece` and `fca515eb`, both
+  touching only `fathomdb/`. Every D commit touches only `fathomdb/`;
+  `git diff b777f8d a6d49c41 -- . ':(exclude)fathomdb'` is empty.
+- Verdict: **APPROVE-WITH-FIXES**. The package at `C` is fit for crates.io;
+  no fix changes `C`.
+
+| Finding | Defect (short) | Disposition |
+| --- | --- | --- |
+| 1 (M) | The packaged README's relative `FATHOMDB.md` link resolves against the repository's default branch `main`, which has no `FATHOMDB.md`, so it would 404 on crates.io | Owner decision before R-PUB, now stated in the receipt: make `fathomdb/0.19.10` the default branch of `coreyt/cudarc`, or accept the broken link until the next metadata change. Open until the owner decides |
+| 2 (L/M) | The owner's commands did not check the receipt's own conditions | Fixed: the command block now checks the R-VERIFY approval, the empty code diff after `C`, the clean checkout at `C`, and the token step before `cargo publish` |
+| 3 (L) | "Same `.crate` bytes" depends on an unchanged crates.io index (the untracked `Cargo.lock` is regenerated) | Fixed: the receipt states the condition and how to compare later |
+| 4 (L) | The receipt's output block was an excerpt presented as full output | Fixed: marked as an excerpt; the command block points at the `.log` |
+| 5 (Info) | Upstream README badges, a duplicate `cupti` in the docs.rs list, no `rust-version` (all inherited from upstream); the `/tmp/pub-cudarc` path and `-F cuda-13040` are correct | No change |
