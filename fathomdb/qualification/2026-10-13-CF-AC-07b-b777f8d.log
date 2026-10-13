@@ -1,0 +1,11 @@
+    Updating crates.io index
+   Packaging cudarc-fathomdb v0.19.10 (…/pkg-wt)
+    Updating crates.io index
+    Packaged 135 files, 7.8MiB (637.0KiB compressed)
+   Verifying cudarc-fathomdb v0.19.10 (…/pkg-wt)
+   Compiling cudarc-fathomdb v0.19.10 (…/target/package/cudarc-fathomdb-0.19.10)
+   Compiling cfg-if v1.0.5
+   Compiling libloading v0.9.0
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 8.47s
+   Uploading cudarc-fathomdb v0.19.10 (…/pkg-wt)
+warning: aborting upload due to dry run

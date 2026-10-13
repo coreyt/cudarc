@@ -1424,3 +1424,22 @@ described below. The main thread recorded this section on 2026-10-12.
 R-FC-VERIFY over CF-AC-01…06, 07a and 09…12 at `C' = b777f8d`. Its CI
 receipt is `2026-10-12-CI-35d3fec.md`: 139/139, and T-UNIT 10 per job on
 all 38 jobs.
+
+R-FC-VERIFY has since approved `C' = b777f8d` (review.md, "R-FC-VERIFY"),
+so the item above is closed. The Candle fork pins `b777f8d` and is
+qualified at `853324fc` (coreyt/candle-fathomdb, `fathomdb/status.md`).
+
+## FC10 publication preparation at `C = b777f8d` (class D), 2026-10-13
+
+- **Done early, on the owner's request.** Plan § 9 has FC10 wait for
+  FathomDB's R-VERIFY. The dry run was run now so that the publication is
+  ready; the owner's R-PUB still waits for R-VERIFY with `C` unchanged.
+- **CF-AC-07b: PASS.** Receipt `qualification/2026-10-13-CF-AC-07b-b777f8d.md`.
+  From a clean detached worktree of `C`, `cargo package --list` gives the
+  same 135 names as CF-AC-07a, byte for byte. `cargo publish --dry-run -F
+  cuda-13040` exits 0, and the `.crate` SHA-256 `8780d2fe…caf2` equals
+  CF-AC-07a's. `C` needs no metadata change, so it is not restarted.
+- **Crate name:** still unclaimed on crates.io (2026-10-13). The owner's
+  first publish needs a token that may publish new crates.
+- **Next:** R-FC-PUB (Opus), then owner R-PUB after FathomDB's R-VERIFY,
+  then the owner's `cargo publish` (the commands are in the receipt).
