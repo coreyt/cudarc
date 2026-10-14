@@ -1,0 +1,19 @@
+# Hosted-test Run 2 resolves this crate against FathomDB's Cargo.lock so the
+# fork compiles, and lock-set-record.py records, the cudarc-fathomdb closure
+# FathomDB builds. The cudarc-fathomdb features are FathomDB's resolved root
+# features; half and float8 carry the features FathomDB's other dependencies
+# enable on them (feature unification), which add bytemuck to the closure.
+# FathomDB's guard (scripts/check-cudarc-fathomdb-lock-set.py) reports any
+# drift as added, removed or changed packages or root features.
+[package]
+name = "fathomdb-lock-consumer"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+cudarc-fathomdb = { path = "../..", default-features = false, features = ["std", "driver", "dynamic-loading", "cuda-version-from-build-system", "cublas", "cublaslt", "curand", "nvrtc", "f16", "f8"] }
+half = { version = "2", features = ["bytemuck", "use-intrinsics"] }
+float8 = { version = "0.7", features = ["num-traits", "rand_distr"] }
+
+[workspace]
