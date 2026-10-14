@@ -30,9 +30,10 @@ env:
   # upstream cargo-clippy.yaml
   CLIPPY_FEATURES: no-std,cudnn,cublas,cublaslt,nvrtc,driver,curand,nccl,dynamic-loading,cufile,cupti,nvtx,cufft
   # FathomDB commit whose Cargo.lock the hosted test job's second run uses
-  # (origin/release/0.8.28 on 2026-10-12). Update it when FathomDB pins a
+  # (the Slice 31 pin commit on slice/0.8.28-31-cudarc-fork, 2026-10-13,
+  # which consumes the published 0.19.10). Update it when FathomDB pins a
   # new cudarc-fathomdb commit (fork plan § 8, last row).
-  FATHOMDB_LOCK_SHA: 4c327cd8a90e21d431246b566eb2cba73a880619
+  FATHOMDB_LOCK_SHA: aa898677f3eff2fb8fb40e2108a1b29072f0e7fa
 
 jobs:
   # ---------------------------------------------------------------- upstream mirror
@@ -299,6 +300,30 @@ jobs:
           python3 -I -B fathomdb/scripts/count-tests.py check --expected expected.txt run-fathomdb-lock.log || status=1
           python3 -I -B fathomdb/scripts/count-tests.py unlanded run-fathomdb-lock.log || status=1
           exit "$status"
+      - name: Run 2 lock-set record (FathomDB's feature set)
+        # Compiles the cudarc-fathomdb closure FathomDB builds (FathomDB's
+        # root and dependency features, through fathomdb/lock-consumer) and
+        # records it for FathomDB's lock-set guard (FathomDB Slice 31 design
+        # § 7.2, ruling Q23). Both runners record both Linux targets; the
+        # receipt checks that the two records are equal.
+        run: |
+          set -euo pipefail
+          cp fathomdb-Cargo.lock fathomdb/lock-consumer/Cargo.lock
+          cd fathomdb/lock-consumer
+          for t in x86_64-unknown-linux-gnu aarch64-unknown-linux-gnu; do
+            cargo metadata --format-version 1 --filter-platform "$t" > "metadata-$t.json"
+          done
+          cargo build --locked
+          python3 -I -B ../scripts/lock-set-record.py --lock ../../fathomdb-Cargo.lock \
+            --metadata "x86_64-unknown-linux-gnu=metadata-x86_64-unknown-linux-gnu.json" \
+            --metadata "aarch64-unknown-linux-gnu=metadata-aarch64-unknown-linux-gnu.json" \
+            --lock-commit "$FATHOMDB_LOCK_SHA" --run-id "$GITHUB_RUN_ID" --head-sha "$GITHUB_SHA" \
+            --out "$RUNNER_TEMP/cudarc-fathomdb-lock-set.json"
+          cat "$RUNNER_TEMP/cudarc-fathomdb-lock-set.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lock-set-${{ matrix.runner }}
+          path: ${{ runner.temp }}/cudarc-fathomdb-lock-set.json
 
   pure-test:
     # Test plan § 4: the pure tests of fathomdb_private_pool (cell "pure" of
