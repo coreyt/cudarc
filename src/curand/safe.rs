@@ -111,7 +111,7 @@ impl Drop for CudaRng {
     fn drop(&mut self) {
         let gen = std::mem::replace(&mut self.gen, std::ptr::null_mut());
         if !gen.is_null() {
-            unsafe { result::destroy_generator(gen) }.unwrap();
+            let _ = unsafe { result::destroy_generator(gen) };
         }
     }
 }
