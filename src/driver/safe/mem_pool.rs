@@ -257,6 +257,23 @@ pub struct CudaMemPool {
     pub(crate) primary_lifetime: Option<std::sync::Arc<super::PrimaryContextLifetime>>,
 }
 
+#[cfg(feature = "std")]
+fn record_pool_native_result<T>(
+    lifetime: &super::PrimaryContextLifetime,
+    result: Result<T, DriverError>,
+) -> Result<T, DriverError> {
+    if let Err(error) = &result {
+        if matches!(
+            error.0,
+            sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED
+                | sys::CUresult::CUDA_ERROR_INVALID_CONTEXT
+        ) {
+            lifetime.record_loss(*error, None);
+        }
+    }
+    result
+}
+
 unsafe impl Send for CudaMemPool {}
 unsafe impl Sync for CudaMemPool {}
 
@@ -294,7 +311,7 @@ impl CudaMemPool {
             return Err(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED));
         }
         let raw = pool_props(anchor.ordinal as i32, props);
-        let pool = unsafe { result::mem_pool::create(&raw) }?;
+        let pool = record_pool_native_result(&lifetime, unsafe { result::mem_pool::create(&raw) })?;
         let mut created = Self {
             cu_device: anchor.device,
             pool,
@@ -302,13 +319,13 @@ impl CudaMemPool {
             primary_lifetime: Some(std::sync::Arc::clone(&lifetime)),
         };
         let mut threshold = props.release_threshold;
-        unsafe {
+        record_pool_native_result(&lifetime, unsafe {
             result::mem_pool::set_attribute(
                 pool,
                 sys::CUmemPool_attribute::CU_MEMPOOL_ATTR_RELEASE_THRESHOLD,
                 (&mut threshold as *mut u64).cast(),
             )
-        }?;
+        })?;
         created.max_size = read_max_pool_size(pool, driver).ok().flatten();
         if matches!(created.max_size, Some(reported) if props.max_size > 0 && reported < props.max_size as u64)
         {
@@ -449,9 +466,9 @@ impl CudaMemPool {
             .map(|lifetime| lifetime.admit())
             .transpose()?;
         let mut value: u64 = 0;
-        unsafe {
+        self.record_native_result(unsafe {
             result::mem_pool::get_attribute(self.pool, attr, (&mut value as *mut u64).cast())
-        }?;
+        })?;
         Ok(value)
     }
 
@@ -467,7 +484,15 @@ impl CudaMemPool {
             .as_ref()
             .map(|lifetime| lifetime.admit())
             .transpose()?;
-        unsafe { result::mem_pool::trim_to(self.pool, keep) }
+        self.record_native_result(unsafe { result::mem_pool::trim_to(self.pool, keep) })
+    }
+
+    fn record_native_result<T>(&self, result: Result<T, DriverError>) -> Result<T, DriverError> {
+        #[cfg(feature = "std")]
+        if let Some(lifetime) = &self.primary_lifetime {
+            return record_pool_native_result(lifetime, result);
+        }
+        result
     }
 
     /// The raw pool handle. It stays owned by this value.
