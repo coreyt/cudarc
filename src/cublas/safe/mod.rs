@@ -255,3 +255,6 @@ mod fathomdb_context_lifetime {
         );
     }
 }
+
+#[cfg(all(test, feature = "std"))]
+mod fathomdb_library_admission;
