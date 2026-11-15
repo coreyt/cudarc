@@ -1466,7 +1466,8 @@ pub unsafe fn mem_prefetch_async(
 /// 3. The memory should not have been freed already (double free)
 pub unsafe fn free_async(dptr: sys::CUdeviceptr, stream: sys::CUstream) -> Result<(), DriverError> {
     #[cfg(all(test, feature = "std"))]
-    if let Some(result) = crate::driver::safe::lifetime_slice_cleanup_tests::seams::free(dptr, true) {
+    if let Some(result) = crate::driver::safe::lifetime_slice_cleanup_tests::seams::free(dptr, true)
+    {
         crate::driver::safe::lifetime_slice_cleanup_tests::seams::assert_stream(stream);
         return result;
     }
@@ -1481,7 +1482,9 @@ pub unsafe fn free_async(dptr: sys::CUdeviceptr, stream: sys::CUstream) -> Resul
 /// 1. The memory should have been allocated with malloc_sync
 pub unsafe fn free_sync(dptr: sys::CUdeviceptr) -> Result<(), DriverError> {
     #[cfg(all(test, feature = "std"))]
-    if let Some(result) = crate::driver::safe::lifetime_slice_cleanup_tests::seams::free(dptr, false) {
+    if let Some(result) =
+        crate::driver::safe::lifetime_slice_cleanup_tests::seams::free(dptr, false)
+    {
         return result;
     }
     sys::cuMemFree_v2(dptr).result()

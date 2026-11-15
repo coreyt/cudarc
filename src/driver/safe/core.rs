@@ -1094,7 +1094,8 @@ impl CudaContext {
 ///
 /// Events from a tracked context hold admission through native cleanup. If
 /// admission refuses the generation, Drop abandons the native handle while
-/// releasing its ordinary Rust owners.
+/// releasing its ordinary Rust owners. Any actual native destroy failure
+/// conservatively records terminal loss before further native growth.
 ///
 /// # Thread safety
 /// This object is thread safe
@@ -1128,8 +1129,10 @@ impl Drop for CudaEvent {
                 return;
             }
         }
-        self.ctx
-            .record_err(unsafe { result::event::destroy(event) });
+        self.ctx.record_err(
+            self.ctx
+                .record_cleanup_prerequisite_result(unsafe { result::event::destroy(event) }),
+        );
     }
 }
 
@@ -1283,7 +1286,9 @@ impl CudaEvent {
 ///
 /// Owned streams from a tracked context hold admission through native cleanup.
 /// If admission refuses the generation, Drop abandons the native handle and
-/// releases its ordinary Rust owners. Borrowed streams do not destroy handles.
+/// releases its ordinary Rust owners. Any actual native destroy failure
+/// conservatively records terminal loss before further native growth.
+/// Borrowed streams do not destroy handles.
 ///
 /// **Work done on this is asynchronous with respect to the host.**
 ///
@@ -1348,8 +1353,10 @@ impl Drop for CudaStream {
                 return;
             }
         }
-        self.ctx
-            .record_err(unsafe { result::stream::destroy(cu_stream) });
+        self.ctx.record_err(
+            self.ctx
+                .record_cleanup_prerequisite_result(unsafe { result::stream::destroy(cu_stream) }),
+        );
     }
 }
 
@@ -1646,7 +1653,9 @@ impl<T> Drop for CudaSlice<T> {
             }
         }
         if ctx.has_async_alloc {
-            ctx.record_err(unsafe { result::free_async(pointer, self.stream.cu_stream) });
+            ctx.record_err(ctx.record_cleanup_prerequisite_result(unsafe {
+                result::free_async(pointer, self.stream.cu_stream)
+            }));
         } else {
             if let Err(error) = self.stream.synchronize_for_cleanup() {
                 ctx.record_err::<()>(Err(error));
@@ -1657,7 +1666,9 @@ impl<T> Drop for CudaSlice<T> {
             }
             // FATHOMDB PATCH: zero-length buffers hold a null pointer (see `malloc_sync_or_null`).
             if sync_free_needed(SYNC_FALLBACK, pointer) {
-                ctx.record_err(unsafe { result::free_sync(pointer) });
+                ctx.record_err(
+                    ctx.record_cleanup_prerequisite_result(unsafe { result::free_sync(pointer) }),
+                );
             }
         }
     }

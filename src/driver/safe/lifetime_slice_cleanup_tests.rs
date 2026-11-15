@@ -117,7 +117,10 @@ pub(crate) mod seams {
         Some(Ok(pointer))
     }
 
-    pub(crate) fn free(pointer: sys::CUdeviceptr, asynchronous: bool) -> Option<Result<(), DriverError>> {
+    pub(crate) fn free(
+        pointer: sys::CUdeviceptr,
+        asynchronous: bool,
+    ) -> Option<Result<(), DriverError>> {
         let mut state = STATE.get()?;
         let (owned, bytes, allocator_async) = state.live.unwrap();
         assert_eq!(owned, pointer);
@@ -128,14 +131,19 @@ pub(crate) mod seams {
         } else {
             state.counts.sync_frees += 1;
         }
-        if state.free_error.is_none() { state.live = None; }
+        if state.free_error.is_none() {
+            state.live = None;
+        }
         STATE.set(Some(state));
         FREE_HOOK.with(|slot| {
             if let Some(hook) = slot.borrow_mut().as_mut() {
                 hook();
             }
         });
-        Some(match state.free_error { Some(error) => Err(DriverError(error)), None => Ok(()) })
+        Some(match state.free_error {
+            Some(error) => Err(DriverError(error)),
+            None => Ok(()),
+        })
     }
 
     pub(crate) fn assert_stream(stream: sys::CUstream) {
