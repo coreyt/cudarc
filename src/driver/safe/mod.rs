@@ -33,6 +33,8 @@ pub(crate) mod stream_constructor_admission_tests;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod stream_use_tests;
 #[cfg(all(test, feature = "std"))]
+pub(crate) mod stream_wait_owner_tests;
+#[cfg(all(test, feature = "std"))]
 pub(crate) mod tracked_cleanup_bind_failure_tests;
 pub(crate) mod unified_memory;
 

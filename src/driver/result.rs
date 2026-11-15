@@ -485,6 +485,7 @@ pub(crate) mod context_test_seams {
         attribute_error: Option<sys::CUresult>,
         pub(crate) default_pool_queries: usize,
         tracking_symbols: bool,
+        second_device: bool,
         pub(crate) primary_queries: usize,
         primary_active: bool,
         primary_error: Option<sys::CUresult>,
@@ -521,6 +522,7 @@ pub(crate) mod context_test_seams {
                 attribute_error: None,
                 default_pool_queries: 0,
                 tracking_symbols: true,
+                second_device: false,
                 primary_queries: 0,
                 primary_active: true,
                 primary_error: None,
@@ -551,6 +553,12 @@ pub(crate) mod context_test_seams {
         pub(crate) fn set_attribute_error(&self, error: Option<sys::CUresult>) {
             let mut state = self.snapshot();
             state.attribute_error = error;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn enable_second_device(&self) {
+            let mut state = self.snapshot();
+            state.second_device = true;
             STATE.set(Some(state));
         }
 
@@ -641,10 +649,10 @@ pub(crate) mod context_test_seams {
 
     pub(crate) fn get_device(ordinal: core::ffi::c_int) -> Option<sys::CUdevice> {
         let mut state = STATE.get()?;
-        assert_eq!(ordinal, 0);
+        assert!(ordinal == 0 || (state.second_device && ordinal == 1));
         state.device_queries += 1;
         STATE.set(Some(state));
-        Some(0)
+        Some(ordinal)
     }
 
     pub(crate) fn get_device_attribute(
@@ -652,7 +660,7 @@ pub(crate) mod context_test_seams {
         attribute: sys::CUdevice_attribute,
     ) -> Option<Result<i32, DriverError>> {
         let mut state = STATE.get()?;
-        assert_eq!(device, 0);
+        assert!(device == 0 || (state.second_device && device == 1));
         assert_eq!(
             attribute,
             sys::CUdevice_attribute_enum::CU_DEVICE_ATTRIBUTE_MEMORY_POOLS_SUPPORTED
@@ -672,10 +680,10 @@ pub(crate) mod context_test_seams {
 
     pub(crate) fn get_default_pool(device: sys::CUdevice) -> Option<sys::CUmemoryPool> {
         let mut state = STATE.get()?;
-        assert_eq!(device, 0);
+        assert!(device == 0 || (state.second_device && device == 1));
         state.default_pool_queries += 1;
         STATE.set(Some(state));
-        Some(0xD000 as sys::CUmemoryPool)
+        Some((0xD000 + device as usize) as sys::CUmemoryPool)
     }
 
     pub(crate) fn has_tracking_symbols() -> Option<bool> {
@@ -727,12 +735,13 @@ pub(crate) mod context_test_seams {
 
     pub(crate) fn get_context_id(ctx: sys::CUcontext) -> Option<Result<u64, DriverError>> {
         let mut state = STATE.get()?;
-        assert_eq!(ctx as usize, 0xC7);
+        let handle = ctx as usize;
+        assert!(handle == 0xC7 || (state.second_device && handle == 0xC8));
         state.id_queries += 1;
         STATE.set(Some(state));
         Some(match state.id_error {
             Some(error) => Err(DriverError(error)),
-            None => Ok(state.context_id),
+            None => Ok(state.context_id + (handle - 0xC7) as u64),
         })
     }
 
@@ -740,7 +749,7 @@ pub(crate) mod context_test_seams {
         dev: sys::CUdevice,
     ) -> Option<Result<(u32, bool), DriverError>> {
         let mut state = STATE.get()?;
-        assert_eq!(dev, 0);
+        assert!(dev == 0 || (state.second_device && dev == 1));
         state.primary_queries += 1;
         STATE.set(Some(state));
         PRIMARY_PROBE_HOOK.with(|slot| {
@@ -756,17 +765,17 @@ pub(crate) mod context_test_seams {
 
     pub(crate) fn retain(dev: sys::CUdevice) -> Option<sys::CUcontext> {
         let mut state = STATE.get()?;
-        assert_eq!(dev, 0);
+        assert!(dev == 0 || (state.second_device && dev == 1));
         state.retains += 1;
         STATE.set(Some(state));
-        Some(0xC7 as sys::CUcontext)
+        Some((0xC7 + dev as usize) as sys::CUcontext)
     }
 
     pub(crate) fn release(dev: sys::CUdevice) -> bool {
         let Some(mut state) = STATE.get() else {
             return false;
         };
-        assert_eq!(dev, 0);
+        assert!(dev == 0 || (state.second_device && dev == 1));
         state.releases += 1;
         STATE.set(Some(state));
         true
