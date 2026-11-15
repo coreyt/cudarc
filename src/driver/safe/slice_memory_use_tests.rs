@@ -24,7 +24,7 @@ pub(crate) enum Operation {
 }
 
 impl Operation {
-    fn run(
+    pub(super) fn run(
         self,
         stream: &Arc<CudaStream>,
         allocation: &mut CudaSlice<u8>,
@@ -49,6 +49,7 @@ pub(crate) mod seams {
     #[derive(Clone, Copy, Default)]
     struct State {
         calls: [usize; 4],
+        error: Option<sys::CUresult>,
     }
     std::thread_local! {
         static STATE: Cell<Option<State>> = const { Cell::new(None) };
@@ -64,6 +65,12 @@ pub(crate) mod seams {
         pub(crate) fn set_hook(&self, hook: impl FnMut() + 'static) {
             HOOK.with(|slot| *slot.borrow_mut() = Some(Box::new(hook)));
         }
+        pub(crate) fn set_error(&self, error: Option<sys::CUresult>) {
+            let mut state = STATE.get().unwrap();
+            state.error = error;
+            STATE.set(Some(state));
+        }
+
         pub(crate) fn calls(&self) -> [usize; 4] {
             STATE.get().unwrap().calls
         }
@@ -98,7 +105,10 @@ pub(crate) mod seams {
                 hook();
             }
         });
-        Some(Ok(()))
+        Some(match state.error {
+            Some(error) => Err(DriverError(error)),
+            None => Ok(()),
+        })
     }
 }
 
