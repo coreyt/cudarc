@@ -2423,6 +2423,10 @@ impl CudaStream {
         self.ctx.bind_to_thread()?;
         let num_bytes = dst.num_bytes();
         let (dptr, _record) = dst.device_ptr_mut(self);
+        #[cfg(feature = "std")]
+        if self.ctx.primary_lifetime.is_some() {
+            self.ctx.check_err()?;
+        }
         self.ctx.record_memory_result(unsafe {
             result::memset_d8_async(dptr, 0, num_bytes, self.cu_stream)
         })
@@ -2467,6 +2471,10 @@ impl CudaStream {
         self.ctx.bind_to_thread()?;
         let (src, _record_src) = unsafe { src.stream_synced_slice(self) };
         let (dst, _record_dst) = dst.device_ptr_mut(self);
+        #[cfg(feature = "std")]
+        if self.ctx.primary_lifetime.is_some() {
+            self.ctx.check_err()?;
+        }
         self.ctx
             .record_memory_result(unsafe { result::memcpy_htod_async(dst, src, self.cu_stream) })
     }
@@ -2518,6 +2526,10 @@ impl CudaStream {
         self.ctx.bind_to_thread()?;
         let (src, _record_src) = src.device_ptr(self);
         let (dst, _record_dst) = unsafe { dst.stream_synced_mut_slice(self) };
+        #[cfg(feature = "std")]
+        if self.ctx.primary_lifetime.is_some() {
+            self.ctx.check_err()?;
+        }
         self.ctx
             .record_memory_result(unsafe { result::memcpy_dtoh_async(dst, src, self.cu_stream) })
     }
@@ -2547,6 +2559,10 @@ impl CudaStream {
         if src_ctx == dst_ctx {
             let (src_ptr, _record_src) = src.device_ptr(self);
             let (dst_ptr, _record_dst) = dst.device_ptr_mut(self);
+            #[cfg(feature = "std")]
+            if self.ctx.primary_lifetime.is_some() {
+                self.ctx.check_err()?;
+            }
             self.ctx.record_memory_result(unsafe {
                 result::memcpy_dtod_async(dst_ptr, src_ptr, num_bytes, self.cu_stream)
             })
