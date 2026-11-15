@@ -1,6 +1,6 @@
 use super::*;
 use crate::driver::{
-    result::context_test_seams, sys as driver_sys, CudaContext, DriverError, PrimaryContextLifetime,
+    result::context_test_seams, sys as driver_sys, CudaContext, PrimaryContextLifetime,
 };
 
 #[test]
@@ -102,11 +102,14 @@ fn setter_refuses_cached_loss_without_native_work() {
 
     let failed = unsafe { owner.set_stream(context.default_stream()) };
 
+    assert_eq!(failed, Err(result::CurandError::Lost(first.unwrap())));
     assert_eq!(
-        failed,
-        Err(result::CurandError::Driver(DriverError(
-            driver_sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED
-        )))
+        first.unwrap().refusal().driver_status(),
+        driver_sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED
+    );
+    assert_eq!(
+        first.unwrap().refusal(),
+        crate::driver::PrimaryContextRefusal::SyntheticContextDestroyed
     );
     assert_eq!(calls.snapshot().stream_sets, native_before);
     assert!(Arc::ptr_eq(&owner.stream, &original));

@@ -21,8 +21,11 @@ pub use grouped_gemm::*;
 /// 2. Execute gemm/gemv/gmm kernels with [Gemv], [Gemm] and [Gmm]. Both f32 and f64 are supported
 ///    for [Gemm] and [Gemv], f16 and bf16 are supported for [Gmm] if feature `half` is activated.
 ///
-/// Note: This maintains a instance of [`Arc<CudaDevice>`], so will prevent the device
-/// from being dropped.
+/// Retains its stream and context, keeping their ordinary Rust owners alive.
+///
+/// Tracked cleanup admits and binds before native destruction. A refused
+/// generation abandons native cleanup while dropping ordinary Rust owners;
+/// native destruction failure publishes its actual library cause once.
 #[derive(Debug)]
 pub struct CudaBlas {
     pub(crate) handle: sys::cublasHandle_t,
@@ -36,8 +39,8 @@ impl CudaBlas {
     /// Creates a new cublas handle and assigns `stream`.
     ///
     /// Tracked construction holds admission through initialization and unwind.
-    /// Returns the original driver refusal before library calls after loss,
-    /// or the unchanged native library error from handle/stream initialization.
+    /// Returns the original driver refusal or cached synthetic Lost cause before
+    /// library calls, or the unchanged native library error from handle/stream initialization.
     pub fn new(stream: Arc<CudaStream>) -> Result<Self, CublasError> {
         let _lease = Self::admit_stream(&stream)?;
         let ctx = stream.context();
@@ -55,6 +58,24 @@ impl CudaBlas {
     }
 
     #[cfg(feature = "std")]
+    fn admission_error(stream: &CudaStream, error: crate::driver::DriverError) -> CublasError {
+        match stream
+            .ctx
+            .primary_lifetime
+            .as_ref()
+            .and_then(|lifetime| lifetime.loss())
+        {
+            Some(loss) => match loss.refusal() {
+                crate::driver::PrimaryContextRefusal::DriverStatus(status) => {
+                    CublasError::Driver(crate::driver::DriverError(status))
+                }
+                _ => CublasError::Lost(loss),
+            },
+            None => CublasError::Driver(error),
+        }
+    }
+
+    #[cfg(feature = "std")]
     fn admit_stream(
         stream: &CudaStream,
     ) -> Result<Option<crate::driver::PrimaryContextLease>, CublasError> {
@@ -62,9 +83,13 @@ impl CudaBlas {
         let Some(lifetime) = &ctx.primary_lifetime else {
             return Ok(None);
         };
-        ctx.check_err()?;
-        let lease = lifetime.admit()?;
-        ctx.bind_to_thread()?;
+        ctx.check_err()
+            .map_err(|error| Self::admission_error(stream, error))?;
+        let lease = lifetime
+            .admit()
+            .map_err(|error| Self::admission_error(stream, error))?;
+        ctx.bind_to_thread()
+            .map_err(|error| Self::admission_error(stream, error))?;
         Ok(Some(lease))
     }
 
@@ -82,7 +107,8 @@ impl CudaBlas {
     ///
     /// If either context is tracked, both must share one lifetime. Returns
     /// ContextMismatch before native calls for incompatible owners, the exact
-    /// driver admission/binding error, or the unchanged native setter error.
+    /// driver admission/binding error or cached synthetic Lost cause, or the
+    /// unchanged native setter error.
     ///
     /// # Safety
     /// This is unsafe because you can end up scheduling multiple concurrent kernels that all
@@ -134,8 +160,37 @@ impl CudaBlas {
 impl Drop for CudaBlas {
     fn drop(&mut self) {
         let handle = std::mem::replace(&mut self.handle, std::ptr::null_mut());
-        if !handle.is_null() {
-            let _ = unsafe { result::destroy_handle(handle) };
+        if handle.is_null() {
+            return;
+        }
+        #[cfg(feature = "std")]
+        let _lease = match &self.stream.ctx.primary_lifetime {
+            Some(lifetime) => match lifetime.admit() {
+                Ok(lease) => Some(lease),
+                Err(error) => {
+                    self.stream.ctx.record_err::<()>(Err(error));
+                    return;
+                }
+            },
+            None => None,
+        };
+        #[cfg(feature = "std")]
+        if self.stream.ctx.primary_lifetime.is_some() {
+            if let Err(error) = self.stream.ctx.bind_for_cleanup() {
+                self.stream.ctx.record_err::<()>(Err(error));
+                return;
+            }
+        }
+        if let Err(CublasError::Native(status)) = unsafe { result::destroy_handle(handle) } {
+            #[cfg(feature = "std")]
+            if let Some(lifetime) = &self.stream.ctx.primary_lifetime {
+                lifetime.record_library_cleanup_loss(
+                    crate::driver::NativeLibrary::Cublas,
+                    status as u32,
+                );
+            }
+            #[cfg(not(feature = "std"))]
+            let _ = status;
         }
     }
 }

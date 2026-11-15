@@ -27,6 +27,10 @@ use std::sync::Arc;
 /// 1. Uniform - [CudaRng::fill_with_uniform()]
 /// 2. Normal - [CudaRng::fill_with_normal()]
 /// 3. LogNormal - [CudaRng::fill_with_log_normal()]
+///
+/// Tracked cleanup admits and binds before native destruction. A refused
+/// generation abandons native cleanup while dropping ordinary Rust owners;
+/// native destruction failure publishes its actual library cause once.
 pub struct CudaRng {
     pub(crate) gen: sys::curandGenerator_t,
     pub(crate) stream: Arc<CudaStream>,
@@ -36,8 +40,8 @@ impl CudaRng {
     /// Constructs the RNG with the given `seed`. All calls run on `stream`.
     ///
     /// Tracked construction holds admission through initialization and unwind.
-    /// Returns the original driver refusal before library calls after loss,
-    /// or the unchanged native library error from generator initialization.
+    /// Returns the original driver refusal or cached synthetic Lost cause before
+    /// library calls, or the unchanged native library error from generator initialization.
     pub fn new(seed: u64, stream: Arc<CudaStream>) -> Result<Self, result::CurandError> {
         let _lease = Self::admit_stream(&stream)?;
         let ctx = &stream.ctx;
@@ -56,6 +60,27 @@ impl CudaRng {
     }
 
     #[cfg(feature = "std")]
+    fn admission_error(
+        stream: &CudaStream,
+        error: crate::driver::DriverError,
+    ) -> result::CurandError {
+        match stream
+            .ctx
+            .primary_lifetime
+            .as_ref()
+            .and_then(|lifetime| lifetime.loss())
+        {
+            Some(loss) => match loss.refusal() {
+                crate::driver::PrimaryContextRefusal::DriverStatus(status) => {
+                    result::CurandError::Driver(crate::driver::DriverError(status))
+                }
+                _ => result::CurandError::Lost(loss),
+            },
+            None => result::CurandError::Driver(error),
+        }
+    }
+
+    #[cfg(feature = "std")]
     fn admit_stream(
         stream: &CudaStream,
     ) -> Result<Option<crate::driver::PrimaryContextLease>, result::CurandError> {
@@ -63,9 +88,13 @@ impl CudaRng {
         let Some(lifetime) = &ctx.primary_lifetime else {
             return Ok(None);
         };
-        ctx.check_err()?;
-        let lease = lifetime.admit()?;
-        ctx.bind_to_thread()?;
+        ctx.check_err()
+            .map_err(|error| Self::admission_error(stream, error))?;
+        let lease = lifetime
+            .admit()
+            .map_err(|error| Self::admission_error(stream, error))?;
+        ctx.bind_to_thread()
+            .map_err(|error| Self::admission_error(stream, error))?;
         Ok(Some(lease))
     }
 
@@ -78,7 +107,8 @@ impl CudaRng {
     ///
     /// If either context is tracked, both must share one lifetime. Returns
     /// ContextMismatch before native calls for incompatible owners, the exact
-    /// driver admission/binding error, or the unchanged native setter error.
+    /// driver admission/binding error or cached synthetic Lost cause, or the
+    /// unchanged native setter error.
     ///
     /// # Safety
     /// Users must ensure this stream is properly synchronized.
@@ -157,8 +187,38 @@ impl CudaRng {
 impl Drop for CudaRng {
     fn drop(&mut self) {
         let gen = std::mem::replace(&mut self.gen, std::ptr::null_mut());
-        if !gen.is_null() {
-            let _ = unsafe { result::destroy_generator(gen) };
+        if gen.is_null() {
+            return;
+        }
+        #[cfg(feature = "std")]
+        let _lease = match &self.stream.ctx.primary_lifetime {
+            Some(lifetime) => match lifetime.admit() {
+                Ok(lease) => Some(lease),
+                Err(error) => {
+                    self.stream.ctx.record_err::<()>(Err(error));
+                    return;
+                }
+            },
+            None => None,
+        };
+        #[cfg(feature = "std")]
+        if self.stream.ctx.primary_lifetime.is_some() {
+            if let Err(error) = self.stream.ctx.bind_for_cleanup() {
+                self.stream.ctx.record_err::<()>(Err(error));
+                return;
+            }
+        }
+        if let Err(result::CurandError::Native(status)) = unsafe { result::destroy_generator(gen) }
+        {
+            #[cfg(feature = "std")]
+            if let Some(lifetime) = &self.stream.ctx.primary_lifetime {
+                lifetime.record_library_cleanup_loss(
+                    crate::driver::NativeLibrary::Curand,
+                    status as u32,
+                );
+            }
+            #[cfg(not(feature = "std"))]
+            let _ = status;
         }
     }
 }
