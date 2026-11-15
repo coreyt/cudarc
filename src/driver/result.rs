@@ -450,7 +450,7 @@ pub mod occupancy {
 
 #[cfg(test)]
 pub(crate) mod context_test_seams {
-    use super::sys;
+    use super::{sys, DriverError};
     use core::cell::Cell;
 
     #[derive(Clone, Copy, Debug)]
@@ -461,6 +461,7 @@ pub(crate) mod context_test_seams {
         pub(crate) releases: usize,
         pub(crate) primary_queries: usize,
         primary_active: bool,
+        primary_error: Option<sys::CUresult>,
         pub(crate) id_queries: usize,
         context_id: u64,
         pub(crate) error_string_queries: usize,
@@ -482,6 +483,7 @@ pub(crate) mod context_test_seams {
                 releases: 0,
                 primary_queries: 0,
                 primary_active: true,
+                primary_error: None,
                 id_queries: 0,
                 context_id: 17,
                 error_string_queries: 0,
@@ -496,6 +498,12 @@ pub(crate) mod context_test_seams {
         pub(crate) fn set_primary_active(&self, active: bool) {
             let mut state = self.snapshot();
             state.primary_active = active;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_primary_error(&self, error: Option<sys::CUresult>) {
+            let mut state = self.snapshot();
+            state.primary_error = error;
             STATE.set(Some(state));
         }
 
@@ -562,12 +570,17 @@ pub(crate) mod context_test_seams {
         Some(state.context_id)
     }
 
-    pub(crate) fn get_primary_state(dev: sys::CUdevice) -> Option<(u32, bool)> {
+    pub(crate) fn get_primary_state(
+        dev: sys::CUdevice,
+    ) -> Option<Result<(u32, bool), DriverError>> {
         let mut state = STATE.get()?;
         assert_eq!(dev, 0);
         state.primary_queries += 1;
         STATE.set(Some(state));
-        Some((0, state.primary_active))
+        Some(match state.primary_error {
+            Some(error) => Err(DriverError(error)),
+            None => Ok((0, state.primary_active)),
+        })
     }
 
     pub(crate) fn release(dev: sys::CUdevice) -> bool {
@@ -618,7 +631,7 @@ pub mod primary_ctx {
     pub unsafe fn get_state(dev: sys::CUdevice) -> Result<(u32, bool), DriverError> {
         #[cfg(test)]
         if let Some(state) = super::context_test_seams::get_primary_state(dev) {
-            return Ok(state);
+            return state;
         }
         let mut flags = 0;
         let mut active = 0;
