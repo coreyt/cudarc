@@ -1446,6 +1446,9 @@ impl CudaStream {
 
 /// `Vec<T>` on a cuda device. You can allocate and modify this with [CudaStream].
 ///
+/// Tracked slices hold admission through native cleanup. Terminal refusal disarms
+/// the allocation while nested Rust owners continue their independent cleanup.
+///
 /// This object is thread safe.
 #[derive(Debug)]
 pub struct CudaSlice<T> {
@@ -1462,24 +1465,53 @@ unsafe impl<T> Sync for CudaSlice<T> {}
 
 impl<T> Drop for CudaSlice<T> {
     fn drop(&mut self) {
+        let pointer = std::mem::replace(&mut self.cu_device_ptr, 0);
         let ctx = &self.stream.ctx;
-        if ctx.is_managing_stream_synchronization() {
-            if let Some(read) = self.read.as_ref() {
-                ctx.record_err(self.stream.wait(read));
+        #[cfg(feature = "std")]
+        let _lease = match &ctx.primary_lifetime {
+            Some(lifetime) => match lifetime.admit() {
+                Ok(lease) => Some(lease),
+                Err(error) => {
+                    ctx.record_err::<()>(Err(error));
+                    return;
+                }
+            },
+            None => None,
+        };
+        #[cfg(feature = "std")]
+        if ctx.primary_lifetime.is_some() {
+            if let Err(error) = ctx.bind_for_cleanup() {
+                ctx.record_err::<()>(Err(error));
+                return;
             }
-            if let Some(write) = self.write.as_ref() {
-                ctx.record_err(self.stream.wait(write));
+        }
+        if ctx.is_managing_stream_synchronization() {
+            for event in [self.read.as_ref(), self.write.as_ref()]
+                .into_iter()
+                .flatten()
+            {
+                if let Err(error) = self.stream.wait(event) {
+                    ctx.record_err::<()>(Err(error));
+                    #[cfg(feature = "std")]
+                    if ctx.primary_lifetime.is_some() {
+                        return;
+                    }
+                }
             }
         }
         if ctx.has_async_alloc {
-            ctx.record_err(unsafe {
-                result::free_async(self.cu_device_ptr, self.stream.cu_stream)
-            });
+            ctx.record_err(unsafe { result::free_async(pointer, self.stream.cu_stream) });
         } else {
-            ctx.record_err(self.stream.synchronize());
+            if let Err(error) = self.stream.synchronize() {
+                ctx.record_err::<()>(Err(error));
+                #[cfg(feature = "std")]
+                if ctx.primary_lifetime.is_some() {
+                    return;
+                }
+            }
             // FATHOMDB PATCH: zero-length buffers hold a null pointer (see `malloc_sync_or_null`).
-            if sync_free_needed(SYNC_FALLBACK, self.cu_device_ptr) {
-                ctx.record_err(unsafe { result::free_sync(self.cu_device_ptr) });
+            if sync_free_needed(SYNC_FALLBACK, pointer) {
+                ctx.record_err(unsafe { result::free_sync(pointer) });
             }
         }
     }

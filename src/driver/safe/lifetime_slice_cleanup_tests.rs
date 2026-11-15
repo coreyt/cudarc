@@ -1,5 +1,7 @@
-use crate::driver::{result::context_test_seams, sys, CudaContext, DriverError, PrimaryContextLifetime};
 use super::lifetime_event_cleanup_tests::seams as event_seams;
+use crate::driver::{
+    result::context_test_seams, sys, CudaContext, DriverError, PrimaryContextLifetime,
+};
 use std::sync::Arc;
 
 pub(crate) mod seams {
@@ -60,7 +62,8 @@ pub(crate) mod seams {
         } else {
             state.counts.sync_allocations += 1;
         }
-        let pointer = (0xA100 + state.counts.async_allocations + state.counts.sync_allocations) as sys::CUdeviceptr;
+        let pointer = (0xA100 + state.counts.async_allocations + state.counts.sync_allocations)
+            as sys::CUdeviceptr;
         state.live = Some((pointer, bytes, asynchronous));
         STATE.set(Some(state));
         Some(pointer)
@@ -100,7 +103,10 @@ pub(crate) mod seams {
     }
 }
 
-pub(super) fn tracked_context(lifetime: &Arc<PrimaryContextLifetime>, asynchronous: bool) -> Arc<CudaContext> {
+pub(super) fn tracked_context(
+    lifetime: &Arc<PrimaryContextLifetime>,
+    asynchronous: bool,
+) -> Arc<CudaContext> {
     let mut context = CudaContext::new_tracked(Arc::clone(lifetime))
         .map_err(|error| error.0 as u32)
         .unwrap();
@@ -121,31 +127,56 @@ fn lost_slice_disarms_all_native_free_and_nested_event_cleanup() {
         let driver = context_test_seams::Guard::new();
         let events = event_seams::Guard::new();
         let memory = seams::Guard::new();
-        let lifetime = PrimaryContextLifetime::new(0).map_err(|error| error.0 as u32).unwrap();
+        let lifetime = PrimaryContextLifetime::new(0)
+            .map_err(|error| error.0 as u32)
+            .unwrap();
         let context = tracked_context(&lifetime, asynchronous);
         let stream = context.default_stream();
-        let allocation = unsafe { stream.alloc::<u8>(16) }.map_err(|error| error.0 as u32).unwrap();
+        let allocation = unsafe { stream.alloc::<u8>(16) }
+            .map_err(|error| error.0 as u32)
+            .unwrap();
         assert_eq!(events.snapshot().created, 2);
-        assert_eq!(memory.snapshot().async_allocations + memory.snapshot().sync_allocations, 1);
+        assert_eq!(
+            memory.snapshot().async_allocations + memory.snapshot().sync_allocations,
+            1
+        );
         lifetime.record_error(DriverError(sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED));
         let before = driver.snapshot();
 
         drop(allocation);
 
         let freed = memory.snapshot();
-        assert_eq!(freed.async_frees + freed.sync_frees, 0, "lost slice must disarm every allocator's native free");
+        assert_eq!(
+            freed.async_frees + freed.sync_frees,
+            0,
+            "lost slice must disarm every allocator's native free"
+        );
         assert_eq!(freed.stream_synchronizes, 0);
         assert_eq!(events.snapshot().destroyed, 0);
-        let retry = unsafe { stream.alloc::<u8>(16) }.map(|_| ()).map_err(|error| error.0 as u32);
-        assert_eq!(retry, Err(sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED as u32));
-        assert_eq!(memory.snapshot().async_allocations + memory.snapshot().sync_allocations, 1);
+        let retry = unsafe { stream.alloc::<u8>(16) }
+            .map(|_| ())
+            .map_err(|error| error.0 as u32);
+        assert_eq!(
+            retry,
+            Err(sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED as u32)
+        );
+        assert_eq!(
+            memory.snapshot().async_allocations + memory.snapshot().sync_allocations,
+            1
+        );
         let after = driver.snapshot();
-        assert_eq!((after.primary_queries, after.id_queries), (before.primary_queries, before.id_queries));
+        assert_eq!(
+            (after.primary_queries, after.id_queries),
+            (before.primary_queries, before.id_queries)
+        );
         assert_eq!((after.queries, after.binds), (before.queries, before.binds));
         drop(stream);
         drop(context);
         drop(lifetime);
-        assert_eq!((driver.snapshot().retains, driver.snapshot().releases), (1, 1));
+        assert_eq!(
+            (driver.snapshot().retains, driver.snapshot().releases),
+            (1, 1)
+        );
     }
 }
 
@@ -162,15 +193,25 @@ fn healthy_slice_free_preserves_allocator_symmetry_and_nested_cleanup() {
         let driver = context_test_seams::Guard::new();
         let events = event_seams::Guard::new();
         let memory = seams::Guard::new();
-        let lifetime = PrimaryContextLifetime::new(0).map_err(|error| error.0 as u32).unwrap();
+        let lifetime = PrimaryContextLifetime::new(0)
+            .map_err(|error| error.0 as u32)
+            .unwrap();
         let context = tracked_context(&lifetime, asynchronous);
         let stream = context.default_stream();
-        let allocation = unsafe { stream.alloc::<u8>(16) }.map_err(|error| error.0 as u32).unwrap();
+        let allocation = unsafe { stream.alloc::<u8>(16) }
+            .map_err(|error| error.0 as u32)
+            .unwrap();
         assert_eq!(events.snapshot().created, 2);
         let weak = Arc::downgrade(&lifetime);
         memory.set_free_hook(move || {
             let lifetime = weak.upgrade().unwrap();
-            let active = { lifetime.state.try_lock().expect("native slice free must run outside the state mutex").active_leases };
+            let active = {
+                lifetime
+                    .state
+                    .try_lock()
+                    .expect("native slice free must run outside the state mutex")
+                    .active_leases
+            };
             assert_eq!(active, 1, "slice native free must retain cleanup admission");
         });
 
@@ -186,13 +227,19 @@ fn healthy_slice_free_preserves_allocator_symmetry_and_nested_cleanup() {
         drop(stream);
         drop(context);
         drop(lifetime);
-        assert_eq!((driver.snapshot().retains, driver.snapshot().releases), (1, 1));
+        assert_eq!(
+            (driver.snapshot().retains, driver.snapshot().releases),
+            (1, 1)
+        );
     }
 }
 
 #[cfg(not(any(
-    feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060",
-    feature = "cuda-11070", feature = "cuda-11080"
+    feature = "cuda-11040",
+    feature = "cuda-11050",
+    feature = "cuda-11060",
+    feature = "cuda-11070",
+    feature = "cuda-11080"
 )))]
 #[test]
 fn idle_slice_drop_discovers_inactive_primary_before_free_or_nested_cleanup() {
@@ -200,10 +247,14 @@ fn idle_slice_drop_discovers_inactive_primary_before_free_or_nested_cleanup() {
         let driver = context_test_seams::Guard::new();
         let events = event_seams::Guard::new();
         let memory = seams::Guard::new();
-        let lifetime = PrimaryContextLifetime::new(0).map_err(|error| error.0 as u32).unwrap();
+        let lifetime = PrimaryContextLifetime::new(0)
+            .map_err(|error| error.0 as u32)
+            .unwrap();
         let context = tracked_context(&lifetime, asynchronous);
         let stream = context.default_stream();
-        let allocation = unsafe { stream.alloc::<u8>(16) }.map_err(|error| error.0 as u32).unwrap();
+        let allocation = unsafe { stream.alloc::<u8>(16) }
+            .map_err(|error| error.0 as u32)
+            .unwrap();
         let before = driver.snapshot();
         driver.set_primary_active(false);
 
@@ -214,19 +265,31 @@ fn idle_slice_drop_discovers_inactive_primary_before_free_or_nested_cleanup() {
         assert_eq!(freed.stream_synchronizes, 0);
         assert_eq!(events.snapshot().destroyed, 0);
         let after = driver.snapshot();
-        assert_eq!((after.primary_queries, after.id_queries), (before.primary_queries + 1, before.id_queries));
+        assert_eq!(
+            (after.primary_queries, after.id_queries),
+            (before.primary_queries + 1, before.id_queries)
+        );
         assert_eq!((after.queries, after.binds), (before.queries, before.binds));
-        assert_eq!(lifetime.loss().unwrap().error as u32, sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED as u32);
+        assert_eq!(
+            lifetime.loss().unwrap().error as u32,
+            sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED as u32
+        );
         drop(stream);
         drop(context);
         drop(lifetime);
-        assert_eq!((driver.snapshot().retains, driver.snapshot().releases), (1, 1));
+        assert_eq!(
+            (driver.snapshot().retains, driver.snapshot().releases),
+            (1, 1)
+        );
     }
 }
 
 #[cfg(not(any(
-    feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060",
-    feature = "cuda-11070", feature = "cuda-11080"
+    feature = "cuda-11040",
+    feature = "cuda-11050",
+    feature = "cuda-11060",
+    feature = "cuda-11070",
+    feature = "cuda-11080"
 )))]
 #[test]
 fn native_slice_cleanup_bind_failure_quarantines_before_free() {
@@ -234,10 +297,14 @@ fn native_slice_cleanup_bind_failure_quarantines_before_free() {
         let driver = context_test_seams::Guard::new();
         let events = event_seams::Guard::new();
         let memory = seams::Guard::new();
-        let lifetime = PrimaryContextLifetime::new(0).map_err(|error| error.0 as u32).unwrap();
+        let lifetime = PrimaryContextLifetime::new(0)
+            .map_err(|error| error.0 as u32)
+            .unwrap();
         let context = tracked_context(&lifetime, asynchronous);
         let stream = context.default_stream();
-        let allocation = unsafe { stream.alloc::<u8>(16) }.map_err(|error| error.0 as u32).unwrap();
+        let allocation = unsafe { stream.alloc::<u8>(16) }
+            .map_err(|error| error.0 as u32)
+            .unwrap();
         let error = sys::CUresult::CUDA_ERROR_UNKNOWN;
         driver.set_current_query_error(Some(error));
         let before = driver.snapshot();
@@ -252,14 +319,39 @@ fn native_slice_cleanup_bind_failure_quarantines_before_free() {
         assert_eq!(lifetime.loss().unwrap().error as u32, error as u32);
         driver.set_current_query_error(None);
         let stopped = driver.snapshot();
-        assert_eq!(context.check_err().map_err(|error| error.0 as u32), Err(error as u32));
-        assert_eq!(context.check_err().map_err(|error| error.0 as u32), Err(error as u32));
-        assert_eq!(context.bind_to_thread().map_err(|error| error.0 as u32), Err(error as u32));
+        assert_eq!(
+            context.check_err().map_err(|error| error.0 as u32),
+            Err(error as u32)
+        );
+        assert_eq!(
+            context.check_err().map_err(|error| error.0 as u32),
+            Err(error as u32)
+        );
+        assert_eq!(
+            context.bind_to_thread().map_err(|error| error.0 as u32),
+            Err(error as u32)
+        );
         let after = driver.snapshot();
-        assert_eq!((after.primary_queries, after.id_queries, after.queries, after.binds), (stopped.primary_queries, stopped.id_queries, stopped.queries, stopped.binds));
+        assert_eq!(
+            (
+                after.primary_queries,
+                after.id_queries,
+                after.queries,
+                after.binds
+            ),
+            (
+                stopped.primary_queries,
+                stopped.id_queries,
+                stopped.queries,
+                stopped.binds
+            )
+        );
         drop(stream);
         drop(context);
         drop(lifetime);
-        assert_eq!((driver.snapshot().retains, driver.snapshot().releases), (1, 1));
+        assert_eq!(
+            (driver.snapshot().retains, driver.snapshot().releases),
+            (1, 1)
+        );
     }
 }

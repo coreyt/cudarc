@@ -1331,7 +1331,9 @@ pub unsafe fn malloc_async(
     num_bytes: usize,
 ) -> Result<sys::CUdeviceptr, DriverError> {
     #[cfg(all(test, feature = "std"))]
-    if let Some(pointer) = crate::driver::safe::lifetime_slice_cleanup_tests::seams::allocate(num_bytes, true) {
+    if let Some(pointer) =
+        crate::driver::safe::lifetime_slice_cleanup_tests::seams::allocate(num_bytes, true)
+    {
         assert!(stream.is_null());
         return Ok(pointer);
     }
@@ -1348,7 +1350,9 @@ pub unsafe fn malloc_async(
 /// 1. The memory return by this is unset, which may be invalid for `T`.
 pub unsafe fn malloc_sync(num_bytes: usize) -> Result<sys::CUdeviceptr, DriverError> {
     #[cfg(all(test, feature = "std"))]
-    if let Some(pointer) = crate::driver::safe::lifetime_slice_cleanup_tests::seams::allocate(num_bytes, false) {
+    if let Some(pointer) =
+        crate::driver::safe::lifetime_slice_cleanup_tests::seams::allocate(num_bytes, false)
+    {
         return Ok(pointer);
     }
     let mut dev_ptr = MaybeUninit::uninit();
