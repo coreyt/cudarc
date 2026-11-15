@@ -879,7 +879,7 @@ impl CudaContext {
     /// [sys::CUctx_flags::CU_CTX_SCHED_BLOCKING_SYNC].
     pub fn synchronize(&self) -> Result<(), DriverError> {
         self.bind_to_thread()?;
-        result::ctx::synchronize()
+        self.record_memory_result(result::ctx::synchronize())
     }
 
     /// Ensures calls to [CudaContext::synchronize()] block the calling thread.
@@ -1150,7 +1150,7 @@ impl CudaContext {
             None => None,
         };
         self.bind_to_thread()?;
-        let cu_event = self.record_terminal_result(result::event::create(flags))?;
+        let cu_event = self.record_memory_result(result::event::create(flags))?;
         Ok(CudaEvent {
             cu_event,
             ctx: self.clone(),
@@ -1207,9 +1207,8 @@ impl CudaEvent {
             None => None,
         };
         self.ctx.bind_to_thread()?;
-        self.ctx.record_terminal_result(unsafe {
-            result::event::record(self.cu_event, stream.cu_stream)
-        })
+        self.ctx
+            .record_memory_result(unsafe { result::event::record(self.cu_event, stream.cu_stream) })
     }
 
     /// Will only block CPU thraed if [sys::CUevent_flags::CU_EVENT_BLOCKING_SYNC] was used to create this event.
@@ -1268,7 +1267,7 @@ impl CudaEvent {
         };
         match self
             .ctx
-            .record_terminal_result(unsafe { result::event::query(self.cu_event) })
+            .record_memory_result(unsafe { result::event::query(self.cu_event) })
         {
             Ok(()) => Ok(true),
             Err(DriverError(sys::CUresult::CUDA_ERROR_NOT_READY)) => Ok(false),
@@ -1416,7 +1415,7 @@ impl CudaContext {
         if prev_num_streams == 0 && self.is_event_tracking() {
             self.record_terminal_result(self.synchronize())?;
         }
-        let cu_stream = self.record_terminal_result(result::stream::create(
+        let cu_stream = self.record_memory_result(result::stream::create(
             result::stream::StreamKind::NonBlocking,
         ))?;
         let stream = CudaStream {
@@ -1500,7 +1499,7 @@ impl CudaStream {
         };
         self.ctx.bind_to_thread()?;
         self.ctx
-            .record_terminal_result(unsafe { result::stream::synchronize(self.cu_stream) })
+            .record_memory_result(unsafe { result::stream::synchronize(self.cu_stream) })
     }
 
     /// Creates a new [CudaEvent] and records the current work in the stream to the event.
@@ -1546,7 +1545,7 @@ impl CudaStream {
         self.ctx.bind_to_thread()?;
         event
             .ctx
-            .record_terminal_result(self.ctx.record_terminal_result(unsafe {
+            .record_memory_result(self.ctx.record_memory_result(unsafe {
                 result::stream::wait_event(
                     self.cu_stream,
                     event.cu_event,
@@ -2474,7 +2473,7 @@ impl CudaStream {
         // FATHOMDB PATCH: a private-pool context allocates only from its own pool.
         let cu_device_ptr =
             self.ctx
-                .record_terminal_result(if let Some(pool) = &self.ctx.mem_pool {
+                .record_memory_result(if let Some(pool) = &self.ctx.mem_pool {
                     result::mem_pool::alloc_async(
                         pool.raw(),
                         len * std::mem::size_of::<T>(),
