@@ -46,8 +46,8 @@ pub fn create_handle() -> Result<sys::cublasHandle_t, CublasError> {
 /// `handle` must not have been freed already.
 pub unsafe fn destroy_handle(handle: sys::cublasHandle_t) -> Result<(), CublasError> {
     #[cfg(test)]
-    if partial_init_test_seams::destroy_handle(handle) {
-        return Ok(());
+    if let Some(result) = partial_init_test_seams::destroy_handle(handle) {
+        return result;
     }
     sys::cublasDestroy_v2(handle).result()
 }
@@ -541,6 +541,7 @@ pub(crate) mod partial_init_test_seams {
         pub(crate) destroys: usize,
         create_error: Option<CublasError>,
         stream_error: Option<CublasError>,
+        destroy_error: Option<CublasError>,
     }
 
     std::thread_local! {
@@ -560,6 +561,7 @@ pub(crate) mod partial_init_test_seams {
                 stream_error: Some(CublasError(
                     sys::cublasStatus_t::CUBLAS_STATUS_INVALID_VALUE,
                 )),
+                destroy_error: None,
             }));
             Self
         }
@@ -577,6 +579,12 @@ pub(crate) mod partial_init_test_seams {
         pub(crate) fn allow_stream_setup(&self) {
             let mut state = self.snapshot();
             state.stream_error = None;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn fail_destroy(&self) {
+            let mut state = self.snapshot();
+            state.destroy_error = Some(CublasError(sys::cublasStatus_t::CUBLAS_STATUS_INTERNAL_ERROR));
             STATE.set(Some(state));
         }
     }
@@ -612,13 +620,16 @@ pub(crate) mod partial_init_test_seams {
         })
     }
 
-    pub(crate) fn destroy_handle(handle: sys::cublasHandle_t) -> bool {
-        let Some(mut state) = STATE.get() else {
-            return false;
-        };
+    pub(crate) fn destroy_handle(
+        handle: sys::cublasHandle_t,
+    ) -> Option<Result<(), CublasError>> {
+        let mut state = STATE.get()?;
         assert_eq!(handle as usize, HANDLE);
         state.destroys += 1;
         STATE.set(Some(state));
-        true
+        Some(match state.destroy_error {
+            Some(error) => Err(error),
+            None => Ok(()),
+        })
     }
 }

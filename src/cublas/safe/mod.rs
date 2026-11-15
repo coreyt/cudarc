@@ -225,4 +225,26 @@ mod fathomdb_context_lifetime {
             (1, 1, 1)
         );
     }
+
+    #[test]
+    fn fathomdb_blas_cleanup_error_does_not_unwind() {
+        let driver = context_test_seams::Guard::new();
+        let blas = result::partial_init_test_seams::Guard::new();
+        blas.allow_stream_setup();
+        blas.fail_destroy();
+        let context = synthetic_context();
+        let owner = CudaBlas::new(context.default_stream()).unwrap();
+
+        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| drop(owner)));
+        drop(context);
+
+        let native = driver.snapshot();
+        assert_eq!((native.queries, native.binds, native.releases), (2, 1, 1));
+        let calls = blas.snapshot();
+        assert_eq!(
+            (calls.creates, calls.stream_sets, calls.destroys),
+            (1, 1, 1)
+        );
+        assert!(outcome.is_ok(), "native BLAS cleanup errors must not unwind Rust owners");
+    }
 }
