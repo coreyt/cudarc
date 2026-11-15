@@ -2,14 +2,35 @@ use super::sys::{self};
 use core::ffi::{c_int, c_longlong, c_void};
 use core::mem::MaybeUninit;
 
+/// Failure from a native library call, tracked driver admission, or owner association.
+///
+/// Driver errors preserve the original status. Inspect the shared lifetime's
+/// cached loss record to distinguish terminal refusal from ordinary OOM.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct CublasError(pub sys::cublasStatus_t);
+pub enum CublasError {
+    /// The unchanged native cublas status.
+    Native(sys::cublasStatus_t),
+    /// The original driver status from admission or context binding.
+    Driver(crate::driver::DriverError),
+    /// Cached terminal refusal with a synthetic driver-status projection.
+    /// The authoritative cause and identities are retained without native queries.
+    #[cfg(feature = "std")]
+    Lost(crate::driver::PrimaryContextLoss),
+    /// A stream belongs to a different tracked context generation.
+    ContextMismatch,
+}
+
+impl From<crate::driver::DriverError> for CublasError {
+    fn from(error: crate::driver::DriverError) -> Self {
+        Self::Driver(error)
+    }
+}
 
 impl sys::cublasStatus_t {
     pub fn result(self) -> Result<(), CublasError> {
         match self {
             sys::cublasStatus_t::CUBLAS_STATUS_SUCCESS => Ok(()),
-            _ => Err(CublasError(self)),
+            _ => Err(CublasError::Native(self)),
         }
     }
 }
@@ -92,6 +113,10 @@ pub unsafe fn sgemv(
     y: *mut f32,
     incy: c_int,
 ) -> Result<(), CublasError> {
+    #[cfg(test)]
+    if let Some(result) = partial_init_test_seams::operation() {
+        return result;
+    }
     sys::cublasSgemv_v2(handle, trans, m, n, alpha, a, lda, x, incx, beta, y, incy).result()
 }
 
@@ -200,6 +225,10 @@ pub unsafe fn sgemm(
     c: *mut f32,
     ldc: c_int,
 ) -> Result<(), CublasError> {
+    #[cfg(test)]
+    if let Some(result) = partial_init_test_seams::operation() {
+        return result;
+    }
     sys::cublasSgemm_v2(
         handle, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc,
     )
@@ -332,6 +361,10 @@ pub unsafe fn sgemm_strided_batched(
     stride_c: c_longlong,
     batch_size: c_int,
 ) -> Result<(), CublasError> {
+    #[cfg(test)]
+    if let Some(result) = partial_init_test_seams::operation() {
+        return result;
+    }
     sys::cublasSgemmStridedBatched(
         handle, transa, transb, m, n, k, alpha, a, lda, stride_a, b, ldb, stride_b, beta, c, ldc,
         stride_c, batch_size,
@@ -463,6 +496,10 @@ pub unsafe fn gemm_strided_batched_ex(
     compute_type: sys::cublasComputeType_t,
     algo: sys::cublasGemmAlgo_t,
 ) -> Result<(), CublasError> {
+    #[cfg(test)]
+    if let Some(result) = partial_init_test_seams::operation() {
+        return result;
+    }
     sys::cublasGemmStridedBatchedEx(
         handle,
         transa,
@@ -506,6 +543,10 @@ pub unsafe fn sasum(
     incx: c_int,
     result: *mut f32,
 ) -> Result<(), CublasError> {
+    #[cfg(test)]
+    if let Some(result) = partial_init_test_seams::operation() {
+        return result;
+    }
     sys::cublasSasum_v2(handle, n, x, incx, result).result()
 }
 
@@ -539,9 +580,12 @@ pub(crate) mod partial_init_test_seams {
         pub(crate) creates: usize,
         pub(crate) stream_sets: usize,
         pub(crate) destroys: usize,
+        pub(crate) operations: usize,
+        pointer_mode: sys::cublasPointerMode_t,
         create_error: Option<CublasError>,
         stream_error: Option<CublasError>,
         destroy_error: Option<CublasError>,
+        operation_error: Option<CublasError>,
     }
 
     std::thread_local! {
@@ -557,13 +601,24 @@ pub(crate) mod partial_init_test_seams {
                 creates: 0,
                 stream_sets: 0,
                 destroys: 0,
+                operations: 0,
+                pointer_mode: sys::cublasPointerMode_t::CUBLAS_POINTER_MODE_HOST,
                 create_error: None,
-                stream_error: Some(CublasError(
+                stream_error: Some(CublasError::Native(
                     sys::cublasStatus_t::CUBLAS_STATUS_INVALID_VALUE,
                 )),
                 destroy_error: None,
+                operation_error: None,
             }));
             Self
+        }
+
+        pub(crate) fn fail_operation(&self, fail: bool) {
+            let mut state = self.snapshot();
+            state.operation_error = fail.then_some(CublasError::Native(
+                sys::cublasStatus_t::CUBLAS_STATUS_ALLOC_FAILED,
+            ));
+            STATE.set(Some(state));
         }
 
         pub(crate) fn snapshot(&self) -> State {
@@ -572,7 +627,17 @@ pub(crate) mod partial_init_test_seams {
 
         pub(crate) fn fail_create(&self) {
             let mut state = self.snapshot();
-            state.create_error = Some(CublasError(sys::cublasStatus_t::CUBLAS_STATUS_ALLOC_FAILED));
+            state.create_error = Some(CublasError::Native(
+                sys::cublasStatus_t::CUBLAS_STATUS_ALLOC_FAILED,
+            ));
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn fail_stream_setup(&self) {
+            let mut state = self.snapshot();
+            state.stream_error = Some(CublasError::Native(
+                sys::cublasStatus_t::CUBLAS_STATUS_INVALID_VALUE,
+            ));
             STATE.set(Some(state));
         }
 
@@ -582,9 +647,15 @@ pub(crate) mod partial_init_test_seams {
             STATE.set(Some(state));
         }
 
+        pub(crate) fn set_destroy_error(&self, error: Option<CublasError>) {
+            let mut state = self.snapshot();
+            state.destroy_error = error;
+            STATE.set(Some(state));
+        }
+
         pub(crate) fn fail_destroy(&self) {
             let mut state = self.snapshot();
-            state.destroy_error = Some(CublasError(
+            state.destroy_error = Some(CublasError::Native(
                 sys::cublasStatus_t::CUBLAS_STATUS_INTERNAL_ERROR,
             ));
             STATE.set(Some(state));
@@ -595,6 +666,28 @@ pub(crate) mod partial_init_test_seams {
         fn drop(&mut self) {
             STATE.set(None);
         }
+    }
+
+    pub(crate) fn set_pointer_mode(
+        mode: sys::cublasPointerMode_t,
+    ) -> Option<Result<(), CublasError>> {
+        let result = operation()?;
+        Some(result.map(|()| {
+            let mut state = STATE.get().unwrap();
+            state.pointer_mode = mode;
+            STATE.set(Some(state));
+        }))
+    }
+
+    pub(crate) fn get_pointer_mode() -> Option<Result<sys::cublasPointerMode_t, CublasError>> {
+        Some(operation()?.map(|()| STATE.get().unwrap().pointer_mode))
+    }
+
+    pub(crate) fn operation() -> Option<Result<(), CublasError>> {
+        let mut state = STATE.get()?;
+        state.operations += 1;
+        STATE.set(Some(state));
+        Some(state.operation_error.map_or(Ok(()), Err))
     }
 
     pub(crate) fn create_handle() -> Option<Result<sys::cublasHandle_t, CublasError>> {

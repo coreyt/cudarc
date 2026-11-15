@@ -7,17 +7,36 @@
 use super::sys::{self};
 use std::mem::MaybeUninit;
 
-/// Wrapper around [sys::curandStatus_t].
-/// See [cuRAND docs](https://docs.nvidia.com/cuda/curand/group__HOST.html#group__HOST_1gb94a31d5c165858c96b6c18b70644437)
+/// Failure from a native library call, tracked driver admission, or owner association.
+///
+/// Driver errors preserve the original status. Inspect the shared lifetime's
+/// cached loss record to distinguish terminal refusal from ordinary OOM.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct CurandError(pub sys::curandStatus_t);
+pub enum CurandError {
+    /// The unchanged native curand status.
+    Native(sys::curandStatus_t),
+    /// The original driver status from admission or context binding.
+    Driver(crate::driver::DriverError),
+    /// Cached terminal refusal with a synthetic driver-status projection.
+    /// The authoritative cause and identities are retained without native queries.
+    #[cfg(feature = "std")]
+    Lost(crate::driver::PrimaryContextLoss),
+    /// A stream belongs to a different tracked context generation.
+    ContextMismatch,
+}
+
+impl From<crate::driver::DriverError> for CurandError {
+    fn from(error: crate::driver::DriverError) -> Self {
+        Self::Driver(error)
+    }
+}
 
 impl sys::curandStatus_t {
     /// Transforms into a [Result] of [CurandError]
     pub fn result(self) -> Result<(), CurandError> {
         match self {
             sys::curandStatus_t::CURAND_STATUS_SUCCESS => Ok(()),
-            _ => Err(CurandError(self)),
+            _ => Err(CurandError::Native(self)),
         }
     }
 }
@@ -80,6 +99,10 @@ pub unsafe fn set_offset(
     generator: sys::curandGenerator_t,
     offset: u64,
 ) -> Result<(), CurandError> {
+    #[cfg(test)]
+    if let Some(result) = partial_init_test_seams::offset() {
+        return result;
+    }
     sys::curandSetGeneratorOffset(generator, offset).result()
 }
 
@@ -135,6 +158,10 @@ pub mod generate {
         out: *mut f32,
         num: usize,
     ) -> Result<(), CurandError> {
+        #[cfg(test)]
+        if let Some(result) = super::partial_init_test_seams::fill() {
+            return result;
+        }
         sys::curandGenerateUniform(gen, out, num).result()
     }
 
@@ -198,6 +225,10 @@ pub mod generate {
         mean: f32,
         std: f32,
     ) -> Result<(), CurandError> {
+        #[cfg(test)]
+        if let Some(result) = super::partial_init_test_seams::fill() {
+            return result;
+        }
         sys::curandGenerateNormal(gen, out, num, mean, std).result()
     }
 
@@ -234,6 +265,10 @@ pub mod generate {
         mean: f32,
         std: f32,
     ) -> Result<(), CurandError> {
+        #[cfg(test)]
+        if let Some(result) = super::partial_init_test_seams::fill() {
+            return result;
+        }
         sys::curandGenerateLogNormal(gen, out, num, mean, std).result()
     }
 
@@ -355,10 +390,13 @@ pub(crate) mod partial_init_test_seams {
         pub(crate) stream_sets: usize,
         pub(crate) destroys: usize,
         pub(crate) seed_sets: usize,
+        pub(crate) offset_sets: usize,
+        pub(crate) fills: usize,
         create_error: Option<CurandError>,
         stream_error: Option<CurandError>,
         seed_error: Option<CurandError>,
         destroy_error: Option<CurandError>,
+        operation_error: Option<CurandError>,
     }
 
     std::thread_local! {
@@ -375,12 +413,25 @@ pub(crate) mod partial_init_test_seams {
                 stream_sets: 0,
                 destroys: 0,
                 seed_sets: 0,
+                offset_sets: 0,
+                fills: 0,
                 create_error: None,
-                stream_error: Some(CurandError(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR)),
+                stream_error: Some(CurandError::Native(
+                    sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR,
+                )),
                 seed_error: None,
                 destroy_error: None,
+                operation_error: None,
             }));
             Self
+        }
+
+        pub(crate) fn fail_operation(&self, fail: bool) {
+            let mut state = self.snapshot();
+            state.operation_error = fail.then_some(CurandError::Native(
+                sys::curandStatus_t::CURAND_STATUS_ALLOCATION_FAILED,
+            ));
+            STATE.set(Some(state));
         }
 
         pub(crate) fn snapshot(&self) -> State {
@@ -389,8 +440,16 @@ pub(crate) mod partial_init_test_seams {
 
         pub(crate) fn fail_create(&self) {
             let mut state = self.snapshot();
-            state.create_error = Some(CurandError(
+            state.create_error = Some(CurandError::Native(
                 sys::curandStatus_t::CURAND_STATUS_ALLOCATION_FAILED,
+            ));
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn fail_stream_setup(&self) {
+            let mut state = self.snapshot();
+            state.stream_error = Some(CurandError::Native(
+                sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR,
             ));
             STATE.set(Some(state));
         }
@@ -403,13 +462,21 @@ pub(crate) mod partial_init_test_seams {
 
         pub(crate) fn fail_seed(&self) {
             let mut state = self.snapshot();
-            state.seed_error = Some(CurandError(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR));
+            state.seed_error = Some(CurandError::Native(
+                sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR,
+            ));
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_destroy_error(&self, error: Option<CurandError>) {
+            let mut state = self.snapshot();
+            state.destroy_error = error;
             STATE.set(Some(state));
         }
 
         pub(crate) fn fail_destroy(&self) {
             let mut state = self.snapshot();
-            state.destroy_error = Some(CurandError(
+            state.destroy_error = Some(CurandError::Native(
                 sys::curandStatus_t::CURAND_STATUS_INTERNAL_ERROR,
             ));
             STATE.set(Some(state));
@@ -420,6 +487,20 @@ pub(crate) mod partial_init_test_seams {
         fn drop(&mut self) {
             STATE.set(None);
         }
+    }
+
+    pub(crate) fn offset() -> Option<Result<(), CurandError>> {
+        let mut state = STATE.get()?;
+        state.offset_sets += 1;
+        STATE.set(Some(state));
+        Some(state.operation_error.map_or(Ok(()), Err))
+    }
+
+    pub(crate) fn fill() -> Option<Result<(), CurandError>> {
+        let mut state = STATE.get()?;
+        state.fills += 1;
+        STATE.set(Some(state));
+        Some(state.operation_error.map_or(Ok(()), Err))
     }
 
     pub(crate) fn create_generator(

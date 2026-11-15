@@ -68,13 +68,14 @@ impl Gemm<half::f16> for CudaBlas {
         b: &B,
         c: &mut C,
     ) -> Result<(), CublasError> {
+        let call = self.admit()?;
         let alpha: f32 = cfg.alpha.to_f32();
         let beta: f32 = cfg.beta.to_f32();
         let (a, _record_a) = a.device_ptr(&self.stream);
         let (b, _record_b) = b.device_ptr(&self.stream);
         let (c, _record_c) = c.device_ptr_mut(&self.stream);
         result::gemm_ex(
-            self.handle,
+            call.handle()?,
             cfg.transa,
             cfg.transb,
             cfg.m,
@@ -106,13 +107,14 @@ impl Gemm<half::f16> for CudaBlas {
         b: &B,
         c: &mut C,
     ) -> Result<(), CublasError> {
+        let call = self.admit()?;
         let alpha: f32 = cfg.gemm.alpha.to_f32();
         let beta: f32 = cfg.gemm.beta.to_f32();
         let (a, _record_a) = a.device_ptr(&self.stream);
         let (b, _record_b) = b.device_ptr(&self.stream);
         let (c, _record_c) = c.device_ptr_mut(&self.stream);
         result::gemm_strided_batched_ex(
-            self.handle,
+            call.handle()?,
             cfg.gemm.transa,
             cfg.gemm.transb,
             cfg.gemm.m,
@@ -152,13 +154,14 @@ impl Gemm<half::bf16> for CudaBlas {
         b: &B,
         c: &mut C,
     ) -> Result<(), CublasError> {
+        let call = self.admit()?;
         let alpha: f32 = cfg.alpha.to_f32();
         let beta: f32 = cfg.beta.to_f32();
         let (a, _record_a) = a.device_ptr(&self.stream);
         let (b, _record_b) = b.device_ptr(&self.stream);
         let (c, _record_c) = c.device_ptr_mut(&self.stream);
         result::gemm_ex(
-            self.handle,
+            call.handle()?,
             cfg.transa,
             cfg.transb,
             cfg.m,
@@ -190,13 +193,14 @@ impl Gemm<half::bf16> for CudaBlas {
         b: &B,
         c: &mut C,
     ) -> Result<(), CublasError> {
+        let call = self.admit()?;
         let alpha: f32 = cfg.gemm.alpha.to_f32();
         let beta: f32 = cfg.gemm.beta.to_f32();
         let (a, _record_a) = a.device_ptr(&self.stream);
         let (b, _record_b) = b.device_ptr(&self.stream);
         let (c, _record_c) = c.device_ptr_mut(&self.stream);
         result::gemm_strided_batched_ex(
-            self.handle,
+            call.handle()?,
             cfg.gemm.transa,
             cfg.gemm.transb,
             cfg.gemm.m,
@@ -231,11 +235,12 @@ impl Gemm<f32> for CudaBlas {
         b: &B,
         c: &mut C,
     ) -> Result<(), CublasError> {
+        let call = self.admit()?;
         let (a, _record_a) = a.device_ptr(&self.stream);
         let (b, _record_b) = b.device_ptr(&self.stream);
         let (c, _record_c) = c.device_ptr_mut(&self.stream);
         result::sgemm(
-            self.handle,
+            call.handle()?,
             cfg.transa,
             cfg.transb,
             cfg.m,
@@ -259,11 +264,12 @@ impl Gemm<f32> for CudaBlas {
         b: &B,
         c: &mut C,
     ) -> Result<(), CublasError> {
+        let call = self.admit()?;
         let (a, _record_a) = a.device_ptr(&self.stream);
         let (b, _record_b) = b.device_ptr(&self.stream);
         let (c, _record_c) = c.device_ptr_mut(&self.stream);
         result::sgemm_strided_batched(
-            self.handle,
+            call.handle()?,
             cfg.gemm.transa,
             cfg.gemm.transb,
             cfg.gemm.m,
@@ -293,11 +299,12 @@ impl Gemm<f64> for CudaBlas {
         b: &B,
         c: &mut C,
     ) -> Result<(), CublasError> {
+        let call = self.admit()?;
         let (a, _record_a) = a.device_ptr(&self.stream);
         let (b, _record_b) = b.device_ptr(&self.stream);
         let (c, _record_c) = c.device_ptr_mut(&self.stream);
         result::dgemm(
-            self.handle,
+            call.handle()?,
             cfg.transa,
             cfg.transb,
             cfg.m,
@@ -321,11 +328,12 @@ impl Gemm<f64> for CudaBlas {
         b: &B,
         c: &mut C,
     ) -> Result<(), CublasError> {
+        let call = self.admit()?;
         let (a, _record_a) = a.device_ptr(&self.stream);
         let (b, _record_b) = b.device_ptr(&self.stream);
         let (c, _record_c) = c.device_ptr_mut(&self.stream);
         result::dgemm_strided_batched(
-            self.handle,
+            call.handle()?,
             cfg.gemm.transa,
             cfg.gemm.transb,
             cfg.gemm.m,

@@ -33,9 +33,10 @@ impl Asum<f32> for CudaBlas {
         x: &X,
         result: &mut f32,
     ) -> Result<(), CublasError> {
+        let call = self.admit()?;
         let (x, _record_x) = x.device_ptr(&self.stream);
         result::sasum(
-            self.handle,
+            call.handle()?,
             cfg.n,
             x as *const _,
             cfg.incx,
@@ -51,9 +52,10 @@ impl Asum<f64> for CudaBlas {
         x: &X,
         result: &mut f64,
     ) -> Result<(), CublasError> {
+        let call = self.admit()?;
         let (x, _record_x) = x.device_ptr(&self.stream);
         result::dasum(
-            self.handle,
+            call.handle()?,
             cfg.n,
             x as *const _,
             cfg.incx,

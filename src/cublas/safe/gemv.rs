@@ -40,11 +40,12 @@ impl Gemv<f32> for CudaBlas {
         x: &X,
         y: &mut Y,
     ) -> Result<(), CublasError> {
+        let call = self.admit()?;
         let (a, _record_a) = a.device_ptr(&self.stream);
         let (x, _record_x) = x.device_ptr(&self.stream);
         let (y, _record_y) = y.device_ptr_mut(&self.stream);
         result::sgemv(
-            self.handle,
+            call.handle()?,
             cfg.trans,
             cfg.m,
             cfg.n,
@@ -68,11 +69,12 @@ impl Gemv<f64> for CudaBlas {
         x: &X,
         y: &mut Y,
     ) -> Result<(), CublasError> {
+        let call = self.admit()?;
         let (a, _record_a) = a.device_ptr(&self.stream);
         let (x, _record_x) = x.device_ptr(&self.stream);
         let (y, _record_y) = y.device_ptr_mut(&self.stream);
         result::dgemv(
-            self.handle,
+            call.handle()?,
             cfg.trans,
             cfg.m,
             cfg.n,

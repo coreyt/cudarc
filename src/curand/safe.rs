@@ -27,6 +27,10 @@ use std::sync::Arc;
 /// 1. Uniform - [CudaRng::fill_with_uniform()]
 /// 2. Normal - [CudaRng::fill_with_normal()]
 /// 3. LogNormal - [CudaRng::fill_with_log_normal()]
+///
+/// Tracked cleanup admits and binds before native destruction. A refused
+/// generation abandons native cleanup while dropping ordinary Rust owners;
+/// native destruction failure publishes its actual library cause once.
 pub struct CudaRng {
     pub(crate) gen: sys::curandGenerator_t,
     pub(crate) stream: Arc<CudaStream>,
@@ -34,9 +38,20 @@ pub struct CudaRng {
 
 impl CudaRng {
     /// Constructs the RNG with the given `seed`. All calls run on `stream`.
+    ///
+    /// Tracked construction holds admission through initialization and unwind.
+    /// Returns the original driver refusal or cached synthetic Lost cause before
+    /// library calls, or the unchanged native library error from generator initialization.
     pub fn new(seed: u64, stream: Arc<CudaStream>) -> Result<Self, result::CurandError> {
+        let _lease = Self::admit_stream(&stream)?;
         let ctx = &stream.ctx;
-        ctx.record_err(ctx.bind_to_thread());
+        #[cfg(feature = "std")]
+        let untracked = ctx.primary_lifetime.is_none();
+        #[cfg(not(feature = "std"))]
+        let untracked = true;
+        if untracked {
+            ctx.record_err(ctx.bind_to_thread());
+        }
         let gen = result::create_generator()?;
         let mut rng = Self { gen, stream };
         unsafe { result::set_stream(rng.gen, rng.stream.cu_stream as _) }?;
@@ -44,22 +59,87 @@ impl CudaRng {
         Ok(rng)
     }
 
+    #[cfg(feature = "std")]
+    fn admission_error(
+        stream: &CudaStream,
+        error: crate::driver::DriverError,
+    ) -> result::CurandError {
+        match stream
+            .ctx
+            .primary_lifetime
+            .as_ref()
+            .and_then(|lifetime| lifetime.loss())
+        {
+            Some(loss) => match loss.refusal() {
+                crate::driver::PrimaryContextRefusal::DriverStatus(status) => {
+                    result::CurandError::Driver(crate::driver::DriverError(status))
+                }
+                _ => result::CurandError::Lost(loss),
+            },
+            None => result::CurandError::Driver(error),
+        }
+    }
+
+    #[cfg(feature = "std")]
+    fn admit_stream(
+        stream: &CudaStream,
+    ) -> Result<Option<crate::driver::PrimaryContextLease>, result::CurandError> {
+        let ctx = stream.context();
+        let Some(lifetime) = &ctx.primary_lifetime else {
+            return Ok(None);
+        };
+        ctx.check_err()
+            .map_err(|error| Self::admission_error(stream, error))?;
+        let lease = lifetime
+            .admit()
+            .map_err(|error| Self::admission_error(stream, error))?;
+        ctx.bind_to_thread()
+            .map_err(|error| Self::admission_error(stream, error))?;
+        Ok(Some(lease))
+    }
+
+    #[cfg(not(feature = "std"))]
+    fn admit_stream(_stream: &CudaStream) -> Result<(), result::CurandError> {
+        Ok(())
+    }
+
+    /// Assigns the generator to `stream`, retaining its original stream on failure.
+    ///
+    /// If either context is tracked, both must share one lifetime. Returns
+    /// ContextMismatch before native calls for incompatible owners, the exact
+    /// driver admission/binding error or cached synthetic Lost cause, or the
+    /// unchanged native setter error.
+    ///
     /// # Safety
-    /// Users must ensure this stream is properly synchronized
+    /// Users must ensure this stream is properly synchronized.
     pub unsafe fn set_stream(
         &mut self,
         stream: Arc<CudaStream>,
     ) -> Result<(), result::CurandError> {
+        #[cfg(feature = "std")]
+        match (
+            &self.stream.ctx.primary_lifetime,
+            &stream.ctx.primary_lifetime,
+        ) {
+            (None, None) => {}
+            (Some(current), Some(target)) if Arc::ptr_eq(current, target) => {}
+            _ => return Err(result::CurandError::ContextMismatch),
+        }
+        let _lease = Self::admit_stream(&self.stream)?;
+        unsafe { result::set_stream(self.gen, stream.cu_stream as _) }?;
         self.stream = stream;
-        result::set_stream(self.gen, self.stream.cu_stream as _)
+        Ok(())
     }
 
     /// Re-seed the RNG.
     pub fn set_seed(&mut self, seed: u64) -> Result<(), result::CurandError> {
+        let _lease = Self::admit_stream(&self.stream)?;
         unsafe { result::set_seed(self.gen, seed) }
     }
 
+    /// Sets the generator offset, returning native or tracked admission errors.
     pub fn set_offset(&mut self, offset: u64) -> Result<(), result::CurandError> {
+        let _lease = Self::admit_stream(&self.stream)?;
         unsafe { result::set_offset(self.gen, offset) }
     }
 
@@ -71,8 +151,16 @@ impl CudaRng {
     where
         sys::curandGenerator_t: result::UniformFill<T>,
     {
+        let _lease = Self::admit_stream(&self.stream)?;
         let num = dst.len();
         let (dst, _record_dst) = dst.device_ptr_mut(&self.stream);
+        #[cfg(feature = "std")]
+        if self.stream.ctx.primary_lifetime.is_some() {
+            self.stream
+                .ctx
+                .check_err()
+                .map_err(|error| Self::admission_error(&self.stream, error))?;
+        }
         unsafe { result::UniformFill::fill(self.gen, dst as *mut T, num) }
     }
 
@@ -86,8 +174,16 @@ impl CudaRng {
     where
         sys::curandGenerator_t: result::NormalFill<T>,
     {
+        let _lease = Self::admit_stream(&self.stream)?;
         let num = dst.len();
         let (dst, _record_dst) = dst.device_ptr_mut(&self.stream);
+        #[cfg(feature = "std")]
+        if self.stream.ctx.primary_lifetime.is_some() {
+            self.stream
+                .ctx
+                .check_err()
+                .map_err(|error| Self::admission_error(&self.stream, error))?;
+        }
         unsafe { result::NormalFill::fill(self.gen, dst as *mut T, num, mean, std) }
     }
 
@@ -101,8 +197,16 @@ impl CudaRng {
     where
         sys::curandGenerator_t: result::LogNormalFill<T>,
     {
+        let _lease = Self::admit_stream(&self.stream)?;
         let num = dst.len();
         let (dst, _record_dst) = dst.device_ptr_mut(&self.stream);
+        #[cfg(feature = "std")]
+        if self.stream.ctx.primary_lifetime.is_some() {
+            self.stream
+                .ctx
+                .check_err()
+                .map_err(|error| Self::admission_error(&self.stream, error))?;
+        }
         unsafe { result::LogNormalFill::fill(self.gen, dst as *mut T, num, mean, std) }
     }
 }
@@ -110,8 +214,38 @@ impl CudaRng {
 impl Drop for CudaRng {
     fn drop(&mut self) {
         let gen = std::mem::replace(&mut self.gen, std::ptr::null_mut());
-        if !gen.is_null() {
-            let _ = unsafe { result::destroy_generator(gen) };
+        if gen.is_null() {
+            return;
+        }
+        #[cfg(feature = "std")]
+        let _lease = match &self.stream.ctx.primary_lifetime {
+            Some(lifetime) => match lifetime.admit() {
+                Ok(lease) => Some(lease),
+                Err(error) => {
+                    self.stream.ctx.record_err::<()>(Err(error));
+                    return;
+                }
+            },
+            None => None,
+        };
+        #[cfg(feature = "std")]
+        if self.stream.ctx.primary_lifetime.is_some() {
+            if let Err(error) = self.stream.ctx.bind_for_cleanup() {
+                self.stream.ctx.record_err::<()>(Err(error));
+                return;
+            }
+        }
+        if let Err(result::CurandError::Native(status)) = unsafe { result::destroy_generator(gen) }
+        {
+            #[cfg(feature = "std")]
+            if let Some(lifetime) = &self.stream.ctx.primary_lifetime {
+                lifetime.record_library_cleanup_loss(
+                    crate::driver::NativeLibrary::Curand,
+                    status as u32,
+                );
+            }
+            #[cfg(not(feature = "std"))]
+            let _ = status;
         }
     }
 }
@@ -331,7 +465,7 @@ mod fathomdb_context_lifetime {
         };
         assert_eq!(
             error,
-            result::CurandError(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR)
+            result::CurandError::Native(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR)
         );
         drop(context);
 
@@ -362,7 +496,7 @@ mod fathomdb_context_lifetime {
         let error = expect_error(CudaRng::new(42, context.default_stream()));
         assert_eq!(
             error,
-            result::CurandError(sys::curandStatus_t::CURAND_STATUS_ALLOCATION_FAILED)
+            result::CurandError::Native(sys::curandStatus_t::CURAND_STATUS_ALLOCATION_FAILED)
         );
         drop(context);
 
@@ -391,7 +525,7 @@ mod fathomdb_context_lifetime {
         let error = expect_error(CudaRng::new(42, context.default_stream()));
         assert_eq!(
             error,
-            result::CurandError(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR)
+            result::CurandError::Native(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR)
         );
         drop(context);
 
@@ -474,3 +608,23 @@ mod fathomdb_context_lifetime {
         );
     }
 }
+
+#[cfg(all(test, feature = "std"))]
+#[path = "fathomdb_library_admission.rs"]
+mod fathomdb_library_admission;
+
+#[cfg(all(test, feature = "std"))]
+#[path = "fathomdb_library_setter.rs"]
+mod fathomdb_library_setter;
+
+#[cfg(all(test, feature = "std"))]
+#[path = "fathomdb_library_drop.rs"]
+mod fathomdb_library_drop;
+
+#[cfg(all(test, feature = "std"))]
+#[path = "fathomdb_library_destroy_failure.rs"]
+mod fathomdb_library_destroy_failure;
+
+#[cfg(all(test, feature = "std"))]
+#[path = "fathomdb_library_use.rs"]
+mod fathomdb_library_use;
