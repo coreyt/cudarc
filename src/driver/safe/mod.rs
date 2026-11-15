@@ -1,9 +1,9 @@
 //! Safe abstractions over [crate::driver::result] provided by [CudaSlice], [CudaContext], [CudaStream], and more.
 
 pub(crate) mod core;
-pub(crate) mod external_memory;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod event_constructor_admission_tests;
+pub(crate) mod external_memory;
 pub(crate) mod graph;
 pub(crate) mod launch;
 #[cfg(all(test, feature = "std"))]

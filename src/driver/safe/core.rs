@@ -1016,6 +1016,14 @@ impl CudaContext {
         flags: Option<sys::CUevent_flags>,
     ) -> Result<CudaEvent, DriverError> {
         let flags = flags.unwrap_or(sys::CUevent_flags::CU_EVENT_DISABLE_TIMING);
+        #[cfg(feature = "std")]
+        let _lease = match &self.primary_lifetime {
+            Some(lifetime) => {
+                self.check_err()?;
+                Some(lifetime.admit()?)
+            }
+            None => None,
+        };
         self.bind_to_thread()?;
         let cu_event = result::event::create(flags)?;
         Ok(CudaEvent {
