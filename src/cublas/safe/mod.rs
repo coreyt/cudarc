@@ -32,6 +32,24 @@ pub struct CudaBlas {
     pub(crate) stream: Arc<CudaStream>,
 }
 
+/// Borrowed admission for one raw cuBLAS operation.
+///
+/// Declare this before pointer guards so admission covers their completion and
+/// unwind. Raw calls remain unsafe and require valid sizes, pointers and streams.
+#[derive(Debug)]
+pub struct CudaBlasLease<'a> {
+    blas: &'a CudaBlas,
+    #[cfg(feature = "std")]
+    _lease: Option<crate::driver::PrimaryContextLease>,
+}
+
+impl CudaBlasLease<'_> {
+    /// Returns the borrowed raw handle for one unsafe library call.
+    pub fn handle(&self) -> Result<sys::cublasHandle_t, CublasError> {
+        Ok(self.blas.handle)
+    }
+}
+
 unsafe impl Send for CudaBlas {}
 unsafe impl Sync for CudaBlas {}
 
@@ -55,6 +73,20 @@ impl CudaBlas {
         let blas = Self { handle, stream };
         unsafe { result::set_stream(blas.handle, blas.stream.cu_stream() as _) }?;
         Ok(blas)
+    }
+
+    /// Admits and binds one tracked raw operation before pointer preparation.
+    ///
+    /// Keep the returned guard through native dispatch and pointer-guard unwind.
+    /// Returns the exact driver failure or cached synthetic Lost cause before
+    /// calling native cuBLAS. Untracked owners retain raw caller responsibility.
+    pub fn admit(&self) -> Result<CudaBlasLease<'_>, CublasError> {
+        let _lease = Self::admit_stream(&self.stream)?;
+        Ok(CudaBlasLease {
+            blas: self,
+            #[cfg(feature = "std")]
+            _lease,
+        })
     }
 
     #[cfg(feature = "std")]
@@ -366,3 +398,6 @@ mod fathomdb_library_drop;
 
 #[cfg(all(test, feature = "std"))]
 mod fathomdb_library_destroy_failure;
+
+#[cfg(all(test, feature = "std"))]
+mod fathomdb_raw_boundary;

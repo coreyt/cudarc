@@ -484,6 +484,10 @@ pub unsafe fn gemm_strided_batched_ex(
     compute_type: sys::cublasComputeType_t,
     algo: sys::cublasGemmAlgo_t,
 ) -> Result<(), CublasError> {
+    #[cfg(test)]
+    if let Some(result) = partial_init_test_seams::operation() {
+        return result;
+    }
     sys::cublasGemmStridedBatchedEx(
         handle,
         transa,
@@ -560,9 +564,11 @@ pub(crate) mod partial_init_test_seams {
         pub(crate) creates: usize,
         pub(crate) stream_sets: usize,
         pub(crate) destroys: usize,
+        pub(crate) operations: usize,
         create_error: Option<CublasError>,
         stream_error: Option<CublasError>,
         destroy_error: Option<CublasError>,
+        operation_error: Option<CublasError>,
     }
 
     std::thread_local! {
@@ -578,13 +584,23 @@ pub(crate) mod partial_init_test_seams {
                 creates: 0,
                 stream_sets: 0,
                 destroys: 0,
+                operations: 0,
                 create_error: None,
                 stream_error: Some(CublasError::Native(
                     sys::cublasStatus_t::CUBLAS_STATUS_INVALID_VALUE,
                 )),
                 destroy_error: None,
+                operation_error: None,
             }));
             Self
+        }
+
+        pub(crate) fn fail_operation(&self, fail: bool) {
+            let mut state = self.snapshot();
+            state.operation_error = fail.then_some(CublasError::Native(
+                sys::cublasStatus_t::CUBLAS_STATUS_ALLOC_FAILED,
+            ));
+            STATE.set(Some(state));
         }
 
         pub(crate) fn snapshot(&self) -> State {
@@ -632,6 +648,13 @@ pub(crate) mod partial_init_test_seams {
         fn drop(&mut self) {
             STATE.set(None);
         }
+    }
+
+    pub(crate) fn operation() -> Option<Result<(), CublasError>> {
+        let mut state = STATE.get()?;
+        state.operations += 1;
+        STATE.set(Some(state));
+        Some(state.operation_error.map_or(Ok(()), Err))
     }
 
     pub(crate) fn create_handle() -> Option<Result<sys::cublasHandle_t, CublasError>> {
