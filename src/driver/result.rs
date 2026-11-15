@@ -1110,7 +1110,9 @@ pub mod stream {
     /// See [cuda docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1ga581f0c5833e21ded8b5a56594e243f4)
     pub fn create(kind: StreamKind) -> Result<sys::CUstream, DriverError> {
         #[cfg(all(test, feature = "std"))]
-        if let Some(stream) = crate::driver::safe::lifetime_stream_cleanup_tests::seams::create(&kind) {
+        if let Some(stream) =
+            crate::driver::safe::lifetime_stream_cleanup_tests::seams::create(&kind)
+        {
             return Ok(stream);
         }
         let mut stream = MaybeUninit::uninit();
@@ -1180,7 +1182,9 @@ pub mod stream {
     /// destroyed. This follows default stream semantics, see relevant cuda docs.
     pub unsafe fn destroy(stream: sys::CUstream) -> Result<(), DriverError> {
         #[cfg(all(test, feature = "std"))]
-        if let Some(result) = crate::driver::safe::lifetime_stream_cleanup_tests::seams::destroy(stream) {
+        if let Some(result) =
+            crate::driver::safe::lifetime_stream_cleanup_tests::seams::destroy(stream)
+        {
             return result;
         }
         sys::cuStreamDestroy_v2(stream).result()

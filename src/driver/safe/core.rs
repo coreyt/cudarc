@@ -1082,6 +1082,10 @@ impl CudaEvent {
 /// - Create with [CudaContext::new_stream()], [CudaContext::default_stream()], or [CudaStream::fork()].
 /// - Wrap a stream owned by another library with [CudaContext::wrap_borrowed_stream()].
 ///
+/// Owned streams from a tracked context hold admission through native cleanup.
+/// If admission refuses the generation, Drop abandons the native handle and
+/// releases its ordinary Rust owners. Borrowed streams do not destroy handles.
+///
 /// **Work done on this is asynchronous with respect to the host.**
 ///
 /// See [CUDA C/C++ Streams and Concurrency](https://developer.download.nvidia.com/CUDA/training/StreamsAndConcurrencyWebinar.pdf)
@@ -1112,13 +1116,31 @@ impl Drop for CudaStream {
         if !self.owned {
             return;
         }
-        self.ctx.record_err(self.ctx.bind_to_thread());
         let cu_stream = std::mem::replace(&mut self.cu_stream, std::ptr::null_mut());
-        if !cu_stream.is_null() && cu_stream != (0x2 as _) {
-            self.ctx.num_streams.fetch_sub(1, Ordering::Relaxed);
-            self.ctx
-                .record_err(unsafe { result::stream::destroy(cu_stream) });
+        if cu_stream.is_null() || cu_stream == (0x2 as _) {
+            return;
         }
+        self.ctx.num_streams.fetch_sub(1, Ordering::Relaxed);
+        #[cfg(feature = "std")]
+        let _lease = match &self.ctx.primary_lifetime {
+            Some(lifetime) => match lifetime.admit() {
+                Ok(lease) => Some(lease),
+                Err(error) => {
+                    self.ctx.record_err::<()>(Err(error));
+                    return;
+                }
+            },
+            None => None,
+        };
+        if let Err(error) = self.ctx.bind_to_thread() {
+            self.ctx.record_err::<()>(Err(error));
+            #[cfg(feature = "std")]
+            if self.ctx.primary_lifetime.is_some() {
+                return;
+            }
+        }
+        self.ctx
+            .record_err(unsafe { result::stream::destroy(cu_stream) });
     }
 }
 
