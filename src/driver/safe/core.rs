@@ -1400,24 +1400,41 @@ impl CudaStream {
     /// You can record new work in `event` after calling this method without
     /// affecting this call.
     ///
+    /// Waits may cross native contexts. If either owner is tracked, both must be
+    /// tracked and healthy; their lifetime leases cover native dispatch, sharing
+    /// one lease when both use the same lifetime. Mixed tracked/untracked owners
+    /// return INVALID_CONTEXT before native work. A known terminal native result
+    /// is published to both tracked owners before returning.
+    ///
     /// See [cuda docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g6a898b652dfc6aa1d5c8d97062618b2f)
     pub fn wait(&self, event: &CudaEvent) -> Result<(), DriverError> {
         #[cfg(feature = "std")]
-        let _lease = match &self.ctx.primary_lifetime {
-            Some(lifetime) => {
-                self.ctx.check_err()?;
-                Some(lifetime.admit()?)
-            }
-            None => None,
-        };
+        let (_stream_lease, _event_lease) =
+            match (&self.ctx.primary_lifetime, &event.ctx.primary_lifetime) {
+                (Some(stream), Some(event_lifetime)) => {
+                    self.ctx.check_err()?;
+                    event.ctx.check_err()?;
+                    let stream_lease = stream.admit()?;
+                    let event_lease = if Arc::ptr_eq(stream, event_lifetime) {
+                        None
+                    } else {
+                        Some(event_lifetime.admit()?)
+                    };
+                    (Some(stream_lease), event_lease)
+                }
+                (None, None) => (None, None),
+                _ => return Err(DriverError(sys::CUresult::CUDA_ERROR_INVALID_CONTEXT)),
+            };
         self.ctx.bind_to_thread()?;
-        self.ctx.record_terminal_result(unsafe {
-            result::stream::wait_event(
-                self.cu_stream,
-                event.cu_event,
-                sys::CUevent_wait_flags::CU_EVENT_WAIT_DEFAULT,
-            )
-        })
+        event
+            .ctx
+            .record_terminal_result(self.ctx.record_terminal_result(unsafe {
+                result::stream::wait_event(
+                    self.cu_stream,
+                    event.cu_event,
+                    sys::CUevent_wait_flags::CU_EVENT_WAIT_DEFAULT,
+                )
+            }))
     }
 
     /// Ensures this stream waits for the current workload in `other` to complete.
