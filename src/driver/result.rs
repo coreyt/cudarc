@@ -1656,6 +1656,10 @@ pub mod event {
     ///
     /// See [cuda docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g450687e75f3ff992fe01662a43d9d3db)
     pub fn create(flags: sys::CUevent_flags) -> Result<sys::CUevent, DriverError> {
+        #[cfg(all(test, feature = "std"))]
+        if let Some(result) = crate::driver::safe::lifetime_event_cleanup_tests::seams::create(flags) {
+            return result;
+        }
         let mut event = MaybeUninit::uninit();
         unsafe {
             sys::cuEventCreate(event.as_mut_ptr(), flags as u32).result()?;
@@ -1736,6 +1740,10 @@ pub mod event {
     /// # Safety
     /// 1. Event must not have been freed already
     pub unsafe fn destroy(event: sys::CUevent) -> Result<(), DriverError> {
+        #[cfg(all(test, feature = "std"))]
+        if let Some(result) = crate::driver::safe::lifetime_event_cleanup_tests::seams::destroy(event) {
+            return result;
+        }
         sys::cuEventDestroy_v2(event).result()
     }
 }
