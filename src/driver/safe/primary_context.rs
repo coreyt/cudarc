@@ -131,6 +131,7 @@ mod fathomdb_primary_lifetime {
     #[test]
     fn ordinary_tracked_oom_does_not_latch_terminal_loss() {
         let _driver = context_test_seams::Guard::new();
+        _driver.set_context_id(23);
         let lifetime = Arc::new(PrimaryContextLifetime {
             recorded_id: 23,
             loss: Mutex::new(None),
@@ -189,6 +190,7 @@ mod fathomdb_primary_lifetime {
     #[test]
     fn active_primary_allows_healthy_binding() {
         let driver = context_test_seams::Guard::new();
+        driver.set_context_id(31);
         let lifetime = Arc::new(PrimaryContextLifetime {
             recorded_id: 31,
             loss: Mutex::new(None),
@@ -222,6 +224,33 @@ mod fathomdb_primary_lifetime {
         assert_eq!(
             (dispatch.primary_queries, dispatch.queries, dispatch.binds),
             (0, 1, 1)
+        );
+    }
+
+    #[test]
+    fn changed_primary_identity_is_discovered_before_bind() {
+        let driver = context_test_seams::Guard::new();
+        driver.set_context_id(42);
+        let lifetime = Arc::new(PrimaryContextLifetime {
+            recorded_id: 17,
+            loss: Mutex::new(None),
+        });
+        let mut context = context_test_seams::context();
+        Arc::get_mut(&mut context).unwrap().primary_lifetime = Some(lifetime.clone());
+
+        let first = context.bind_to_thread().map_err(|error| error.0 as u32);
+        let second = context.bind_to_thread().map_err(|error| error.0 as u32);
+        let dispatch = driver.snapshot();
+        drop(context);
+
+        let lost = sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED;
+        assert_eq!(first, Err(lost as u32), "replaced context identity must refuse before stale binding");
+        assert_eq!(second, Err(lost as u32));
+        assert_eq!((dispatch.primary_queries, dispatch.id_queries), (1, 1));
+        assert_eq!((dispatch.queries, dispatch.binds), (0, 0));
+        assert_eq!(
+            *lifetime.loss.lock().unwrap(),
+            Some(PrimaryContextLoss { recorded_id: 17, observed_id: Some(42), error: lost })
         );
     }
 }

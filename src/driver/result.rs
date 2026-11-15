@@ -464,6 +464,8 @@ pub(crate) mod context_test_seams {
         pub(crate) releases: usize,
         pub(crate) primary_queries: usize,
         primary_active: bool,
+        pub(crate) id_queries: usize,
+        context_id: u64,
     }
 
     std::thread_local! {
@@ -482,6 +484,8 @@ pub(crate) mod context_test_seams {
                 releases: 0,
                 primary_queries: 0,
                 primary_active: true,
+                id_queries: 0,
+                context_id: 17,
             }));
             Self
         }
@@ -493,6 +497,12 @@ pub(crate) mod context_test_seams {
         pub(crate) fn set_primary_active(&self, active: bool) {
             let mut state = self.snapshot();
             state.primary_active = active;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_context_id(&self, id: u64) {
+            let mut state = self.snapshot();
+            state.context_id = id;
             STATE.set(Some(state));
         }
     }
@@ -536,6 +546,14 @@ pub(crate) mod context_test_seams {
         state.binds += 1;
         STATE.set(Some(state));
         true
+    }
+
+    pub(crate) fn get_context_id(ctx: sys::CUcontext) -> Option<u64> {
+        let mut state = STATE.get()?;
+        assert_eq!(ctx as usize, 0xC7);
+        state.id_queries += 1;
+        STATE.set(Some(state));
+        Some(state.context_id)
     }
 
     pub(crate) fn get_primary_state(dev: sys::CUdevice) -> Option<(u32, bool)> {
@@ -703,6 +721,45 @@ pub mod ctx {
             return Ok(());
         }
         sys::cuCtxSetCurrent(ctx).result()
+    }
+
+    /// Returns the unique identity of a context without making it current.
+    ///
+    /// # Errors
+    /// Returns the driver status from `cuCtxGetId`, or NOT_SUPPORTED when
+    /// built with bindings older than CUDA 12.0.
+    ///
+    /// # Safety
+    /// `ctx` must be a context whose lifetime is coordinated by the caller.
+    /// Context reset must not race this query or another admitted operation.
+    pub unsafe fn get_id(ctx: sys::CUcontext) -> Result<u64, DriverError> {
+        #[cfg(any(
+            feature = "cuda-11040",
+            feature = "cuda-11050",
+            feature = "cuda-11060",
+            feature = "cuda-11070",
+            feature = "cuda-11080"
+        ))]
+        {
+            let _ = ctx;
+            Err(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED))
+        }
+        #[cfg(not(any(
+            feature = "cuda-11040",
+            feature = "cuda-11050",
+            feature = "cuda-11060",
+            feature = "cuda-11070",
+            feature = "cuda-11080"
+        )))]
+        {
+            #[cfg(test)]
+            if let Some(id) = super::context_test_seams::get_context_id(ctx) {
+                return Ok(id);
+            }
+            let mut id = 0;
+            sys::cuCtxGetId(ctx, &mut id).result()?;
+            Ok(id)
+        }
     }
 
     /// Returns the CUDA context bound to the calling CPU thread if there is one.
