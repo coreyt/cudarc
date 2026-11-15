@@ -986,6 +986,19 @@ impl CudaContext {
         result
     }
 
+    fn record_cleanup_prerequisite_result<T>(
+        &self,
+        result: Result<T, DriverError>,
+    ) -> Result<T, DriverError> {
+        #[cfg(feature = "std")]
+        if let Err(error) = &result {
+            if let Some(lifetime) = &self.primary_lifetime {
+                lifetime.record_loss(*error, None);
+            }
+        }
+        result
+    }
+
     /// Records a result for later inspection when a Result can be returned.
     pub fn record_err<T>(&self, result: Result<T, DriverError>) {
         if let Err(err) = result {
@@ -1473,7 +1486,7 @@ impl CudaStream {
         if self.ctx.primary_lifetime.is_some() {
             debug_assert!(Arc::ptr_eq(&self.ctx, &event.ctx));
             self.ctx.bind_for_cleanup()?;
-            return self.ctx.record_terminal_result(unsafe {
+            return self.ctx.record_cleanup_prerequisite_result(unsafe {
                 result::stream::wait_event(
                     self.cu_stream,
                     event.cu_event,
@@ -1488,9 +1501,9 @@ impl CudaStream {
         #[cfg(feature = "std")]
         if self.ctx.primary_lifetime.is_some() {
             self.ctx.bind_for_cleanup()?;
-            return self
-                .ctx
-                .record_terminal_result(unsafe { result::stream::synchronize(self.cu_stream) });
+            return self.ctx.record_cleanup_prerequisite_result(unsafe {
+                result::stream::synchronize(self.cu_stream)
+            });
         }
         self.synchronize()
     }
