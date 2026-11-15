@@ -950,6 +950,10 @@ impl CudaContext {
 ///
 /// Note that calls to [CudaEvent::record()] will not change any **previous calls** to [CudaStream::wait()].
 ///
+/// Events from a tracked context hold admission through native cleanup. If
+/// admission refuses the generation, Drop abandons the native handle while
+/// releasing its ordinary Rust owners.
+///
 /// # Thread safety
 /// This object is thread safe
 #[derive(Debug)]
@@ -963,9 +967,27 @@ unsafe impl Sync for CudaEvent {}
 
 impl Drop for CudaEvent {
     fn drop(&mut self) {
-        self.ctx.record_err(self.ctx.bind_to_thread());
+        let event = std::mem::replace(&mut self.cu_event, std::ptr::null_mut());
+        #[cfg(feature = "std")]
+        let _lease = match &self.ctx.primary_lifetime {
+            Some(lifetime) => match lifetime.admit() {
+                Ok(lease) => Some(lease),
+                Err(error) => {
+                    self.ctx.record_err::<()>(Err(error));
+                    return;
+                }
+            },
+            None => None,
+        };
+        if let Err(error) = self.ctx.bind_to_thread() {
+            self.ctx.record_err::<()>(Err(error));
+            #[cfg(feature = "std")]
+            if self.ctx.primary_lifetime.is_some() {
+                return;
+            }
+        }
         self.ctx
-            .record_err(unsafe { result::event::destroy(self.cu_event) });
+            .record_err(unsafe { result::event::destroy(event) });
     }
 }
 
