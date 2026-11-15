@@ -6,9 +6,9 @@ pub(crate) mod core;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod event_constructor_admission_tests;
 #[cfg(all(test, feature = "std"))]
-pub(crate) mod event_use_tests;
-#[cfg(all(test, feature = "std"))]
 pub(crate) mod event_record_identity_tests;
+#[cfg(all(test, feature = "std"))]
+pub(crate) mod event_use_tests;
 pub(crate) mod external_memory;
 pub(crate) mod graph;
 pub(crate) mod launch;

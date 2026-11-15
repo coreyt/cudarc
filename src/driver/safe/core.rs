@@ -1063,11 +1063,25 @@ impl CudaEvent {
     ///
     /// If `stream` belongs to a different [CudaContext], this will fail with
     /// [sys::cudaError_enum::CUDA_ERROR_INVALID_CONTEXT].
+    /// If either context is tracked, both must share the same
+    /// `PrimaryContextLifetime`. An ownership mismatch
+    /// returns INVALID_CONTEXT before native work without marking generation loss.
     ///
     /// See [cuda docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__EVENT.html#group__CUDA__EVENT_1g95424d3be52c4eb95d83861b70fb89d1)
     pub fn record(&self, stream: &CudaStream) -> Result<(), DriverError> {
         if self.ctx != stream.ctx {
             return Err(DriverError(sys::cudaError_enum::CUDA_ERROR_INVALID_CONTEXT));
+        }
+        #[cfg(feature = "std")]
+        {
+            let same_lifetime = match (&self.ctx.primary_lifetime, &stream.ctx.primary_lifetime) {
+                (Some(event), Some(stream)) => Arc::ptr_eq(event, stream),
+                (None, None) => true,
+                _ => false,
+            };
+            if !same_lifetime {
+                return Err(DriverError(sys::cudaError_enum::CUDA_ERROR_INVALID_CONTEXT));
+            }
         }
         #[cfg(feature = "std")]
         let _lease = match &self.ctx.primary_lifetime {
