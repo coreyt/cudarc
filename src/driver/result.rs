@@ -1381,6 +1381,11 @@ pub unsafe fn malloc_managed(
 /// # Safety
 /// 1. The memory return by this is unset, which may be invalid for `T`.
 pub unsafe fn malloc_host(num_bytes: usize, flags: c_uint) -> Result<*mut c_void, DriverError> {
+    #[cfg(all(test, feature = "std"))]
+    if let Some(result) = crate::driver::safe::lifetime_pinned_cleanup_tests::seams::allocate(num_bytes, flags) {
+        return result;
+    }
+
     let mut host_ptr = MaybeUninit::uninit();
     sys::cuMemHostAlloc(host_ptr.as_mut_ptr(), num_bytes, flags).result()?;
     Ok(host_ptr.assume_init())
@@ -1391,6 +1396,11 @@ pub unsafe fn malloc_host(num_bytes: usize, flags: c_uint) -> Result<*mut c_void
 /// 1. `host_ptr` must have been returned by [malloc_host]
 /// 2. `host_ptr` should not be null.
 pub unsafe fn free_host(host_ptr: *mut c_void) -> Result<(), DriverError> {
+    #[cfg(all(test, feature = "std"))]
+    if let Some(result) = crate::driver::safe::lifetime_pinned_cleanup_tests::seams::free(host_ptr) {
+        return result;
+    }
+
     sys::cuMemFreeHost(host_ptr).result()
 }
 

@@ -19,6 +19,8 @@ pub(crate) mod lifetime_event_cleanup_tests;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod lifetime_module_cleanup_tests;
 #[cfg(all(test, feature = "std"))]
+pub(crate) mod lifetime_pinned_cleanup_tests;
+#[cfg(all(test, feature = "std"))]
 pub(crate) mod lifetime_slice_cleanup_tests;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod lifetime_stream_cleanup_tests;
@@ -31,6 +33,10 @@ pub(crate) mod module_result_tests;
 pub(crate) mod ordinary_launch_result_tests;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod ordinary_launch_tests;
+#[cfg(all(test, feature = "std"))]
+pub(crate) mod pinned_host_entry_tests;
+#[cfg(all(test, feature = "std"))]
+pub(crate) mod pinned_host_result_tests;
 #[cfg(feature = "std")]
 pub(crate) mod primary_context;
 #[cfg(all(test, feature = "std"))]
