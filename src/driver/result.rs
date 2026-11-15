@@ -1047,8 +1047,8 @@ pub mod ctx {
     /// See [cuda docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g7a54725f28d34b8c6299f0c6ca579616)
     pub fn synchronize() -> Result<(), DriverError> {
         #[cfg(all(test, feature = "std"))]
-        if crate::driver::safe::lifetime_stream_cleanup_tests::seams::context_synchronize() {
-            return Ok(());
+        if let Some(result) = crate::driver::safe::lifetime_stream_cleanup_tests::seams::context_synchronize() {
+            return result;
         }
         unsafe { sys::cuCtxSynchronize() }.result()
     }
@@ -1138,10 +1138,10 @@ pub mod stream {
     /// See [cuda docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1ga581f0c5833e21ded8b5a56594e243f4)
     pub fn create(kind: StreamKind) -> Result<sys::CUstream, DriverError> {
         #[cfg(all(test, feature = "std"))]
-        if let Some(stream) =
+        if let Some(result) =
             crate::driver::safe::lifetime_stream_cleanup_tests::seams::create(&kind)
         {
-            return Ok(stream);
+            return result;
         }
         let mut stream = MaybeUninit::uninit();
         unsafe {

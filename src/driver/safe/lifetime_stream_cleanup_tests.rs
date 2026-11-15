@@ -10,6 +10,7 @@ pub(crate) mod seams {
 
     #[derive(Clone, Copy, Debug, Default)]
     pub(crate) struct Counts {
+        pub(crate) create_attempts: usize,
         pub(crate) created: usize,
         pub(crate) destroyed: usize,
         pub(crate) context_synchronizes: usize,
@@ -19,11 +20,14 @@ pub(crate) mod seams {
     struct State {
         counts: Counts,
         destroy_error: Option<sys::CUresult>,
+        create_error: Option<sys::CUresult>,
+        context_synchronize_error: Option<sys::CUresult>,
     }
 
     std::thread_local! {
         static STATE: Cell<Option<State>> = const { Cell::new(None) };
         static DESTROY_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
+        static CREATE_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
     }
 
     pub(crate) struct Guard;
@@ -43,6 +47,22 @@ pub(crate) mod seams {
             DESTROY_HOOK.with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
         }
 
+        pub(crate) fn set_create_error(&self, error: Option<sys::CUresult>) {
+            let mut state = STATE.get().unwrap();
+            state.create_error = error;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_context_synchronize_error(&self, error: Option<sys::CUresult>) {
+            let mut state = STATE.get().unwrap();
+            state.context_synchronize_error = error;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_create_hook(&self, hook: impl FnMut() + 'static) {
+            CREATE_HOOK.with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
+        }
+
         pub(crate) fn set_destroy_error(&self, error: Option<sys::CUresult>) {
             let mut state = STATE.get().unwrap();
             state.destroy_error = error;
@@ -53,16 +73,29 @@ pub(crate) mod seams {
     impl Drop for Guard {
         fn drop(&mut self) {
             DESTROY_HOOK.with(|slot| *slot.borrow_mut() = None);
+            CREATE_HOOK.with(|slot| *slot.borrow_mut() = None);
             STATE.set(None);
         }
     }
 
-    pub(crate) fn create(kind: &StreamKind) -> Option<sys::CUstream> {
+    pub(crate) fn create(kind: &StreamKind) -> Option<Result<sys::CUstream, DriverError>> {
         let mut state = STATE.get()?;
         assert!(matches!(kind, StreamKind::NonBlocking));
-        state.counts.created += 1;
+        state.counts.create_attempts += 1;
         STATE.set(Some(state));
-        Some((0x5700 + state.counts.created) as sys::CUstream)
+        CREATE_HOOK.with(|slot| {
+            if let Some(hook) = slot.borrow_mut().as_mut() {
+                hook();
+            }
+        });
+        Some(match state.create_error {
+            Some(error) => Err(DriverError(error)),
+            None => {
+                state.counts.created += 1;
+                STATE.set(Some(state));
+                Ok((0x5700 + state.counts.created) as sys::CUstream)
+            }
+        })
     }
 
     pub(crate) fn destroy(stream: sys::CUstream) -> Option<Result<(), DriverError>> {
@@ -82,13 +115,14 @@ pub(crate) mod seams {
         })
     }
 
-    pub(crate) fn context_synchronize() -> bool {
-        let Some(mut state) = STATE.get() else {
-            return false;
-        };
+    pub(crate) fn context_synchronize() -> Option<Result<(), DriverError>> {
+        let mut state = STATE.get()?;
         state.counts.context_synchronizes += 1;
         STATE.set(Some(state));
-        true
+        Some(match state.context_synchronize_error {
+            Some(error) => Err(DriverError(error)),
+            None => Ok(()),
+        })
     }
 }
 
