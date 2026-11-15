@@ -216,7 +216,7 @@ impl PrimaryContextLifetime {
     /// This cached observation performs no native dispatch and stays unchanged
     /// after terminal loss. It does not establish current device health.
     pub fn recorded_id(&self) -> u64 {
-        unimplemented!("cached primary-context identity observation")
+        self.recorded_id
     }
 
     /// Returns the first cached terminal refusal, without native dispatch.
@@ -225,7 +225,7 @@ impl PrimaryContextLifetime {
     /// loss record; conservative terminal OOM and synthetic UNKNOWN do, so callers
     /// must use this observation rather than classify health by status alone.
     pub fn loss(&self) -> Option<PrimaryContextLoss> {
-        None
+        self.lock_state().loss
     }
 
     pub(crate) fn error(&self) -> Option<DriverError> {
