@@ -89,6 +89,9 @@ impl PrimaryContextLifetime {
                 return Err(self.error().unwrap_or(error));
             }
         };
+        if let Some(error) = self.error() {
+            return Err(error);
+        }
         if !active {
             self.record_error(DriverError(sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED));
         } else {

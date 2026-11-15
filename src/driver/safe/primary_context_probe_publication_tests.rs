@@ -11,7 +11,9 @@ use std::sync::Arc;
 )))]
 fn known_loss_during_state_query_prevents_the_next_identity_query() {
     let driver = context_test_seams::Guard::new();
-    let lifetime = PrimaryContextLifetime::new(0).map_err(|error| error.0 as u32).unwrap();
+    let lifetime = PrimaryContextLifetime::new(0)
+        .map_err(|error| error.0 as u32)
+        .unwrap();
     let mut context = context_test_seams::context();
     Arc::get_mut(&mut context).unwrap().primary_lifetime = Some(Arc::clone(&lifetime));
     let weak = Arc::downgrade(&lifetime);
@@ -29,7 +31,13 @@ fn known_loss_during_state_query_prevents_the_next_identity_query() {
     assert_eq!(first, Err(lost as u32));
     assert_eq!(second, Err(lost as u32));
     assert_eq!(dispatch.primary_queries, 1);
-    assert_eq!(dispatch.id_queries, 1, "known loss must prevent an identity query after the in-flight state query returns");
+    assert_eq!(
+        dispatch.id_queries, 1,
+        "known loss must prevent an identity query after the in-flight state query returns"
+    );
     assert_eq!((dispatch.queries, dispatch.binds), (0, 0));
-    assert_eq!((driver.snapshot().retains, driver.snapshot().releases), (1, 1));
+    assert_eq!(
+        (driver.snapshot().retains, driver.snapshot().releases),
+        (1, 1)
+    );
 }
