@@ -138,14 +138,19 @@ another loss store or edit driver files. Proposed public representation:
 - Cause variants are `DriverStatus(CUresult)`,
   `NativeLibraryCleanup { library: NativeLibrary, status: u32 }`, and
   `SyntheticUnknown` for existing poison/probe-unwind cases without a native
-  status. NativeLibrary has cuBLAS/cuRAND domain tags independent of library
+  status. Successful probes observing inactivity or an identity change use
+  `PrimaryInactive` or `IdentityChanged`, preserving recorded/observed identities;
+  neither observation is a native driver error. NativeLibrary has cuBLAS/cuRAND domain tags independent of library
   feature selection; the numeric value is the unchanged native enum status.
 - Pure cached `loss.refusal()` derives `PrimaryContextRefusal::DriverStatus`
   for an original driver cause or `SyntheticUnknown` for library/synthetic
   causes. Its driver-status projection is UNKNOWN only in the latter case;
   documentation and diagnostics explicitly label that projection SYNTHETIC,
   never a measured driver UNKNOWN. An actual driver UNKNOWN remains a distinct
-  DriverStatus cause. No native query participates in reading/formatting loss.
+  DriverStatus cause. Successful inactive/changed-ID observations project to
+  `SyntheticContextDestroyed`, whose driver-status projection is SYNTHETIC709.
+  An actual native709 remains `DriverStatus(709)`. No native query participates
+  in reading/formatting loss.
 - Existing driver-returning operations may return the documented synthetic
   UNKNOWN projection; callers inspect the authoritative cached cause. Library
   safe errors add `Lost(PrimaryContextLoss)` for a synthetic terminal refusal,

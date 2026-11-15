@@ -47,6 +47,10 @@ pub enum PrimaryContextLossCause {
         /// The unchanged numeric status reported by that library.
         status: u32,
     },
+    /// A successful primary-state query observed that the context was inactive.
+    PrimaryInactive,
+    /// A successful identity query observed a different context identity.
+    IdentityChanged,
     /// Conservative refusal after poison or unwind without a native status.
     SyntheticUnknown,
 }
@@ -56,6 +60,8 @@ pub enum PrimaryContextLossCause {
 pub enum PrimaryContextRefusal {
     /// An actual native driver status, including actual native UNKNOWN.
     DriverStatus(sys::CUresult),
+    /// SYNTHETIC CONTEXT_IS_DESTROYED after an inactive or changed-ID observation.
+    SyntheticContextDestroyed,
     /// SYNTHETIC UNKNOWN; inspect the authoritative cause for its origin.
     SyntheticUnknown,
 }
@@ -63,13 +69,15 @@ pub enum PrimaryContextRefusal {
 impl PrimaryContextRefusal {
     /// Projects refusal into the status required by driver-returning APIs.
     ///
-    /// UNKNOWN from `SyntheticUnknown` is SYNTHETIC, never a measured driver
-    /// status. Inspect the refusal variant and cached loss cause to distinguish it.
-    /// This pure conversion performs no native dispatch.
+    /// UNKNOWN from `SyntheticUnknown` and CONTEXT_IS_DESTROYED from
+    /// `SyntheticContextDestroyed` are SYNTHETIC, never measured driver statuses.
+    /// Inspect the refusal variant and cached loss cause to distinguish their
+    /// origin. This pure conversion performs no native dispatch.
     pub fn driver_status(self) -> sys::CUresult {
         match self {
             Self::DriverStatus(status) => status,
             Self::SyntheticUnknown => sys::CUresult::CUDA_ERROR_UNKNOWN,
+            Self::SyntheticContextDestroyed => sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED,
         }
     }
 }
@@ -373,13 +381,15 @@ pub struct PrimaryContextLoss {
 impl PrimaryContextLoss {
     /// Derives a cached refusal without querying or formatting native errors.
     ///
-    /// Library and synthetic causes project to explicit SYNTHETIC UNKNOWN.
-    /// An actual native driver UNKNOWN remains `DriverStatus(UNKNOWN)`.
+    /// Library and unknown causes project to explicit SYNTHETIC UNKNOWN.
+    /// Successful inactive/changed-ID observations project to SYNTHETIC
+    /// CONTEXT_IS_DESTROYED. Actual native statuses keep `DriverStatus`.
     pub fn refusal(self) -> PrimaryContextRefusal {
         match self.cause {
             PrimaryContextLossCause::DriverStatus(status) => {
                 PrimaryContextRefusal::DriverStatus(status)
             }
+            PrimaryContextLossCause::PrimaryInactive | PrimaryContextLossCause::IdentityChanged => PrimaryContextRefusal::SyntheticContextDestroyed,
             PrimaryContextLossCause::NativeLibraryCleanup { .. }
             | PrimaryContextLossCause::SyntheticUnknown => PrimaryContextRefusal::SyntheticUnknown,
         }

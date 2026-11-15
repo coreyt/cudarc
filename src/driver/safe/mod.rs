@@ -35,6 +35,8 @@ pub(crate) mod primary_context_library_cause_tests;
 pub(crate) mod primary_context_observation_tests;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod primary_context_probe_publication_tests;
+#[cfg(all(test, feature = "std"))]
+pub(crate) mod primary_context_probe_cause_tests;
 pub(crate) mod profile;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod slice_allocation_admission_tests;
