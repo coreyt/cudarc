@@ -28,6 +28,7 @@ pub(crate) mod seams {
         static STATE: Cell<Option<State>> = const { Cell::new(None) };
         static DESTROY_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
         static CREATE_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
+        static SYNCHRONIZE_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
     }
 
     pub(crate) struct Guard;
@@ -63,6 +64,10 @@ pub(crate) mod seams {
             CREATE_HOOK.with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
         }
 
+        pub(crate) fn set_synchronize_hook(&self, hook: impl FnMut() + 'static) {
+            SYNCHRONIZE_HOOK.with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
+        }
+
         pub(crate) fn set_destroy_error(&self, error: Option<sys::CUresult>) {
             let mut state = STATE.get().unwrap();
             state.destroy_error = error;
@@ -74,6 +79,7 @@ pub(crate) mod seams {
         fn drop(&mut self) {
             DESTROY_HOOK.with(|slot| *slot.borrow_mut() = None);
             CREATE_HOOK.with(|slot| *slot.borrow_mut() = None);
+            SYNCHRONIZE_HOOK.with(|slot| *slot.borrow_mut() = None);
             STATE.set(None);
         }
     }
@@ -119,6 +125,11 @@ pub(crate) mod seams {
         let mut state = STATE.get()?;
         state.counts.context_synchronizes += 1;
         STATE.set(Some(state));
+        SYNCHRONIZE_HOOK.with(|slot| {
+            if let Some(hook) = slot.borrow_mut().as_mut() {
+                hook();
+            }
+        });
         Some(match state.context_synchronize_error {
             Some(error) => Err(DriverError(error)),
             None => Ok(()),

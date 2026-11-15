@@ -21,6 +21,8 @@ pub(crate) mod profile;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod stream_construction_tests;
 #[cfg(all(test, feature = "std"))]
+pub(crate) mod stream_constructor_admission_tests;
+#[cfg(all(test, feature = "std"))]
 pub(crate) mod tracked_cleanup_bind_failure_tests;
 pub(crate) mod unified_memory;
 
