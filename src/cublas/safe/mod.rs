@@ -184,12 +184,13 @@ impl CudaBlas {
         &self,
         pointer_mode: sys::cublasPointerMode_t,
     ) -> Result<(), CublasError> {
+        let call = self.admit()?;
         #[cfg(test)]
         if let Some(result) = result::partial_init_test_seams::set_pointer_mode(pointer_mode) {
             return result;
         }
         unsafe {
-            sys::cublasSetPointerMode_v2(self.handle, pointer_mode).result()?;
+            sys::cublasSetPointerMode_v2(call.handle()?, pointer_mode).result()?;
         }
         Ok(())
     }
@@ -197,13 +198,14 @@ impl CudaBlas {
     /// Get the handle's current pointer mode.
     /// ref: <https://docs.nvidia.com/cuda/cublas/#cublasgetpointermode>
     pub fn get_pointer_mode(&self) -> Result<sys::cublasPointerMode_t, CublasError> {
+        let call = self.admit()?;
         #[cfg(test)]
         if let Some(result) = result::partial_init_test_seams::get_pointer_mode() {
             return result;
         }
         unsafe {
             let mut mode = ::core::mem::MaybeUninit::uninit();
-            sys::cublasGetPointerMode_v2(self.handle, mode.as_mut_ptr()).result()?;
+            sys::cublasGetPointerMode_v2(call.handle()?, mode.as_mut_ptr()).result()?;
             Ok(mode.assume_init())
         }
     }

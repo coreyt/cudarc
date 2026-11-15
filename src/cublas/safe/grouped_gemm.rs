@@ -169,6 +169,7 @@ impl<T: GroupedGemmDtype> GroupedGemm<T> for CudaBlas {
         b_slices: &[&B],
         c_slices: &mut [&mut C],
     ) -> Result<(), CublasError> {
+        let call = self.admit()?;
         config.validate();
         assert_eq!(a_slices.len(), config.problem_count());
         assert_eq!(b_slices.len(), config.problem_count());
@@ -204,7 +205,7 @@ impl<T: GroupedGemmDtype> GroupedGemm<T> for CudaBlas {
 
         unsafe {
             sys::cublasGemmGroupedBatchedEx(
-                self.handle,
+                call.handle()?,
                 config.transas.as_ptr(),
                 config.transbs.as_ptr(),
                 m_array.as_ptr(),

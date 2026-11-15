@@ -133,10 +133,13 @@ impl CudaRng {
 
     /// Re-seed the RNG.
     pub fn set_seed(&mut self, seed: u64) -> Result<(), result::CurandError> {
+        let _lease = Self::admit_stream(&self.stream)?;
         unsafe { result::set_seed(self.gen, seed) }
     }
 
+    /// Sets the generator offset, returning native or tracked admission errors.
     pub fn set_offset(&mut self, offset: u64) -> Result<(), result::CurandError> {
+        let _lease = Self::admit_stream(&self.stream)?;
         unsafe { result::set_offset(self.gen, offset) }
     }
 
@@ -148,8 +151,16 @@ impl CudaRng {
     where
         sys::curandGenerator_t: result::UniformFill<T>,
     {
+        let _lease = Self::admit_stream(&self.stream)?;
         let num = dst.len();
         let (dst, _record_dst) = dst.device_ptr_mut(&self.stream);
+        #[cfg(feature = "std")]
+        if self.stream.ctx.primary_lifetime.is_some() {
+            self.stream
+                .ctx
+                .check_err()
+                .map_err(|error| Self::admission_error(&self.stream, error))?;
+        }
         unsafe { result::UniformFill::fill(self.gen, dst as *mut T, num) }
     }
 
@@ -163,8 +174,16 @@ impl CudaRng {
     where
         sys::curandGenerator_t: result::NormalFill<T>,
     {
+        let _lease = Self::admit_stream(&self.stream)?;
         let num = dst.len();
         let (dst, _record_dst) = dst.device_ptr_mut(&self.stream);
+        #[cfg(feature = "std")]
+        if self.stream.ctx.primary_lifetime.is_some() {
+            self.stream
+                .ctx
+                .check_err()
+                .map_err(|error| Self::admission_error(&self.stream, error))?;
+        }
         unsafe { result::NormalFill::fill(self.gen, dst as *mut T, num, mean, std) }
     }
 
@@ -178,8 +197,16 @@ impl CudaRng {
     where
         sys::curandGenerator_t: result::LogNormalFill<T>,
     {
+        let _lease = Self::admit_stream(&self.stream)?;
         let num = dst.len();
         let (dst, _record_dst) = dst.device_ptr_mut(&self.stream);
+        #[cfg(feature = "std")]
+        if self.stream.ctx.primary_lifetime.is_some() {
+            self.stream
+                .ctx
+                .check_err()
+                .map_err(|error| Self::admission_error(&self.stream, error))?;
+        }
         unsafe { result::LogNormalFill::fill(self.gen, dst as *mut T, num, mean, std) }
     }
 }

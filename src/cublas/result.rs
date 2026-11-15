@@ -668,7 +668,9 @@ pub(crate) mod partial_init_test_seams {
         }
     }
 
-    pub(crate) fn set_pointer_mode(mode: sys::cublasPointerMode_t) -> Option<Result<(), CublasError>> {
+    pub(crate) fn set_pointer_mode(
+        mode: sys::cublasPointerMode_t,
+    ) -> Option<Result<(), CublasError>> {
         let result = operation()?;
         Some(result.map(|()| {
             let mut state = STATE.get().unwrap();
