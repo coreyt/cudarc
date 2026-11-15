@@ -752,6 +752,9 @@ impl CudaContext {
     ///
     /// A tracked context holds admission through binding and shares an existing
     /// admitted epoch. Keep an outer lifetime lease across compound native work.
+    /// Native get/set-current CONTEXT_IS_DESTROYED or INVALID_CONTEXT results
+    /// publish shared terminal loss before return. Ordinary native OOM remains
+    /// retryable and is not copied into the delayed-error slot.
     pub fn bind_to_thread(&self) -> Result<(), DriverError> {
         self.check_err()?;
         #[cfg(feature = "std")]
@@ -764,13 +767,28 @@ impl CudaContext {
     }
 
     fn bind_current_to_thread(&self) -> Result<(), DriverError> {
-        if match result::ctx::get_current()? {
-            Some(curr_ctx) => curr_ctx != self.cu_ctx,
-            None => true,
-        } {
-            unsafe { result::ctx::set_current(self.cu_ctx) }?;
+        let result: Result<(), DriverError> = (|| {
+            if match result::ctx::get_current()? {
+                Some(curr_ctx) => curr_ctx != self.cu_ctx,
+                None => true,
+            } {
+                unsafe { result::ctx::set_current(self.cu_ctx) }?;
+            }
+            Ok(())
+        })();
+        #[cfg(feature = "std")]
+        if let Err(error) = &result {
+            if matches!(
+                error.0,
+                sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED
+                    | sys::CUresult::CUDA_ERROR_INVALID_CONTEXT
+            ) {
+                if let Some(lifetime) = &self.primary_lifetime {
+                    lifetime.record_loss(*error, None);
+                }
+            }
         }
-        Ok(())
+        result
     }
 
     pub(crate) fn bind_for_cleanup(&self) -> Result<(), DriverError> {
