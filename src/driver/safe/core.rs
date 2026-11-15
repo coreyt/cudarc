@@ -792,7 +792,18 @@ impl CudaContext {
     }
 
     pub(crate) fn bind_for_cleanup(&self) -> Result<(), DriverError> {
-        // A stored ordinary error is not a failure of native cleanup binding.
+        // Cleanup preserves pending ordinary errors for their caller; only a
+        // shared terminal loss can veto a tracked owner's native binding.
+        #[cfg(feature = "std")]
+        match &self.primary_lifetime {
+            Some(lifetime) => {
+                if let Some(error) = lifetime.error() {
+                    return Err(error);
+                }
+            }
+            None => self.check_err()?,
+        }
+        #[cfg(not(feature = "std"))]
         self.check_err()?;
         let result = self.bind_current_to_thread();
         #[cfg(feature = "std")]
@@ -970,6 +981,19 @@ impl CudaContext {
         if let Err(error) = &result {
             if let Some(lifetime) = &self.primary_lifetime {
                 lifetime.record_error(*error);
+            }
+        }
+        result
+    }
+
+    fn record_cleanup_prerequisite_result<T>(
+        &self,
+        result: Result<T, DriverError>,
+    ) -> Result<T, DriverError> {
+        #[cfg(feature = "std")]
+        if let Err(error) = &result {
+            if let Some(lifetime) = &self.primary_lifetime {
+                lifetime.record_loss(*error, None);
             }
         }
         result
@@ -1455,6 +1479,35 @@ impl CudaStream {
             }))
     }
 
+    // Slice cleanup already holds admission for this stream and its own events.
+    // Fresh cleanup binding must not consume an earlier ordinary operation error.
+    fn wait_for_cleanup(&self, event: &CudaEvent) -> Result<(), DriverError> {
+        #[cfg(feature = "std")]
+        if self.ctx.primary_lifetime.is_some() {
+            debug_assert!(Arc::ptr_eq(&self.ctx, &event.ctx));
+            self.ctx.bind_for_cleanup()?;
+            return self.ctx.record_cleanup_prerequisite_result(unsafe {
+                result::stream::wait_event(
+                    self.cu_stream,
+                    event.cu_event,
+                    sys::CUevent_wait_flags::CU_EVENT_WAIT_DEFAULT,
+                )
+            });
+        }
+        self.wait(event)
+    }
+
+    fn synchronize_for_cleanup(&self) -> Result<(), DriverError> {
+        #[cfg(feature = "std")]
+        if self.ctx.primary_lifetime.is_some() {
+            self.ctx.bind_for_cleanup()?;
+            return self.ctx.record_cleanup_prerequisite_result(unsafe {
+                result::stream::synchronize(self.cu_stream)
+            });
+        }
+        self.synchronize()
+    }
+
     /// Ensures this stream waits for the current workload in `other` to complete.
     /// This is shorthand for `self.wait(other.record_event())`
     pub fn join(&self, other: &CudaStream) -> Result<(), DriverError> {
@@ -1508,7 +1561,7 @@ impl<T> Drop for CudaSlice<T> {
                 .into_iter()
                 .flatten()
             {
-                if let Err(error) = self.stream.wait(event) {
+                if let Err(error) = self.stream.wait_for_cleanup(event) {
                     ctx.record_err::<()>(Err(error));
                     #[cfg(feature = "std")]
                     if ctx.primary_lifetime.is_some() {
@@ -1520,7 +1573,7 @@ impl<T> Drop for CudaSlice<T> {
         if ctx.has_async_alloc {
             ctx.record_err(unsafe { result::free_async(pointer, self.stream.cu_stream) });
         } else {
-            if let Err(error) = self.stream.synchronize() {
+            if let Err(error) = self.stream.synchronize_for_cleanup() {
                 ctx.record_err::<()>(Err(error));
                 #[cfg(feature = "std")]
                 if ctx.primary_lifetime.is_some() {
@@ -2282,25 +2335,37 @@ impl CudaStream {
     }
 
     /// Allocates a [CudaSlice] with `len` elements of type `T`.
+    /// Tracked construction holds admission through native allocation, event
+    /// setup and completed ownership or error unwind.
     /// # Safety
     /// This is unsafe because the memory is unset.
     pub unsafe fn alloc<T: DeviceRepr>(
         self: &Arc<Self>,
         len: usize,
     ) -> Result<CudaSlice<T>, DriverError> {
+        #[cfg(feature = "std")]
+        let _lease = match &self.ctx.primary_lifetime {
+            Some(lifetime) => {
+                self.ctx.check_err()?;
+                Some(lifetime.admit()?)
+            }
+            None => None,
+        };
         self.ctx.bind_to_thread()?;
         // FATHOMDB PATCH: a private-pool context allocates only from its own pool.
-        let cu_device_ptr = if let Some(pool) = &self.ctx.mem_pool {
-            result::mem_pool::alloc_async(
-                pool.raw(),
-                len * std::mem::size_of::<T>(),
-                self.cu_stream,
-            )?
-        } else if self.ctx.has_async_alloc {
-            result::malloc_async(self.cu_stream, len * std::mem::size_of::<T>())?
-        } else {
-            malloc_sync_or_null(len * std::mem::size_of::<T>())? // FATHOMDB PATCH
-        };
+        let cu_device_ptr =
+            self.ctx
+                .record_terminal_result(if let Some(pool) = &self.ctx.mem_pool {
+                    result::mem_pool::alloc_async(
+                        pool.raw(),
+                        len * std::mem::size_of::<T>(),
+                        self.cu_stream,
+                    )
+                } else if self.ctx.has_async_alloc {
+                    result::malloc_async(self.cu_stream, len * std::mem::size_of::<T>())
+                } else {
+                    malloc_sync_or_null(len * std::mem::size_of::<T>()) // FATHOMDB PATCH
+                })?;
         let mut allocation = CudaSlice {
             cu_device_ptr,
             len,

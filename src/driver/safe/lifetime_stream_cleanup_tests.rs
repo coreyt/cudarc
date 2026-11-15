@@ -366,7 +366,14 @@ fn idle_owned_stream_drop_discovers_inactive_primary_before_destroy() {
     );
     assert_eq!((after.queries, after.binds), (before.queries, before.binds));
     assert_eq!(
-        lifetime.state.lock().unwrap().loss.unwrap().error as u32,
+        lifetime
+            .state
+            .lock()
+            .unwrap()
+            .loss
+            .unwrap()
+            .refusal()
+            .driver_status() as u32,
         sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED as u32
     );
     assert_eq!(lifetime.state.lock().unwrap().active_leases, 0);
@@ -423,7 +430,14 @@ fn idle_owned_stream_drop_refuses_failed_primary_or_identity_queries() {
         );
         assert_eq!((after.queries, after.binds), (before.queries, before.binds));
         assert_eq!(
-            lifetime.state.lock().unwrap().loss.unwrap().error as u32,
+            lifetime
+                .state
+                .lock()
+                .unwrap()
+                .loss
+                .unwrap()
+                .refusal()
+                .driver_status() as u32,
             error as u32
         );
         assert_eq!(lifetime.state.lock().unwrap().active_leases, 0);

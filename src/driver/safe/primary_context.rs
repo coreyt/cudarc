@@ -24,6 +24,64 @@ pub(crate) struct PrimaryContextState {
     pub(crate) probing: bool,
 }
 
+/// Native library domain responsible for an observed cleanup status.
+///
+/// Domain tags are available independently of optional library features.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NativeLibrary {
+    /// NVIDIA cuBLAS.
+    Cublas,
+    /// NVIDIA cuRAND.
+    Curand,
+}
+
+/// Authoritative first cause of terminal generation refusal.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PrimaryContextLossCause {
+    /// An actual status observed from a native driver call.
+    DriverStatus(sys::CUresult),
+    /// An actual native library cleanup status; no driver status was observed.
+    NativeLibraryCleanup {
+        /// The native library that reported cleanup failure.
+        library: NativeLibrary,
+        /// The unchanged numeric status reported by that library.
+        status: u32,
+    },
+    /// A successful primary-state query observed that the context was inactive.
+    PrimaryInactive,
+    /// A successful identity query observed a different context identity.
+    IdentityChanged,
+    /// Conservative refusal after poison or unwind without a native status.
+    SyntheticUnknown,
+}
+
+/// Cached projection of terminal loss for driver-returning operations.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PrimaryContextRefusal {
+    /// An actual native driver status, including actual native UNKNOWN.
+    DriverStatus(sys::CUresult),
+    /// SYNTHETIC CONTEXT_IS_DESTROYED after an inactive or changed-ID observation.
+    SyntheticContextDestroyed,
+    /// SYNTHETIC UNKNOWN; inspect the authoritative cause for its origin.
+    SyntheticUnknown,
+}
+
+impl PrimaryContextRefusal {
+    /// Projects refusal into the status required by driver-returning APIs.
+    ///
+    /// UNKNOWN from `SyntheticUnknown` and CONTEXT_IS_DESTROYED from
+    /// `SyntheticContextDestroyed` are SYNTHETIC, never measured driver statuses.
+    /// Inspect the refusal variant and cached loss cause to distinguish their
+    /// origin. This pure conversion performs no native dispatch.
+    pub fn driver_status(self) -> sys::CUresult {
+        match self {
+            Self::DriverStatus(status) => status,
+            Self::SyntheticUnknown => sys::CUresult::CUDA_ERROR_UNKNOWN,
+            Self::SyntheticContextDestroyed => sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED,
+        }
+    }
+}
+
 /// Healthy admission to one tracked primary-context generation.
 ///
 /// Keep this lease through native work and its completion or unwind. Dropping
@@ -66,7 +124,7 @@ impl Drop for PrimaryContextProbe<'_> {
                 state.loss = Some(PrimaryContextLoss {
                     recorded_id: self.lifetime.recorded_id,
                     observed_id: None,
-                    error: sys::CUresult::CUDA_ERROR_UNKNOWN,
+                    cause: PrimaryContextLossCause::SyntheticUnknown,
                 });
             }
             state.probing = false;
@@ -132,7 +190,7 @@ impl PrimaryContextLifetime {
         let mut state = self.lock_state();
         loop {
             if let Some(loss) = state.loss {
-                return Err(DriverError(loss.error));
+                return Err(DriverError(loss.refusal().driver_status()));
             }
             if state.active_leases > 0 {
                 state.active_leases += 1;
@@ -171,7 +229,7 @@ impl PrimaryContextLifetime {
         let mut state = self.lock_state();
         state.probing = false;
         let result = match state.loss {
-            Some(loss) => Err(DriverError(loss.error)),
+            Some(loss) => Err(DriverError(loss.refusal().driver_status())),
             None => {
                 state.active_leases += 1;
                 Ok(PrimaryContextLease {
@@ -201,7 +259,7 @@ impl PrimaryContextLifetime {
                     state.loss = Some(PrimaryContextLoss {
                         recorded_id: self.recorded_id,
                         observed_id: None,
-                        error: sys::CUresult::CUDA_ERROR_UNKNOWN,
+                        cause: PrimaryContextLossCause::SyntheticUnknown,
                     });
                 }
                 state.probing = false;
@@ -229,7 +287,9 @@ impl PrimaryContextLifetime {
     }
 
     pub(crate) fn error(&self) -> Option<DriverError> {
-        self.lock_state().loss.map(|loss| DriverError(loss.error))
+        self.lock_state()
+            .loss
+            .map(|loss| DriverError(loss.refusal().driver_status()))
     }
 
     pub(crate) fn check_primary(
@@ -251,7 +311,7 @@ impl PrimaryContextLifetime {
             return Err(error);
         }
         if !active {
-            self.record_error(DriverError(sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED));
+            self.record_cause(PrimaryContextLossCause::PrimaryInactive, None);
         } else {
             let id = match unsafe { crate::driver::result::ctx::get_id(context) } {
                 Ok(id) => id,
@@ -261,10 +321,7 @@ impl PrimaryContextLifetime {
                 }
             };
             if id != self.recorded_id {
-                self.record_loss(
-                    DriverError(sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED),
-                    Some(id),
-                );
+                self.record_cause(PrimaryContextLossCause::IdentityChanged, Some(id));
             }
         }
         match self.error() {
@@ -279,13 +336,24 @@ impl PrimaryContextLifetime {
         }
     }
 
+    pub(crate) fn record_library_cleanup_loss(&self, library: NativeLibrary, status: u32) {
+        self.record_cause(
+            PrimaryContextLossCause::NativeLibraryCleanup { library, status },
+            None,
+        );
+    }
+
     pub(super) fn record_loss(&self, error: DriverError, observed_id: Option<u64>) {
+        self.record_cause(PrimaryContextLossCause::DriverStatus(error.0), observed_id);
+    }
+
+    fn record_cause(&self, cause: PrimaryContextLossCause, observed_id: Option<u64>) {
         let mut state = self.lock_state();
         if state.loss.is_none() {
             state.loss = Some(PrimaryContextLoss {
                 recorded_id: self.recorded_id,
                 observed_id,
-                error: error.0,
+                cause,
             });
         }
         drop(state);
@@ -303,10 +371,28 @@ pub struct PrimaryContextLoss {
     pub recorded_id: u64,
     /// A different observed identity, when the probe obtained one.
     pub observed_id: Option<u64>,
-    /// The status recorded for terminal refusal. UNKNOWN can be a synthetic
-    /// conservative refusal after state poisoning or probe unwind, rather than
-    /// a status measured from a native query.
-    pub error: sys::CUresult,
+    /// The actual driver/library cause, or an explicit synthetic refusal.
+    pub cause: PrimaryContextLossCause,
+}
+
+impl PrimaryContextLoss {
+    /// Derives a cached refusal without querying or formatting native errors.
+    ///
+    /// Library and unknown causes project to explicit SYNTHETIC UNKNOWN.
+    /// Successful inactive/changed-ID observations project to SYNTHETIC
+    /// CONTEXT_IS_DESTROYED. Actual native statuses keep `DriverStatus`.
+    pub fn refusal(self) -> PrimaryContextRefusal {
+        match self.cause {
+            PrimaryContextLossCause::DriverStatus(status) => {
+                PrimaryContextRefusal::DriverStatus(status)
+            }
+            PrimaryContextLossCause::PrimaryInactive | PrimaryContextLossCause::IdentityChanged => {
+                PrimaryContextRefusal::SyntheticContextDestroyed
+            }
+            PrimaryContextLossCause::NativeLibraryCleanup { .. }
+            | PrimaryContextLossCause::SyntheticUnknown => PrimaryContextRefusal::SyntheticUnknown,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -364,7 +450,7 @@ mod fathomdb_primary_lifetime {
             Some(PrimaryContextLoss {
                 recorded_id: 17,
                 observed_id: None,
-                error: lost
+                cause: PrimaryContextLossCause::DriverStatus(lost)
             })
         );
     }
@@ -457,7 +543,7 @@ mod fathomdb_primary_lifetime {
             Some(PrimaryContextLoss {
                 recorded_id: 29,
                 observed_id: None,
-                error: lost
+                cause: PrimaryContextLossCause::PrimaryInactive
             })
         );
     }
@@ -552,7 +638,7 @@ mod fathomdb_primary_lifetime {
             Some(PrimaryContextLoss {
                 recorded_id: 17,
                 observed_id: Some(42),
-                error: lost
+                cause: PrimaryContextLossCause::IdentityChanged
             })
         );
     }
@@ -605,7 +691,7 @@ mod fathomdb_primary_lifetime {
             Some(PrimaryContextLoss {
                 recorded_id: 17,
                 observed_id: None,
-                error
+                cause: PrimaryContextLossCause::DriverStatus(error)
             })
         );
     }
@@ -621,7 +707,9 @@ mod fathomdb_primary_lifetime {
             let loss = terminal.then_some(PrimaryContextLoss {
                 recorded_id: 17,
                 observed_id: None,
-                error: sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED,
+                cause: PrimaryContextLossCause::DriverStatus(
+                    sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED,
+                ),
             });
             let lifetime = Arc::new(PrimaryContextLifetime {
                 recorded_id: 17,
@@ -748,7 +836,7 @@ mod fathomdb_primary_lifetime {
             Some(PrimaryContextLoss {
                 recorded_id: 17,
                 observed_id: None,
-                error
+                cause: PrimaryContextLossCause::DriverStatus(error)
             })
         );
     }
@@ -1008,7 +1096,7 @@ mod fathomdb_primary_admission {
                     state.loss = Some(PrimaryContextLoss {
                         recorded_id: self.lifetime.recorded_id,
                         observed_id: None,
-                        error: sys::CUresult::CUDA_ERROR_UNKNOWN,
+                        cause: PrimaryContextLossCause::SyntheticUnknown,
                     });
                 }
                 state.probing = false;
@@ -1342,7 +1430,10 @@ mod fathomdb_primary_admission {
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         assert_eq!(
-            state.loss.as_ref().map(|loss| loss.error as u32),
+            state
+                .loss
+                .as_ref()
+                .map(|loss| loss.refusal().driver_status() as u32),
             Some(error as u32)
         );
         assert_eq!(state.active_leases, 0);

@@ -244,12 +244,13 @@ fn event_native_terminal_result_is_shared_before_later_event_use() {
         let lost = sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED;
         set_error(&events, operation, Some(lost));
         let first = run(operation, &event, &stream).map_err(|error| error.0 as u32);
-        let first_record = lifetime
-            .state
-            .lock()
-            .unwrap()
-            .loss
-            .map(|loss| (loss.recorded_id, loss.observed_id, loss.error as u32));
+        let first_record = lifetime.state.lock().unwrap().loss.map(|loss| {
+            (
+                loss.recorded_id,
+                loss.observed_id,
+                loss.refusal().driver_status() as u32,
+            )
+        });
         let failed = driver.snapshot();
         let failed_events = events.snapshot();
         set_error(&events, operation, None);

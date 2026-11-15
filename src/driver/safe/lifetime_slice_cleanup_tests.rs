@@ -10,6 +10,7 @@ pub(crate) mod seams {
 
     #[derive(Clone, Copy, Debug, Default)]
     pub(crate) struct Counts {
+        pub(crate) allocation_attempts: usize,
         pub(crate) async_allocations: usize,
         pub(crate) sync_allocations: usize,
         pub(crate) async_frees: usize,
@@ -21,12 +22,15 @@ pub(crate) mod seams {
     struct State {
         counts: Counts,
         live: Option<(sys::CUdeviceptr, usize, bool)>,
+        allocate_error: Option<sys::CUresult>,
         synchronize_error: Option<sys::CUresult>,
+        expected_stream: Option<sys::CUstream>,
     }
 
     std::thread_local! {
         static STATE: Cell<Option<State>> = const { Cell::new(None) };
         static FREE_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
+        static ALLOCATE_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
     }
 
     pub(crate) struct Guard;
@@ -36,6 +40,22 @@ pub(crate) mod seams {
             assert!(STATE.get().is_none());
             STATE.set(Some(State::default()));
             Self
+        }
+
+        pub(crate) fn set_allocate_hook(&self, hook: impl FnMut() + 'static) {
+            ALLOCATE_HOOK.with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
+        }
+
+        pub(crate) fn set_allocate_error(&self, error: Option<sys::CUresult>) {
+            let mut state = STATE.get().unwrap();
+            state.allocate_error = error;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_expected_stream(&self, stream: sys::CUstream) {
+            let mut state = STATE.get().unwrap();
+            state.expected_stream = Some(stream);
+            STATE.set(Some(state));
         }
 
         pub(crate) fn set_synchronize_error(&self, error: Option<sys::CUresult>) {
@@ -56,14 +76,28 @@ pub(crate) mod seams {
     impl Drop for Guard {
         fn drop(&mut self) {
             FREE_HOOK.with(|slot| *slot.borrow_mut() = None);
+            ALLOCATE_HOOK.with(|slot| *slot.borrow_mut() = None);
             STATE.set(None);
         }
     }
 
-    pub(crate) fn allocate(bytes: usize, asynchronous: bool) -> Option<sys::CUdeviceptr> {
+    pub(crate) fn allocate(
+        bytes: usize,
+        asynchronous: bool,
+    ) -> Option<Result<sys::CUdeviceptr, DriverError>> {
         let mut state = STATE.get()?;
         assert!(state.live.is_none());
         assert_eq!(bytes, 16);
+        state.counts.allocation_attempts += 1;
+        STATE.set(Some(state));
+        ALLOCATE_HOOK.with(|slot| {
+            if let Some(hook) = slot.borrow_mut().as_mut() {
+                hook();
+            }
+        });
+        if let Some(error) = state.allocate_error {
+            return Some(Err(DriverError(error)));
+        }
         if asynchronous {
             state.counts.async_allocations += 1;
         } else {
@@ -73,7 +107,7 @@ pub(crate) mod seams {
             as sys::CUdeviceptr;
         state.live = Some((pointer, bytes, asynchronous));
         STATE.set(Some(state));
-        Some(pointer)
+        Some(Ok(pointer))
     }
 
     pub(crate) fn free(pointer: sys::CUdeviceptr, asynchronous: bool) -> bool {
@@ -99,9 +133,17 @@ pub(crate) mod seams {
         true
     }
 
+    pub(crate) fn assert_stream(stream: sys::CUstream) {
+        let state = STATE.get().unwrap();
+        assert_eq!(
+            stream,
+            state.expected_stream.unwrap_or(std::ptr::null_mut())
+        );
+    }
+
     pub(crate) fn stream_synchronize(stream: sys::CUstream) -> Option<Result<(), DriverError>> {
         let mut state = STATE.get()?;
-        assert!(stream.is_null());
+        assert_stream(stream);
         state.counts.stream_synchronizes += 1;
         STATE.set(Some(state));
         Some(match state.synchronize_error {
@@ -279,7 +321,7 @@ fn idle_slice_drop_discovers_inactive_primary_before_free_or_nested_cleanup() {
         );
         assert_eq!((after.queries, after.binds), (before.queries, before.binds));
         assert_eq!(
-            lifetime.loss().unwrap().error as u32,
+            lifetime.loss().unwrap().refusal().driver_status() as u32,
             sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED as u32
         );
         drop(stream);
@@ -324,7 +366,10 @@ fn native_slice_cleanup_bind_failure_quarantines_before_free() {
         assert_eq!(freed.stream_synchronizes, 0);
         assert_eq!(events.snapshot().destroyed, 0);
         assert_eq!(driver.snapshot().queries, before.queries + 1);
-        assert_eq!(lifetime.loss().unwrap().error as u32, error as u32);
+        assert_eq!(
+            lifetime.loss().unwrap().refusal().driver_status() as u32,
+            error as u32
+        );
         driver.set_current_query_error(None);
         let stopped = driver.snapshot();
         assert_eq!(

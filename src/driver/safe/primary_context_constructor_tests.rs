@@ -118,7 +118,11 @@ fn replaced_identity_refuses_construction_before_allocator_or_bind() {
     );
     let loss = lifetime.state.lock().unwrap().loss.unwrap();
     assert_eq!(
-        (loss.recorded_id, loss.observed_id, loss.error as u32),
+        (
+            loss.recorded_id,
+            loss.observed_id,
+            loss.refusal().driver_status() as u32
+        ),
         (17, Some(42), lost as u32)
     );
     assert_eq!(lifetime.state.lock().unwrap().active_leases, 0);

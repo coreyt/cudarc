@@ -52,9 +52,13 @@ fn native_terminal_bind_results_publish_first_loss_before_return() {
             let failed = context.bind_to_thread().map_err(|error| error.0 as u32);
 
             let stopped = driver.snapshot();
-            let first_record = lifetime
-                .loss()
-                .map(|loss| (loss.recorded_id, loss.observed_id, loss.error as u32));
+            let first_record = lifetime.loss().map(|loss| {
+                (
+                    loss.recorded_id,
+                    loss.observed_id,
+                    loss.refusal().driver_status() as u32,
+                )
+            });
             force(&driver, point, None);
             let first_read = context.check_err().map_err(|error| error.0 as u32);
             let second_read = context.check_err().map_err(|error| error.0 as u32);
