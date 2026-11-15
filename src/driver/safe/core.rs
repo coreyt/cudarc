@@ -760,6 +760,10 @@ impl CudaContext {
             .as_ref()
             .map(|lifetime| lifetime.admit())
             .transpose()?;
+        self.bind_current_to_thread()
+    }
+
+    fn bind_current_to_thread(&self) -> Result<(), DriverError> {
         if match result::ctx::get_current()? {
             Some(curr_ctx) => curr_ctx != self.cu_ctx,
             None => true,
@@ -767,6 +771,19 @@ impl CudaContext {
             unsafe { result::ctx::set_current(self.cu_ctx) }?;
         }
         Ok(())
+    }
+
+    fn bind_for_cleanup(&self) -> Result<(), DriverError> {
+        // A stored ordinary error is not a failure of native cleanup binding.
+        self.check_err()?;
+        let result = self.bind_current_to_thread();
+        #[cfg(feature = "std")]
+        if let Err(error) = &result {
+            if let Some(lifetime) = &self.primary_lifetime {
+                lifetime.record_loss(*error, None);
+            }
+        }
+        result
     }
 
     /// Get the value of the specified attribute of the device in [CudaContext].
@@ -979,7 +996,7 @@ impl Drop for CudaEvent {
             },
             None => None,
         };
-        if let Err(error) = self.ctx.bind_to_thread() {
+        if let Err(error) = self.ctx.bind_for_cleanup() {
             self.ctx.record_err::<()>(Err(error));
             #[cfg(feature = "std")]
             if self.ctx.primary_lifetime.is_some() {
@@ -1132,7 +1149,7 @@ impl Drop for CudaStream {
             },
             None => None,
         };
-        if let Err(error) = self.ctx.bind_to_thread() {
+        if let Err(error) = self.ctx.bind_for_cleanup() {
             self.ctx.record_err::<()>(Err(error));
             #[cfg(feature = "std")]
             if self.ctx.primary_lifetime.is_some() {

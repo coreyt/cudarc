@@ -262,7 +262,7 @@ impl PrimaryContextLifetime {
         }
     }
 
-    fn record_loss(&self, error: DriverError, observed_id: Option<u64>) {
+    pub(super) fn record_loss(&self, error: DriverError, observed_id: Option<u64>) {
         let mut state = self.lock_state();
         if state.loss.is_none() {
             state.loss = Some(PrimaryContextLoss {

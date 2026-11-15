@@ -1,24 +1,52 @@
 #![cfg(not(any(
-    feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060",
-    feature = "cuda-11070", feature = "cuda-11080"
+    feature = "cuda-11040",
+    feature = "cuda-11050",
+    feature = "cuda-11060",
+    feature = "cuda-11070",
+    feature = "cuda-11080"
 )))]
 
-use super::{lifetime_event_cleanup_tests::seams as event_seams, lifetime_stream_cleanup_tests::seams as stream_seams};
-use crate::driver::{result::context_test_seams, sys, CudaContext, CudaEvent, CudaStream, DriverError, PrimaryContextLifetime};
+use super::{
+    lifetime_event_cleanup_tests::seams as event_seams,
+    lifetime_stream_cleanup_tests::seams as stream_seams,
+};
+use crate::driver::{
+    result::context_test_seams, sys, CudaContext, CudaEvent, CudaStream, DriverError,
+    PrimaryContextLifetime,
+};
 use std::sync::{atomic::Ordering, Arc};
 
 #[derive(Clone, Copy, Debug)]
-enum OwnerKind { Event, Stream }
+enum OwnerKind {
+    Event,
+    Stream,
+}
 
 #[derive(Clone, Copy, Debug)]
-enum FailurePoint { CurrentQuery, CurrentBind }
+enum FailurePoint {
+    CurrentQuery,
+    CurrentBind,
+}
 
-enum Owner { Event(CudaEvent), Stream(Arc<CudaStream>) }
+enum Owner {
+    Event(CudaEvent),
+    Stream(Arc<CudaStream>),
+}
 
 fn create_owner(kind: OwnerKind, context: &Arc<CudaContext>) -> Owner {
     match kind {
-        OwnerKind::Event => Owner::Event(context.new_event(None).map_err(|error| error.0 as u32).unwrap()),
-        OwnerKind::Stream => Owner::Stream(context.new_stream().map_err(|error| error.0 as u32).unwrap()),
+        OwnerKind::Event => Owner::Event(
+            context
+                .new_event(None)
+                .map_err(|error| error.0 as u32)
+                .unwrap(),
+        ),
+        OwnerKind::Stream => Owner::Stream(
+            context
+                .new_stream()
+                .map_err(|error| error.0 as u32)
+                .unwrap(),
+        ),
     }
 }
 
@@ -28,9 +56,15 @@ fn check_native_failure(error: sys::CUresult) {
             let driver = context_test_seams::Guard::new();
             let events = event_seams::Guard::new();
             let streams = stream_seams::Guard::new();
-            let lifetime = PrimaryContextLifetime::new(0).map_err(|error| error.0 as u32).unwrap();
-            let context = CudaContext::new_tracked(Arc::clone(&lifetime)).map_err(|error| error.0 as u32).unwrap();
-            let sibling = CudaContext::new_tracked(Arc::clone(&lifetime)).map_err(|error| error.0 as u32).unwrap();
+            let lifetime = PrimaryContextLifetime::new(0)
+                .map_err(|error| error.0 as u32)
+                .unwrap();
+            let context = CudaContext::new_tracked(Arc::clone(&lifetime))
+                .map_err(|error| error.0 as u32)
+                .unwrap();
+            let sibling = CudaContext::new_tracked(Arc::clone(&lifetime))
+                .map_err(|error| error.0 as u32)
+                .unwrap();
             let owner = create_owner(kind, &context);
             assert_eq!(events.snapshot().created + streams.snapshot().created, 1);
             let before = driver.snapshot();
@@ -45,10 +79,16 @@ fn check_native_failure(error: sys::CUresult) {
             drop(owner);
 
             let failed = driver.snapshot();
-            assert_eq!(events.snapshot().destroyed + streams.snapshot().destroyed, 0);
+            assert_eq!(
+                events.snapshot().destroyed + streams.snapshot().destroyed,
+                0
+            );
             assert_eq!(context.num_streams.load(Ordering::Relaxed), 0);
             assert_eq!(failed.queries, before.queries + 1);
-            assert_eq!(failed.binds, before.binds + usize::from(matches!(point, FailurePoint::CurrentBind)));
+            assert_eq!(
+                failed.binds,
+                before.binds + usize::from(matches!(point, FailurePoint::CurrentBind))
+            );
             driver.set_current_query_error(None);
             driver.set_current_bind_error(None);
             let first_read = context.check_err().map_err(|error| error.0 as u32);
@@ -61,18 +101,41 @@ fn check_native_failure(error: sys::CUresult) {
             let after = driver.snapshot();
 
             assert_eq!(first_read, Err(error as u32));
-            assert_eq!(second_read, Err(error as u32), "native {point:?} failure during {kind:?} cleanup must survive error reads");
+            assert_eq!(
+                second_read,
+                Err(error as u32),
+                "native {point:?} failure during {kind:?} cleanup must survive error reads"
+            );
             assert_eq!(sibling_read, Err(error as u32));
             assert_eq!(later_bind, Err(error as u32));
             assert_eq!(sibling_bind, Err(error as u32));
             assert_eq!(after_oom, Err(error as u32));
-            assert_eq!((after.primary_queries, after.id_queries, after.queries, after.binds), (failed.primary_queries, failed.id_queries, failed.queries, failed.binds));
-            assert_eq!(lifetime.state.lock().unwrap().loss.unwrap().error as u32, error as u32);
+            assert_eq!(
+                (
+                    after.primary_queries,
+                    after.id_queries,
+                    after.queries,
+                    after.binds
+                ),
+                (
+                    failed.primary_queries,
+                    failed.id_queries,
+                    failed.queries,
+                    failed.binds
+                )
+            );
+            assert_eq!(
+                lifetime.state.lock().unwrap().loss.unwrap().error as u32,
+                error as u32
+            );
             assert_eq!(lifetime.state.lock().unwrap().active_leases, 0);
             drop(context);
             drop(sibling);
             drop(lifetime);
-            assert_eq!((driver.snapshot().retains, driver.snapshot().releases), (1, 1));
+            assert_eq!(
+                (driver.snapshot().retains, driver.snapshot().releases),
+                (1, 1)
+            );
         }
     }
 }
@@ -93,9 +156,15 @@ fn preexisting_ordinary_oom_does_not_become_terminal_cleanup_failure() {
         let driver = context_test_seams::Guard::new();
         let events = event_seams::Guard::new();
         let streams = stream_seams::Guard::new();
-        let lifetime = PrimaryContextLifetime::new(0).map_err(|error| error.0 as u32).unwrap();
-        let context = CudaContext::new_tracked(Arc::clone(&lifetime)).map_err(|error| error.0 as u32).unwrap();
-        let sibling = CudaContext::new_tracked(Arc::clone(&lifetime)).map_err(|error| error.0 as u32).unwrap();
+        let lifetime = PrimaryContextLifetime::new(0)
+            .map_err(|error| error.0 as u32)
+            .unwrap();
+        let context = CudaContext::new_tracked(Arc::clone(&lifetime))
+            .map_err(|error| error.0 as u32)
+            .unwrap();
+        let sibling = CudaContext::new_tracked(Arc::clone(&lifetime))
+            .map_err(|error| error.0 as u32)
+            .unwrap();
         let owner = create_owner(kind, &context);
         let error = sys::CUresult::CUDA_ERROR_OUT_OF_MEMORY;
         context.record_err::<()>(Err(DriverError(error)));
@@ -104,21 +173,36 @@ fn preexisting_ordinary_oom_does_not_become_terminal_cleanup_failure() {
         drop(owner);
 
         let after = driver.snapshot();
-        assert_eq!(events.snapshot().destroyed + streams.snapshot().destroyed, 0);
+        assert_eq!(
+            events.snapshot().destroyed + streams.snapshot().destroyed,
+            0
+        );
         assert_eq!(context.num_streams.load(Ordering::Relaxed), 0);
         assert_eq!((after.queries, after.binds), (before.queries, before.binds));
-        assert_eq!(context.check_err().map_err(|error| error.0 as u32), Err(error as u32));
+        assert_eq!(
+            context.check_err().map_err(|error| error.0 as u32),
+            Err(error as u32)
+        );
         assert_eq!(context.check_err().map_err(|error| error.0 as u32), Ok(()));
         assert_eq!(sibling.check_err().map_err(|error| error.0 as u32), Ok(()));
         assert!(lifetime.state.lock().unwrap().loss.is_none());
         assert_eq!(lifetime.state.lock().unwrap().active_leases, 0);
-        assert_eq!(sibling.bind_to_thread().map_err(|error| error.0 as u32), Ok(()));
+        assert_eq!(
+            sibling.bind_to_thread().map_err(|error| error.0 as u32),
+            Ok(())
+        );
         let healthy = driver.snapshot();
         assert_eq!(healthy.queries, after.queries + 1);
-        assert_eq!(events.snapshot().destroyed + streams.snapshot().destroyed, 0);
+        assert_eq!(
+            events.snapshot().destroyed + streams.snapshot().destroyed,
+            0
+        );
         drop(context);
         drop(sibling);
         drop(lifetime);
-        assert_eq!((driver.snapshot().retains, driver.snapshot().releases), (1, 1));
+        assert_eq!(
+            (driver.snapshot().retains, driver.snapshot().releases),
+            (1, 1)
+        );
     }
 }
