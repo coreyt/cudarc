@@ -13,6 +13,8 @@ pub(crate) mod seams {
         pub(crate) created: usize,
         pub(crate) destroyed: usize,
         pub(crate) synchronized: usize,
+        pub(crate) queried: usize,
+        pub(crate) recorded: usize,
     }
 
     #[derive(Clone, Copy, Default)]
@@ -21,12 +23,18 @@ pub(crate) mod seams {
         create_error: Option<sys::CUresult>,
         fail_on_attempt: Option<usize>,
         destroy_error: Option<sys::CUresult>,
+        query_error: Option<sys::CUresult>,
+        record_error: Option<sys::CUresult>,
+        synchronize_error: Option<sys::CUresult>,
     }
 
     std::thread_local! {
         static STATE: Cell<Option<State>> = const { Cell::new(None) };
         static DESTROY_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
         static CREATE_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
+        static QUERY_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
+        static RECORD_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
+        static SYNCHRONIZE_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
     }
 
     pub(crate) struct Guard;
@@ -63,6 +71,36 @@ pub(crate) mod seams {
             STATE.set(Some(state));
         }
 
+        pub(crate) fn set_query_error(&self, error: Option<sys::CUresult>) {
+            let mut state = STATE.get().unwrap();
+            state.query_error = error;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_query_hook(&self, hook: impl FnMut() + 'static) {
+            QUERY_HOOK.with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
+        }
+
+        pub(crate) fn set_record_error(&self, error: Option<sys::CUresult>) {
+            let mut state = STATE.get().unwrap();
+            state.record_error = error;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_record_hook(&self, hook: impl FnMut() + 'static) {
+            RECORD_HOOK.with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
+        }
+
+        pub(crate) fn set_synchronize_error(&self, error: Option<sys::CUresult>) {
+            let mut state = STATE.get().unwrap();
+            state.synchronize_error = error;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_synchronize_hook(&self, hook: impl FnMut() + 'static) {
+            SYNCHRONIZE_HOOK.with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
+        }
+
         pub(crate) fn set_create_error(&self, error: Option<sys::CUresult>) {
             let mut state = STATE.get().unwrap();
             state.create_error = error;
@@ -75,6 +113,9 @@ pub(crate) mod seams {
         fn drop(&mut self) {
             DESTROY_HOOK.with(|slot| *slot.borrow_mut() = None);
             CREATE_HOOK.with(|slot| *slot.borrow_mut() = None);
+            QUERY_HOOK.with(|slot| *slot.borrow_mut() = None);
+            RECORD_HOOK.with(|slot| *slot.borrow_mut() = None);
+            SYNCHRONIZE_HOOK.with(|slot| *slot.borrow_mut() = None);
             STATE.set(None);
         }
     }
@@ -107,13 +148,55 @@ pub(crate) mod seams {
         Some(outcome)
     }
 
+    pub(crate) fn query(event: sys::CUevent) -> Option<Result<(), DriverError>> {
+        let mut state = STATE.get()?;
+        let handle = event as usize;
+        assert!(handle > 0xE700 && handle <= 0xE700 + state.counts.created);
+        state.counts.queried += 1;
+        STATE.set(Some(state));
+        QUERY_HOOK.with(|slot| {
+            if let Some(hook) = slot.borrow_mut().as_mut() {
+                hook();
+            }
+        });
+        Some(match state.query_error {
+            Some(error) => Err(DriverError(error)),
+            None => Ok(()),
+        })
+    }
+
+    pub(crate) fn record(event: sys::CUevent, _stream: sys::CUstream) -> Option<Result<(), DriverError>> {
+        let mut state = STATE.get()?;
+        let handle = event as usize;
+        assert!(handle > 0xE700 && handle <= 0xE700 + state.counts.created);
+        state.counts.recorded += 1;
+        STATE.set(Some(state));
+        RECORD_HOOK.with(|slot| {
+            if let Some(hook) = slot.borrow_mut().as_mut() {
+                hook();
+            }
+        });
+        Some(match state.record_error {
+            Some(error) => Err(DriverError(error)),
+            None => Ok(()),
+        })
+    }
+
     pub(crate) fn synchronize(event: sys::CUevent) -> Option<Result<(), DriverError>> {
         let mut state = STATE.get()?;
         let handle = event as usize;
         assert!(handle > 0xE700 && handle <= 0xE700 + state.counts.created);
         state.counts.synchronized += 1;
         STATE.set(Some(state));
-        Some(Ok(()))
+        SYNCHRONIZE_HOOK.with(|slot| {
+            if let Some(hook) = slot.borrow_mut().as_mut() {
+                hook();
+            }
+        });
+        Some(match state.synchronize_error {
+            Some(error) => Err(DriverError(error)),
+            None => Ok(()),
+        })
     }
 
     pub(crate) fn destroy(event: sys::CUevent) -> Option<Result<(), DriverError>> {
