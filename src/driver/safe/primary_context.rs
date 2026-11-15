@@ -46,8 +46,25 @@ impl PrimaryContextLifetime {
     /// retain or identity lookup. Every successful retain has an owner before
     /// subsequent fallible initialization and is released on failure.
     pub fn new(ordinal: usize) -> Result<std::sync::Arc<Self>, DriverError> {
-        let _ = ordinal;
-        Err(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED))
+        if !crate::driver::result::ctx::has_tracking_symbols() {
+            return Err(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED));
+        }
+        let device_ordinal = core::ffi::c_int::try_from(ordinal)
+            .map_err(|_| DriverError(sys::CUresult::CUDA_ERROR_INVALID_DEVICE))?;
+        crate::driver::result::init()?;
+        let device = crate::driver::result::device::get(device_ordinal)?;
+        let context = unsafe { crate::driver::result::primary_ctx::retain(device) }?;
+        let anchor = PrimaryContextAnchor {
+            device,
+            context,
+            ordinal,
+        };
+        let recorded_id = unsafe { crate::driver::result::ctx::get_id(anchor.context) }?;
+        Ok(std::sync::Arc::new(Self {
+            recorded_id,
+            loss: Mutex::new(None),
+            anchor: Some(anchor),
+        }))
     }
 
     pub(crate) fn error(&self) -> Option<DriverError> {
@@ -523,10 +540,23 @@ mod fathomdb_primary_lifetime {
             .map_err(|error| error.0 as u32);
         let dispatch = driver.snapshot();
 
-        assert_eq!(dispatch.retains, 1, "supported lifetime construction must reach one counted primary retain");
+        assert_eq!(
+            dispatch.retains, 1,
+            "supported lifetime construction must reach one counted primary retain"
+        );
         assert_eq!(outcome, Err(error as u32));
-        assert_eq!((dispatch.symbol_checks, dispatch.initializations, dispatch.device_queries), (1, 1, 1));
-        assert_eq!((dispatch.retains, dispatch.releases, dispatch.id_queries), (1, 1, 1));
+        assert_eq!(
+            (
+                dispatch.symbol_checks,
+                dispatch.initializations,
+                dispatch.device_queries
+            ),
+            (1, 1, 1)
+        );
+        assert_eq!(
+            (dispatch.retains, dispatch.releases, dispatch.id_queries),
+            (1, 1, 1)
+        );
         assert_eq!(dispatch.primary_queries, 0);
         assert_eq!((dispatch.queries, dispatch.binds), (0, 0));
     }
@@ -542,21 +572,44 @@ mod fathomdb_primary_lifetime {
     fn lifetime_construction_owns_one_anchor_until_final_drop() {
         let driver = context_test_seams::Guard::new();
         let outcome = PrimaryContextLifetime::new(0).map_err(|error| error.0 as u32);
-        assert!(outcome.is_ok(), "supported tracked lifetime must construct successfully");
+        assert!(
+            outcome.is_ok(),
+            "supported tracked lifetime must construct successfully"
+        );
         let lifetime = outcome.unwrap();
         let initialized = driver.snapshot();
-        assert_eq!((initialized.symbol_checks, initialized.initializations, initialized.device_queries), (1, 1, 1));
-        assert_eq!((initialized.retains, initialized.releases, initialized.id_queries), (1, 0, 1));
+        assert_eq!(
+            (
+                initialized.symbol_checks,
+                initialized.initializations,
+                initialized.device_queries
+            ),
+            (1, 1, 1)
+        );
+        assert_eq!(
+            (
+                initialized.retains,
+                initialized.releases,
+                initialized.id_queries
+            ),
+            (1, 0, 1)
+        );
         assert_eq!(lifetime.recorded_id, 17);
         assert!(lifetime.loss.lock().unwrap().is_none());
         let anchor = lifetime.anchor.as_ref().unwrap();
-        assert_eq!((anchor.ordinal, anchor.device, anchor.context as usize), (0, 0, 0xC7));
+        assert_eq!(
+            (anchor.ordinal, anchor.device, anchor.context as usize),
+            (0, 0, 0xC7)
+        );
 
         drop(lifetime);
 
         let released = driver.snapshot();
         assert_eq!((released.retains, released.releases), (1, 1));
-        assert_eq!((released.primary_queries, released.queries, released.binds), (0, 0, 0));
+        assert_eq!(
+            (released.primary_queries, released.queries, released.binds),
+            (0, 0, 0)
+        );
     }
 
     #[test]
@@ -578,7 +631,13 @@ mod fathomdb_primary_lifetime {
         assert_eq!(outcome, Err(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED as u32));
         assert_eq!(dispatch.symbol_checks, 1);
         assert_eq!((dispatch.initializations, dispatch.device_queries), (0, 0));
-        assert_eq!((dispatch.retains, dispatch.releases, dispatch.id_queries), (0, 0, 0));
-        assert_eq!((dispatch.primary_queries, dispatch.queries, dispatch.binds), (0, 0, 0));
+        assert_eq!(
+            (dispatch.retains, dispatch.releases, dispatch.id_queries),
+            (0, 0, 0)
+        );
+        assert_eq!(
+            (dispatch.primary_queries, dispatch.queries, dispatch.binds),
+            (0, 0, 0)
+        );
     }
 }

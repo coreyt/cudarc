@@ -849,7 +849,9 @@ pub mod ctx {
                 ) -> sys::CUresult;
                 sys::is_culib_present()
                     && sys::culib().get::<GetId>(b"cuCtxGetId").is_ok()
-                    && sys::culib().get::<GetState>(b"cuDevicePrimaryCtxGetState").is_ok()
+                    && sys::culib()
+                        .get::<GetState>(b"cuDevicePrimaryCtxGetState")
+                        .is_ok()
             }
             #[cfg(not(feature = "dynamic-loading"))]
             {
