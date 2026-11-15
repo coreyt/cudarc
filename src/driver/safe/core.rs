@@ -34,8 +34,8 @@ pub struct CudaContext {
     pub(crate) ordinal: usize,
     pub(crate) has_async_alloc: bool,
     /// The pool every allocation of this context draws from, set only by
-    /// [CudaContext::new_with_mem_pool] (FathomDB patch). Dropped after the
-    /// context is released, so the pool outlives the context.
+    /// [CudaContext::new_with_mem_pool] (FathomDB patch). Retained while this
+    /// wrapper and its streams and slices are alive.
     pub(crate) mem_pool: Option<Arc<super::mem_pool::CudaMemPool>>,
     /// Whether this wraps a primary context (true) or a non-primary context (false).
     /// Primary contexts are released via `cuDevicePrimaryCtxRelease`, while non-primary
@@ -275,6 +275,15 @@ unsafe impl Sync for CudaContext {}
 
 impl Drop for CudaContext {
     fn drop(&mut self) {
+        #[cfg(feature = "std")]
+        if self
+            .primary_lifetime
+            .as_ref()
+            .is_some_and(|lifetime| lifetime.anchor.is_some())
+        {
+            self.cu_ctx = std::ptr::null_mut();
+            return;
+        }
         self.record_err(self.bind_to_thread());
         let ctx = std::mem::replace(&mut self.cu_ctx, std::ptr::null_mut());
         if !ctx.is_null() {

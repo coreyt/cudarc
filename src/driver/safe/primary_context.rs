@@ -5,6 +5,8 @@ use std::sync::Mutex;
 ///
 /// Terminal loss records the first observation for every attached context
 /// wrapper. A process must restart before using the device after terminal loss.
+/// Native ownership is held by the shared anchor. Its final cleanup performs
+/// the balanced primary release without binding a context, including after loss.
 #[derive(Debug)]
 pub struct PrimaryContextLifetime {
     pub(crate) recorded_id: u64,
@@ -21,6 +23,15 @@ pub(crate) struct PrimaryContextAnchor {
 // Primary contexts support cross-thread use; the lifetime owns their retain.
 unsafe impl Send for PrimaryContextAnchor {}
 unsafe impl Sync for PrimaryContextAnchor {}
+
+impl Drop for PrimaryContextAnchor {
+    fn drop(&mut self) {
+        let context = std::mem::replace(&mut self.context, std::ptr::null_mut());
+        if !context.is_null() {
+            let _ = unsafe { crate::driver::result::primary_ctx::release(self.device) };
+        }
+    }
+}
 
 impl PrimaryContextLifetime {
     pub(crate) fn error(&self) -> Option<DriverError> {
@@ -360,7 +371,10 @@ mod fathomdb_primary_lifetime {
             let lifetime = Arc::new(PrimaryContextLifetime {
                 recorded_id: 17,
                 loss: Mutex::new(loss),
-                anchor: Some(PrimaryContextAnchor { device: 0, context: retained }),
+                anchor: Some(PrimaryContextAnchor {
+                    device: 0,
+                    context: retained,
+                }),
             });
             let mut first = context_test_seams::context();
             let mut sibling = context_test_seams::context();
@@ -372,15 +386,41 @@ mod fathomdb_primary_lifetime {
             drop(first);
             drop(sibling);
             let after_wrappers = driver.snapshot();
-            assert_eq!(after_wrappers.releases, 0, "tracked wrappers borrow the single anchor retain");
-            assert_eq!((after_wrappers.primary_queries, after_wrappers.id_queries), (0, 0));
+            assert_eq!(
+                after_wrappers.releases, 0,
+                "tracked wrappers borrow the single anchor retain"
+            );
+            assert_eq!(
+                (after_wrappers.primary_queries, after_wrappers.id_queries),
+                (0, 0)
+            );
             assert_eq!((after_wrappers.queries, after_wrappers.binds), (0, 0));
 
             drop(lifetime);
             let after_anchor = driver.snapshot();
             assert_eq!((after_anchor.retains, after_anchor.releases), (1, 1));
-            assert_eq!((after_anchor.primary_queries, after_anchor.id_queries), (0, 0));
+            assert_eq!(
+                (after_anchor.primary_queries, after_anchor.id_queries),
+                (0, 0)
+            );
             assert_eq!((after_anchor.queries, after_anchor.binds), (0, 0));
         }
+    }
+
+    #[test]
+    fn untracked_wrapper_keeps_its_independent_primary_retain() {
+        let driver = context_test_seams::Guard::new();
+        let retained = unsafe { crate::driver::result::primary_ctx::retain(0) }
+            .map_err(|error| error.0 as u32)
+            .unwrap();
+        let context = context_test_seams::context();
+        assert_eq!(context.cu_ctx as usize, retained as usize);
+
+        drop(context);
+
+        let dispatch = driver.snapshot();
+        assert_eq!((dispatch.retains, dispatch.releases), (1, 1));
+        assert_eq!((dispatch.primary_queries, dispatch.id_queries), (0, 0));
+        assert_eq!((dispatch.queries, dispatch.binds), (1, 1));
     }
 }
