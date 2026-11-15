@@ -423,4 +423,44 @@ mod fathomdb_primary_lifetime {
         assert_eq!((dispatch.primary_queries, dispatch.id_queries), (0, 0));
         assert_eq!((dispatch.queries, dispatch.binds), (1, 1));
     }
+
+    #[test]
+    fn failed_context_id_probe_latches_its_first_error() {
+        let driver = context_test_seams::Guard::new();
+        driver.set_primary_active(true);
+        let lifetime = Arc::new(PrimaryContextLifetime {
+            recorded_id: 17,
+            loss: Mutex::new(None),
+            anchor: None,
+        });
+        let mut context = context_test_seams::context();
+        Arc::get_mut(&mut context).unwrap().primary_lifetime = Some(lifetime.clone());
+        assert_eq!(context.bind_to_thread().map_err(|error| error.0 as u32), Ok(()));
+        let healthy = driver.snapshot();
+        assert_eq!((healthy.primary_queries, healthy.id_queries), (1, 1));
+        assert_eq!((healthy.queries, healthy.binds), (1, 1));
+
+        let error = sys::CUresult::CUDA_ERROR_INVALID_CONTEXT;
+        driver.set_context_id_error(Some(error));
+        let first = context.bind_to_thread().map_err(|error| error.0 as u32);
+        let after_error = driver.snapshot();
+        driver.set_context_id_error(None);
+        let second = context.bind_to_thread().map_err(|error| error.0 as u32);
+        context.record_err::<()>(Err(DriverError(sys::CUresult::CUDA_ERROR_OUT_OF_MEMORY)));
+        let third = context.bind_to_thread().map_err(|error| error.0 as u32);
+        let dispatch = driver.snapshot();
+        drop(context);
+
+        assert_eq!(first, Err(error as u32));
+        assert_eq!(second, Err(error as u32), "failed identity query must permanently refuse later binding");
+        assert_eq!(third, Err(error as u32), "later OOM must not replace the actual identity-query error");
+        assert_eq!((after_error.primary_queries, after_error.id_queries), (2, 2));
+        assert_eq!((after_error.queries, after_error.binds), (1, 1));
+        assert_eq!((dispatch.primary_queries, dispatch.id_queries), (2, 2));
+        assert_eq!((dispatch.queries, dispatch.binds), (1, 1));
+        assert_eq!(
+            *lifetime.loss.lock().unwrap(),
+            Some(PrimaryContextLoss { recorded_id: 17, observed_id: None, error })
+        );
+    }
 }

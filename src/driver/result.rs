@@ -465,6 +465,7 @@ pub(crate) mod context_test_seams {
         primary_error: Option<sys::CUresult>,
         pub(crate) id_queries: usize,
         context_id: u64,
+        id_error: Option<sys::CUresult>,
         pub(crate) error_string_queries: usize,
     }
 
@@ -488,6 +489,7 @@ pub(crate) mod context_test_seams {
                 primary_error: None,
                 id_queries: 0,
                 context_id: 17,
+                id_error: None,
                 error_string_queries: 0,
             }));
             Self
@@ -506,6 +508,12 @@ pub(crate) mod context_test_seams {
         pub(crate) fn set_primary_error(&self, error: Option<sys::CUresult>) {
             let mut state = self.snapshot();
             state.primary_error = error;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_context_id_error(&self, error: Option<sys::CUresult>) {
+            let mut state = self.snapshot();
+            state.id_error = error;
             STATE.set(Some(state));
         }
 
@@ -564,12 +572,15 @@ pub(crate) mod context_test_seams {
         Some(c"synthetic driver status")
     }
 
-    pub(crate) fn get_context_id(ctx: sys::CUcontext) -> Option<u64> {
+    pub(crate) fn get_context_id(ctx: sys::CUcontext) -> Option<Result<u64, DriverError>> {
         let mut state = STATE.get()?;
         assert_eq!(ctx as usize, 0xC7);
         state.id_queries += 1;
         STATE.set(Some(state));
-        Some(state.context_id)
+        Some(match state.id_error {
+            Some(error) => Err(DriverError(error)),
+            None => Ok(state.context_id),
+        })
     }
 
     pub(crate) fn get_primary_state(
@@ -787,7 +798,7 @@ pub mod ctx {
         {
             #[cfg(test)]
             if let Some(id) = super::context_test_seams::get_context_id(ctx) {
-                return Ok(id);
+                return id;
             }
             let mut id = 0;
             sys::cuCtxGetId(ctx, &mut id).result()?;
