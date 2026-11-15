@@ -47,9 +47,11 @@ pub(crate) mod slice_cleanup_prerequisite_tests;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod slice_construction_tests;
 #[cfg(all(test, feature = "std"))]
-pub(crate) mod slice_memory_use_tests;
+pub(crate) mod slice_memory_pointer_tests;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod slice_memory_result_tests;
+#[cfg(all(test, feature = "std"))]
+pub(crate) mod slice_memory_use_tests;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod stream_construction_tests;
 #[cfg(all(test, feature = "std"))]
