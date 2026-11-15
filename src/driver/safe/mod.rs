@@ -25,6 +25,8 @@ pub(crate) mod lifetime_stream_cleanup_tests;
 pub(crate) mod mem_pool;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod module_entry_tests;
+#[cfg(all(test, feature = "std"))]
+pub(crate) mod module_result_tests;
 #[cfg(feature = "std")]
 pub(crate) mod primary_context;
 #[cfg(all(test, feature = "std"))]
