@@ -38,8 +38,8 @@ impl CudaBlas {
         let ctx = stream.context();
         ctx.record_err(ctx.bind_to_thread());
         let handle = result::create_handle()?;
-        unsafe { result::set_stream(handle, stream.cu_stream() as _) }?;
         let blas = Self { handle, stream };
+        unsafe { result::set_stream(blas.handle, blas.stream.cu_stream() as _) }?;
         Ok(blas)
     }
 
@@ -161,6 +161,68 @@ mod fathomdb_context_lifetime {
         assert_eq!(
             calls.destroys, 1,
             "failed stream setup must release its acquired BLAS handle"
+        );
+    }
+
+    fn synthetic_context() -> Arc<CudaContext> {
+        Arc::new(CudaContext {
+            cu_device: 0,
+            cu_ctx: 0xC7 as driver_sys::CUcontext,
+            ordinal: 0,
+            has_async_alloc: false,
+            mem_pool: None,
+            is_primary: true,
+            num_streams: AtomicUsize::new(0),
+            event_tracking: AtomicBool::new(true),
+            error_state: AtomicU32::new(0),
+        })
+    }
+
+    #[test]
+    fn fathomdb_blas_failed_create_has_no_handle_to_destroy() {
+        let driver = context_test_seams::Guard::new();
+        let blas = result::partial_init_test_seams::Guard::new();
+        blas.fail_create();
+        let context = synthetic_context();
+
+        let error = CudaBlas::new(context.default_stream()).unwrap_err();
+        assert_eq!(
+            error,
+            CublasError(sys::cublasStatus_t::CUBLAS_STATUS_ALLOC_FAILED)
+        );
+        drop(context);
+
+        let native = driver.snapshot();
+        assert_eq!((native.queries, native.binds, native.releases), (2, 1, 1));
+        let calls = blas.snapshot();
+        assert_eq!(
+            (calls.creates, calls.stream_sets, calls.destroys),
+            (1, 0, 0)
+        );
+    }
+
+    #[test]
+    fn fathomdb_blas_completed_owner_destroys_handle_once() {
+        let driver = context_test_seams::Guard::new();
+        let blas = result::partial_init_test_seams::Guard::new();
+        blas.allow_stream_setup();
+        let context = synthetic_context();
+
+        let owner = CudaBlas::new(context.default_stream()).unwrap();
+        let calls = blas.snapshot();
+        assert_eq!(
+            (calls.creates, calls.stream_sets, calls.destroys),
+            (1, 1, 0)
+        );
+        drop(owner);
+        drop(context);
+
+        let native = driver.snapshot();
+        assert_eq!((native.queries, native.binds, native.releases), (2, 1, 1));
+        let calls = blas.snapshot();
+        assert_eq!(
+            (calls.creates, calls.stream_sets, calls.destroys),
+            (1, 1, 1)
         );
     }
 }

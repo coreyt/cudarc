@@ -29,7 +29,7 @@ impl std::error::Error for CublasError {}
 pub fn create_handle() -> Result<sys::cublasHandle_t, CublasError> {
     #[cfg(test)]
     if let Some(handle) = partial_init_test_seams::create_handle() {
-        return Ok(handle);
+        return handle;
     }
     let mut handle = MaybeUninit::uninit();
     unsafe {
@@ -539,6 +539,8 @@ pub(crate) mod partial_init_test_seams {
         pub(crate) creates: usize,
         pub(crate) stream_sets: usize,
         pub(crate) destroys: usize,
+        create_error: Option<CublasError>,
+        stream_error: Option<CublasError>,
     }
 
     std::thread_local! {
@@ -554,12 +556,28 @@ pub(crate) mod partial_init_test_seams {
                 creates: 0,
                 stream_sets: 0,
                 destroys: 0,
+                create_error: None,
+                stream_error: Some(CublasError(
+                    sys::cublasStatus_t::CUBLAS_STATUS_INVALID_VALUE,
+                )),
             }));
             Self
         }
 
         pub(crate) fn snapshot(&self) -> State {
             STATE.get().unwrap()
+        }
+
+        pub(crate) fn fail_create(&self) {
+            let mut state = self.snapshot();
+            state.create_error = Some(CublasError(sys::cublasStatus_t::CUBLAS_STATUS_ALLOC_FAILED));
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn allow_stream_setup(&self) {
+            let mut state = self.snapshot();
+            state.stream_error = None;
+            STATE.set(Some(state));
         }
     }
 
@@ -569,11 +587,14 @@ pub(crate) mod partial_init_test_seams {
         }
     }
 
-    pub(crate) fn create_handle() -> Option<sys::cublasHandle_t> {
+    pub(crate) fn create_handle() -> Option<Result<sys::cublasHandle_t, CublasError>> {
         let mut state = STATE.get()?;
         state.creates += 1;
         STATE.set(Some(state));
-        Some(HANDLE as sys::cublasHandle_t)
+        Some(match state.create_error {
+            Some(error) => Err(error),
+            None => Ok(HANDLE as sys::cublasHandle_t),
+        })
     }
 
     pub(crate) fn set_stream(
@@ -585,9 +606,10 @@ pub(crate) mod partial_init_test_seams {
         assert!(stream.is_null());
         state.stream_sets += 1;
         STATE.set(Some(state));
-        Some(Err(CublasError(
-            sys::cublasStatus_t::CUBLAS_STATUS_INVALID_VALUE,
-        )))
+        Some(match state.stream_error {
+            Some(error) => Err(error),
+            None => Ok(()),
+        })
     }
 
     pub(crate) fn destroy_handle(handle: sys::cublasHandle_t) -> bool {
