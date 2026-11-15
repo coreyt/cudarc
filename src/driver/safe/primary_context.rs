@@ -133,4 +133,31 @@ mod fathomdb_primary_lifetime {
         assert_eq!(context.check_err().map_err(|error| error.0 as u32), Ok(()));
         assert!(lifetime.loss.lock().unwrap().is_none());
     }
+
+    #[test]
+    fn inactive_primary_is_discovered_before_bind_and_stays_terminal() {
+        let driver = context_test_seams::Guard::new();
+        driver.set_primary_active(false);
+        let lifetime = Arc::new(PrimaryContextLifetime {
+            recorded_id: 29,
+            loss: Mutex::new(None),
+        });
+        let mut context = context_test_seams::context();
+        Arc::get_mut(&mut context).unwrap().primary_lifetime = Some(lifetime.clone());
+
+        let first = context.bind_to_thread().map_err(|error| error.0 as u32);
+        let second = context.bind_to_thread().map_err(|error| error.0 as u32);
+        let dispatch = driver.snapshot();
+        drop(context);
+
+        let lost = sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED;
+        assert_eq!(first, Err(lost as u32), "inactive primary must refuse before binding stale context");
+        assert_eq!(second, Err(lost as u32));
+        assert_eq!(dispatch.primary_queries, 1, "cached loss must prevent another primary probe");
+        assert_eq!((dispatch.queries, dispatch.binds), (0, 0));
+        assert_eq!(
+            *lifetime.loss.lock().unwrap(),
+            Some(PrimaryContextLoss { recorded_id: 29, observed_id: None, error: lost })
+        );
+    }
 }

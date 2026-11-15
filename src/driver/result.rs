@@ -462,6 +462,8 @@ pub(crate) mod context_test_seams {
         pub(crate) queries: usize,
         pub(crate) binds: usize,
         pub(crate) releases: usize,
+        pub(crate) primary_queries: usize,
+        primary_active: bool,
     }
 
     std::thread_local! {
@@ -478,12 +480,20 @@ pub(crate) mod context_test_seams {
                 queries: 0,
                 binds: 0,
                 releases: 0,
+                primary_queries: 0,
+                primary_active: true,
             }));
             Self
         }
 
         pub(crate) fn snapshot(&self) -> State {
             STATE.get().unwrap()
+        }
+
+        pub(crate) fn set_primary_active(&self, active: bool) {
+            let mut state = self.snapshot();
+            state.primary_active = active;
+            STATE.set(Some(state));
         }
     }
 
@@ -528,6 +538,14 @@ pub(crate) mod context_test_seams {
         true
     }
 
+    pub(crate) fn get_primary_state(dev: sys::CUdevice) -> Option<(u32, bool)> {
+        let mut state = STATE.get()?;
+        assert_eq!(dev, 0);
+        state.primary_queries += 1;
+        STATE.set(Some(state));
+        Some((0, state.primary_active))
+    }
+
     pub(crate) fn release(dev: sys::CUdevice) -> bool {
         let Some(mut state) = STATE.get() else {
             return false;
@@ -562,6 +580,26 @@ pub mod primary_ctx {
         let mut ctx = MaybeUninit::uninit();
         sys::cuDevicePrimaryCtxRetain(ctx.as_mut_ptr(), dev).result()?;
         Ok(ctx.assume_init())
+    }
+
+    /// Returns the primary context's scheduling flags and whether it is active.
+    ///
+    /// This does not retain or create a primary context.
+    ///
+    /// # Errors
+    /// Returns the driver status from `cuDevicePrimaryCtxGetState`.
+    ///
+    /// # Safety
+    /// `dev` must be a valid device returned by [super::device::get].
+    pub unsafe fn get_state(dev: sys::CUdevice) -> Result<(u32, bool), DriverError> {
+        #[cfg(test)]
+        if let Some(state) = super::context_test_seams::get_primary_state(dev) {
+            return Ok(state);
+        }
+        let mut flags = 0;
+        let mut active = 0;
+        sys::cuDevicePrimaryCtxGetState(dev, &mut flags, &mut active).result()?;
+        Ok((flags, active != 0))
     }
 
     /// Release a reference to the current primary context.
