@@ -5,7 +5,7 @@ use crate::driver::{
 use std::sync::Arc;
 
 pub(crate) mod seams {
-    use crate::driver::sys;
+    use crate::driver::{sys, DriverError};
     use core::cell::Cell;
 
     #[derive(Clone, Copy, Debug, Default)]
@@ -21,6 +21,7 @@ pub(crate) mod seams {
     struct State {
         counts: Counts,
         live: Option<(sys::CUdeviceptr, usize, bool)>,
+        synchronize_error: Option<sys::CUresult>,
     }
 
     std::thread_local! {
@@ -35,6 +36,12 @@ pub(crate) mod seams {
             assert!(STATE.get().is_none());
             STATE.set(Some(State::default()));
             Self
+        }
+
+        pub(crate) fn set_synchronize_error(&self, error: Option<sys::CUresult>) {
+            let mut state = STATE.get().unwrap();
+            state.synchronize_error = error;
+            STATE.set(Some(state));
         }
 
         pub(crate) fn set_free_hook(&self, hook: impl FnMut() + 'static) {
@@ -92,14 +99,15 @@ pub(crate) mod seams {
         true
     }
 
-    pub(crate) fn stream_synchronize(stream: sys::CUstream) -> bool {
-        let Some(mut state) = STATE.get() else {
-            return false;
-        };
+    pub(crate) fn stream_synchronize(stream: sys::CUstream) -> Option<Result<(), DriverError>> {
+        let mut state = STATE.get()?;
         assert!(stream.is_null());
         state.counts.stream_synchronizes += 1;
         STATE.set(Some(state));
-        true
+        Some(match state.synchronize_error {
+            Some(error) => Err(DriverError(error)),
+            None => Ok(()),
+        })
     }
 }
 
