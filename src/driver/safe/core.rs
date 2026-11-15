@@ -2300,17 +2300,19 @@ impl CudaStream {
         };
         self.ctx.bind_to_thread()?;
         // FATHOMDB PATCH: a private-pool context allocates only from its own pool.
-        let cu_device_ptr = if let Some(pool) = &self.ctx.mem_pool {
-            result::mem_pool::alloc_async(
-                pool.raw(),
-                len * std::mem::size_of::<T>(),
-                self.cu_stream,
-            )?
-        } else if self.ctx.has_async_alloc {
-            result::malloc_async(self.cu_stream, len * std::mem::size_of::<T>())?
-        } else {
-            malloc_sync_or_null(len * std::mem::size_of::<T>())? // FATHOMDB PATCH
-        };
+        let cu_device_ptr =
+            self.ctx
+                .record_terminal_result(if let Some(pool) = &self.ctx.mem_pool {
+                    result::mem_pool::alloc_async(
+                        pool.raw(),
+                        len * std::mem::size_of::<T>(),
+                        self.cu_stream,
+                    )
+                } else if self.ctx.has_async_alloc {
+                    result::malloc_async(self.cu_stream, len * std::mem::size_of::<T>())
+                } else {
+                    malloc_sync_or_null(len * std::mem::size_of::<T>()) // FATHOMDB PATCH
+                })?;
         let mut allocation = CudaSlice {
             cu_device_ptr,
             len,
