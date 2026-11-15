@@ -947,6 +947,16 @@ impl CudaContext {
         }
     }
 
+    fn record_terminal_result<T>(&self, result: Result<T, DriverError>) -> Result<T, DriverError> {
+        #[cfg(feature = "std")]
+        if let Err(error) = &result {
+            if let Some(lifetime) = &self.primary_lifetime {
+                lifetime.record_error(*error);
+            }
+        }
+        result
+    }
+
     /// Records a result for later inspection when a Result can be returned.
     pub fn record_err<T>(&self, result: Result<T, DriverError>) {
         if let Err(err) = result {
@@ -1025,7 +1035,7 @@ impl CudaContext {
             None => None,
         };
         self.bind_to_thread()?;
-        let cu_event = result::event::create(flags)?;
+        let cu_event = self.record_terminal_result(result::event::create(flags))?;
         Ok(CudaEvent {
             cu_event,
             ctx: self.clone(),
@@ -1239,9 +1249,11 @@ impl CudaContext {
         let prev_num_streams = self.num_streams.fetch_add(1, Ordering::Relaxed);
         let mut reservation = StreamCountReservation(Some(&self.num_streams));
         if prev_num_streams == 0 && self.is_event_tracking() {
-            self.synchronize()?;
+            self.record_terminal_result(self.synchronize())?;
         }
-        let cu_stream = result::stream::create(result::stream::StreamKind::NonBlocking)?;
+        let cu_stream = self.record_terminal_result(result::stream::create(
+            result::stream::StreamKind::NonBlocking,
+        ))?;
         let stream = CudaStream {
             cu_stream,
             ctx: self.clone(),
