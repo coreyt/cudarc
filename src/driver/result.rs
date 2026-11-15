@@ -1209,6 +1209,10 @@ pub mod stream {
     /// destroyed. This follows default stream semantics, see relevant cuda docs.
     pub unsafe fn synchronize(stream: sys::CUstream) -> Result<(), DriverError> {
         #[cfg(all(test, feature = "std"))]
+        if crate::driver::safe::lifetime_slice_cleanup_tests::seams::stream_synchronize(stream) {
+            return Ok(());
+        }
+        #[cfg(all(test, feature = "std"))]
         if let Some(result) =
             crate::driver::safe::lifetime_stream_cleanup_tests::seams::stream_synchronize(stream)
         {
@@ -1326,6 +1330,11 @@ pub unsafe fn malloc_async(
     stream: sys::CUstream,
     num_bytes: usize,
 ) -> Result<sys::CUdeviceptr, DriverError> {
+    #[cfg(all(test, feature = "std"))]
+    if let Some(pointer) = crate::driver::safe::lifetime_slice_cleanup_tests::seams::allocate(num_bytes, true) {
+        assert!(stream.is_null());
+        return Ok(pointer);
+    }
     let mut dev_ptr = MaybeUninit::uninit();
     sys::cuMemAllocAsync(dev_ptr.as_mut_ptr(), num_bytes, stream).result()?;
     Ok(dev_ptr.assume_init())
@@ -1338,6 +1347,10 @@ pub unsafe fn malloc_async(
 /// # Safety
 /// 1. The memory return by this is unset, which may be invalid for `T`.
 pub unsafe fn malloc_sync(num_bytes: usize) -> Result<sys::CUdeviceptr, DriverError> {
+    #[cfg(all(test, feature = "std"))]
+    if let Some(pointer) = crate::driver::safe::lifetime_slice_cleanup_tests::seams::allocate(num_bytes, false) {
+        return Ok(pointer);
+    }
     let mut dev_ptr = MaybeUninit::uninit();
     sys::cuMemAlloc_v2(dev_ptr.as_mut_ptr(), num_bytes).result()?;
     Ok(dev_ptr.assume_init())
@@ -1433,6 +1446,11 @@ pub unsafe fn mem_prefetch_async(
 /// 2. The memory should have been allocated on this stream.
 /// 3. The memory should not have been freed already (double free)
 pub unsafe fn free_async(dptr: sys::CUdeviceptr, stream: sys::CUstream) -> Result<(), DriverError> {
+    #[cfg(all(test, feature = "std"))]
+    if crate::driver::safe::lifetime_slice_cleanup_tests::seams::free(dptr, true) {
+        assert!(stream.is_null());
+        return Ok(());
+    }
     sys::cuMemFreeAsync(dptr, stream).result()
 }
 
@@ -1443,6 +1461,10 @@ pub unsafe fn free_async(dptr: sys::CUdeviceptr, stream: sys::CUstream) -> Resul
 /// # Safety
 /// 1. The memory should have been allocated with malloc_sync
 pub unsafe fn free_sync(dptr: sys::CUdeviceptr) -> Result<(), DriverError> {
+    #[cfg(all(test, feature = "std"))]
+    if crate::driver::safe::lifetime_slice_cleanup_tests::seams::free(dptr, false) {
+        return Ok(());
+    }
     sys::cuMemFree_v2(dptr).result()
 }
 
