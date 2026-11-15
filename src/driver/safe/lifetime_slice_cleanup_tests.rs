@@ -23,6 +23,7 @@ pub(crate) mod seams {
         counts: Counts,
         live: Option<(sys::CUdeviceptr, usize, bool)>,
         allocate_error: Option<sys::CUresult>,
+        free_error: Option<sys::CUresult>,
         synchronize_error: Option<sys::CUresult>,
         expected_stream: Option<sys::CUstream>,
     }
@@ -55,6 +56,12 @@ pub(crate) mod seams {
         pub(crate) fn set_expected_stream(&self, stream: sys::CUstream) {
             let mut state = STATE.get().unwrap();
             state.expected_stream = Some(stream);
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_free_error(&self, error: Option<sys::CUresult>) {
+            let mut state = STATE.get().unwrap();
+            state.free_error = error;
             STATE.set(Some(state));
         }
 
@@ -110,10 +117,8 @@ pub(crate) mod seams {
         Some(Ok(pointer))
     }
 
-    pub(crate) fn free(pointer: sys::CUdeviceptr, asynchronous: bool) -> bool {
-        let Some(mut state) = STATE.get() else {
-            return false;
-        };
+    pub(crate) fn free(pointer: sys::CUdeviceptr, asynchronous: bool) -> Option<Result<(), DriverError>> {
+        let mut state = STATE.get()?;
         let (owned, bytes, allocator_async) = state.live.unwrap();
         assert_eq!(owned, pointer);
         assert_eq!(bytes, 16);
@@ -123,14 +128,14 @@ pub(crate) mod seams {
         } else {
             state.counts.sync_frees += 1;
         }
-        state.live = None;
+        if state.free_error.is_none() { state.live = None; }
         STATE.set(Some(state));
         FREE_HOOK.with(|slot| {
             if let Some(hook) = slot.borrow_mut().as_mut() {
                 hook();
             }
         });
-        true
+        Some(match state.free_error { Some(error) => Err(DriverError(error)), None => Ok(()) })
     }
 
     pub(crate) fn assert_stream(stream: sys::CUstream) {

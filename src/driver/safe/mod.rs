@@ -110,3 +110,6 @@ pub use crate::driver::result::DriverError;
 
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod native_boundary_origin_tests;
+
+#[cfg(all(test, feature = "std"))]
+pub(crate) mod native_child_cleanup_result_tests;
