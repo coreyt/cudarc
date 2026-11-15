@@ -529,3 +529,7 @@ mod fathomdb_library_admission;
 #[cfg(all(test, feature = "std"))]
 #[path = "fathomdb_library_setter.rs"]
 mod fathomdb_library_setter;
+
+#[cfg(all(test, feature = "std"))]
+#[path = "fathomdb_library_drop.rs"]
+mod fathomdb_library_drop;
