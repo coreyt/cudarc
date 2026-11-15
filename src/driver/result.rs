@@ -472,6 +472,8 @@ pub(crate) mod context_test_seams {
     #[derive(Clone, Copy, Debug)]
     pub(crate) struct State {
         pub(crate) current: usize,
+        current_query_error: Option<sys::CUresult>,
+        current_bind_error: Option<sys::CUresult>,
         pub(crate) queries: usize,
         pub(crate) binds: usize,
         pub(crate) releases: usize,
@@ -506,6 +508,8 @@ pub(crate) mod context_test_seams {
             assert!(STATE.get().is_none());
             STATE.set(Some(State {
                 current: 0,
+                current_query_error: None,
+                current_bind_error: None,
                 queries: 0,
                 binds: 0,
                 releases: 0,
@@ -571,6 +575,24 @@ pub(crate) mod context_test_seams {
         pub(crate) fn set_context_id_error(&self, error: Option<sys::CUresult>) {
             let mut state = self.snapshot();
             state.id_error = error;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_current_query_error(&self, error: Option<sys::CUresult>) {
+            let mut state = self.snapshot();
+            state.current_query_error = error;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_current_bind_error(&self, error: Option<sys::CUresult>) {
+            let mut state = self.snapshot();
+            state.current_bind_error = error;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn clear_current(&self) {
+            let mut state = self.snapshot();
+            state.current = 0;
             STATE.set(Some(state));
         }
 
@@ -663,7 +685,7 @@ pub(crate) mod context_test_seams {
         Some(state.tracking_symbols)
     }
 
-    pub(crate) fn get_current() -> Option<Option<sys::CUcontext>> {
+    pub(crate) fn get_current() -> Option<Result<Option<sys::CUcontext>, DriverError>> {
         let mut state = STATE.get()?;
         state.queries += 1;
         STATE.set(Some(state));
@@ -672,14 +694,17 @@ pub(crate) mod context_test_seams {
                 hook();
             }
         });
-        Some((state.current != 0).then_some(state.current as sys::CUcontext))
+        Some(match state.current_query_error {
+            Some(error) => Err(DriverError(error)),
+            None => Ok((state.current != 0).then_some(state.current as sys::CUcontext)),
+        })
     }
 
-    pub(crate) fn set_current(ctx: sys::CUcontext) -> bool {
-        let Some(mut state) = STATE.get() else {
-            return false;
-        };
-        state.current = ctx as usize;
+    pub(crate) fn set_current(ctx: sys::CUcontext) -> Option<Result<(), DriverError>> {
+        let mut state = STATE.get()?;
+        if state.current_bind_error.is_none() {
+            state.current = ctx as usize;
+        }
         state.binds += 1;
         STATE.set(Some(state));
         CONTEXT_ENTRY_HOOK.with(|slot| {
@@ -687,7 +712,10 @@ pub(crate) mod context_test_seams {
                 hook();
             }
         });
-        true
+        Some(match state.current_bind_error {
+            Some(error) => Err(DriverError(error)),
+            None => Ok(()),
+        })
     }
 
     pub(crate) fn get_error_string() -> Option<&'static core::ffi::CStr> {
@@ -891,8 +919,8 @@ pub mod ctx {
     /// and one that wasn't already freed.
     pub unsafe fn set_current(ctx: sys::CUcontext) -> Result<(), DriverError> {
         #[cfg(test)]
-        if super::context_test_seams::set_current(ctx) {
-            return Ok(());
+        if let Some(result) = super::context_test_seams::set_current(ctx) {
+            return result;
         }
         sys::cuCtxSetCurrent(ctx).result()
     }
@@ -988,8 +1016,8 @@ pub mod ctx {
     /// See [cuda docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g8f13165846b73750693640fb3e8380d0)
     pub fn get_current() -> Result<Option<sys::CUcontext>, DriverError> {
         #[cfg(test)]
-        if let Some(ctx) = super::context_test_seams::get_current() {
-            return Ok(ctx);
+        if let Some(result) = super::context_test_seams::get_current() {
+            return result;
         }
         let mut ctx = MaybeUninit::uninit();
         unsafe {
