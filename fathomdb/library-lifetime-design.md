@@ -120,3 +120,52 @@ checked admission and loss first published between admission and handle check.
 This boundary receives its own semantic RED before minimal GREEN; compiler
 absence of a new API is preparation, never a substitute for behavior RED.
 Candle qualification must retain its exact F32 compute/algo argument behavior.
+
+## Native cleanup failure cause (proposed amendment)
+
+A tracked native library destroy failure leaves reclamation uncertain. Keeping
+its generation healthy permits repeated new handles/residue and violates the
+selected frozen-live-set/no-growth policy. Publish terminal loss before Drop
+returns, retaining the actual cuBLAS/cuRAND domain and status. A native OPERATION
+allocation failure remains retryable; a preexisting ordinary delayed OOM is not
+an observed cleanup failure. Untracked destruction retains legacy behavior.
+
+The core owner supplies one first-writer publication path; libraries do not own
+another loss store or edit driver files. Proposed public representation:
+
+- `PrimaryContextLoss` retains recorded/observed identities and an authoritative
+  `cause: PrimaryContextLossCause`, replacing its driver-only `error` field.
+- Cause variants are `DriverStatus(CUresult)`,
+  `NativeLibraryCleanup { library: NativeLibrary, status: u32 }`, and
+  `SyntheticUnknown` for existing poison/probe-unwind cases without a native
+  status. NativeLibrary has cuBLAS/cuRAND domain tags independent of library
+  feature selection; the numeric value is the unchanged native enum status.
+- Pure cached `loss.refusal()` derives `PrimaryContextRefusal::DriverStatus`
+  for an original driver cause or `SyntheticUnknown` for library/synthetic
+  causes. Its driver-status projection is UNKNOWN only in the latter case;
+  documentation and diagnostics explicitly label that projection SYNTHETIC,
+  never a measured driver UNKNOWN. An actual driver UNKNOWN remains a distinct
+  DriverStatus cause. No native query participates in reading/formatting loss.
+- Existing driver-returning operations may return the documented synthetic
+  UNKNOWN projection; callers inspect the authoritative cached cause. Library
+  safe errors add `Lost(PrimaryContextLoss)` for a synthetic terminal refusal,
+  preserving the real cause instead of reporting it as a measured Driver
+  error. Original driver failures keep the existing Driver variant/status.
+- A crate-visible core publication method accepts the tagged native cleanup
+  cause after actual destroy returns Err. It records once under the existing
+  state lock, with no FFI under that lock. Any later driver/library observation
+  preserves the first cross-domain cause. No constructor or operation native
+  OOM is reclassified merely by sharing a library status value.
+
+Paired semantic tests precede implementation: failed tracked BLAS/RNG destroy
+(including allocation-status failure) freezes the generation after one native
+attempt; repeated construction/use/drop performs no native dispatch or growth;
+assert exact domain/status and explicit synthetic refusal. Include partial
+stream/seed unwind, successful destroy, native OPERATION OOM retry, preexisting
+ordinary delayed OOM with successful cleanup, driver-first and library-first
+loss ordering across BLAS/RNG/driver observations, and unchanged untracked
+nonpanic cleanup. Existing driver-only loss assertions migrate mechanically to
+the authoritative DriverStatus cause, preserving every expected status and
+identity. The core representation and this amendment require the same independent
+Astra review before public/core/API implementation. The earlier library Drop
+GREEN remains partial until this failure bound is closed and qualified.
