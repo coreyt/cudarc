@@ -243,7 +243,10 @@ const BINDINGS_HAVE_MAX_POOL_SIZE: bool = cfg!(not(any(
 /// for as long as the context and its streams and slices exist.
 ///
 /// # Drop
-/// Dropping the last reference destroys the pool (`cuMemPoolDestroy`).
+/// Dropping the last reference destroys the pool (`cuMemPoolDestroy`). A tracked
+/// pool holds admission through destruction; terminal loss disarms its handle.
+/// Any native destruction failure records its first actual driver status as
+/// terminal refusal before the handle is abandoned.
 #[derive(Debug)]
 pub struct CudaMemPool {
     pub(crate) cu_device: sys::CUdevice,
@@ -439,6 +442,12 @@ impl CudaMemPool {
     /// Reads one of the attributes that are `cuuint64_t` in every binding
     /// (4-8; CUDA 12.6 `cuda.h`).
     fn read_u64(&self, attr: sys::CUmemPool_attribute) -> Result<u64, DriverError> {
+        #[cfg(feature = "std")]
+        let _lease = self
+            .primary_lifetime
+            .as_ref()
+            .map(|lifetime| lifetime.admit())
+            .transpose()?;
         let mut value: u64 = 0;
         unsafe {
             result::mem_pool::get_attribute(self.pool, attr, (&mut value as *mut u64).cast())
@@ -452,6 +461,12 @@ impl CudaMemPool {
     /// # Errors
     /// The driver error of `cuMemPoolTrimTo`.
     pub fn trim_to(&self, keep: usize) -> Result<(), DriverError> {
+        #[cfg(feature = "std")]
+        let _lease = self
+            .primary_lifetime
+            .as_ref()
+            .map(|lifetime| lifetime.admit())
+            .transpose()?;
         unsafe { result::mem_pool::trim_to(self.pool, keep) }
     }
 
@@ -465,16 +480,22 @@ impl Drop for CudaMemPool {
     fn drop(&mut self) {
         #[cfg(test)]
         seams::POOL_DESTROYS.set(seams::POOL_DESTROYS.get() + 1);
+        let pool = std::mem::replace(&mut self.pool, std::ptr::null_mut());
         #[cfg(feature = "std")]
-        if self
+        let _lease = match self
             .primary_lifetime
             .as_ref()
-            .is_some_and(|lifetime| lifetime.loss().is_some())
+            .map(|lifetime| lifetime.admit())
+            .transpose()
         {
-            return;
+            Ok(lease) => lease,
+            Err(_) => return,
+        };
+        let result = unsafe { result::mem_pool::destroy(pool) };
+        #[cfg(feature = "std")]
+        if let (Some(lifetime), Err(error)) = (&self.primary_lifetime, result) {
+            lifetime.record_loss(error, None);
         }
-        let pool = std::mem::replace(&mut self.pool, std::ptr::null_mut());
-        let _ = unsafe { result::mem_pool::destroy(pool) };
     }
 }
 
