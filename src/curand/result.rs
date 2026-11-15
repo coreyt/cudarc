@@ -109,8 +109,8 @@ pub unsafe fn set_stream(
 /// The generator must not have already been freed.
 pub unsafe fn destroy_generator(generator: sys::curandGenerator_t) -> Result<(), CurandError> {
     #[cfg(test)]
-    if partial_init_test_seams::destroy_generator(generator) {
-        return Ok(());
+    if let Some(result) = partial_init_test_seams::destroy_generator(generator) {
+        return result;
     }
     sys::curandDestroyGenerator(generator).result()
 }
@@ -358,6 +358,7 @@ pub(crate) mod partial_init_test_seams {
         create_error: Option<CurandError>,
         stream_error: Option<CurandError>,
         seed_error: Option<CurandError>,
+        destroy_error: Option<CurandError>,
     }
 
     std::thread_local! {
@@ -377,6 +378,7 @@ pub(crate) mod partial_init_test_seams {
                 create_error: None,
                 stream_error: Some(CurandError(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR)),
                 seed_error: None,
+                destroy_error: None,
             }));
             Self
         }
@@ -402,6 +404,14 @@ pub(crate) mod partial_init_test_seams {
         pub(crate) fn fail_seed(&self) {
             let mut state = self.snapshot();
             state.seed_error = Some(CurandError(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR));
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn fail_destroy(&self) {
+            let mut state = self.snapshot();
+            state.destroy_error = Some(CurandError(
+                sys::curandStatus_t::CURAND_STATUS_INTERNAL_ERROR,
+            ));
             STATE.set(Some(state));
         }
     }
@@ -455,13 +465,16 @@ pub(crate) mod partial_init_test_seams {
         })
     }
 
-    pub(crate) fn destroy_generator(generator: sys::curandGenerator_t) -> bool {
-        let Some(mut state) = STATE.get() else {
-            return false;
-        };
+    pub(crate) fn destroy_generator(
+        generator: sys::curandGenerator_t,
+    ) -> Option<Result<(), CurandError>> {
+        let mut state = STATE.get()?;
         assert_eq!(generator as usize, GENERATOR);
         state.destroys += 1;
         STATE.set(Some(state));
-        true
+        Some(match state.destroy_error {
+            Some(error) => Err(error),
+            None => Ok(()),
+        })
     }
 }

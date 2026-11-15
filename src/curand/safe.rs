@@ -443,4 +443,34 @@ mod fathomdb_context_lifetime {
             (1, 1, 1, 1)
         );
     }
+
+    #[test]
+    fn fathomdb_rng_cleanup_error_does_not_unwind() {
+        let driver = context_test_seams::Guard::new();
+        let rng = result::partial_init_test_seams::Guard::new();
+        rng.allow_stream_setup();
+        rng.fail_destroy();
+        let context = context_test_seams::context();
+        let owner = CudaRng::new(42, context.default_stream()).unwrap();
+
+        let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| drop(owner)));
+        drop(context);
+
+        let native = driver.snapshot();
+        assert_eq!((native.queries, native.binds, native.releases), (2, 1, 1));
+        let calls = rng.snapshot();
+        assert_eq!(
+            (
+                calls.creates,
+                calls.stream_sets,
+                calls.seed_sets,
+                calls.destroys
+            ),
+            (1, 1, 1, 1)
+        );
+        assert!(
+            outcome.is_ok(),
+            "native RNG cleanup errors must not unwind Rust owners"
+        );
+    }
 }
