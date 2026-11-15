@@ -27,6 +27,8 @@ pub(crate) mod mem_pool;
 pub(crate) mod module_entry_tests;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod module_result_tests;
+#[cfg(all(test, feature = "std"))]
+pub(crate) mod ordinary_launch_tests;
 #[cfg(feature = "std")]
 pub(crate) mod primary_context;
 #[cfg(all(test, feature = "std"))]
