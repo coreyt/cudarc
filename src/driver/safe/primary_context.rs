@@ -59,7 +59,13 @@ impl PrimaryContextLifetime {
         if !active {
             self.record_error(DriverError(sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED));
         } else {
-            let id = unsafe { crate::driver::result::ctx::get_id(context) }?;
+            let id = match unsafe { crate::driver::result::ctx::get_id(context) } {
+                Ok(id) => id,
+                Err(error) => {
+                    self.record_loss(error, None);
+                    return Err(self.error().unwrap_or(error));
+                }
+            };
             if id != self.recorded_id {
                 self.record_loss(
                     DriverError(sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED),
@@ -435,7 +441,10 @@ mod fathomdb_primary_lifetime {
         });
         let mut context = context_test_seams::context();
         Arc::get_mut(&mut context).unwrap().primary_lifetime = Some(lifetime.clone());
-        assert_eq!(context.bind_to_thread().map_err(|error| error.0 as u32), Ok(()));
+        assert_eq!(
+            context.bind_to_thread().map_err(|error| error.0 as u32),
+            Ok(())
+        );
         let healthy = driver.snapshot();
         assert_eq!((healthy.primary_queries, healthy.id_queries), (1, 1));
         assert_eq!((healthy.queries, healthy.binds), (1, 1));
@@ -452,15 +461,30 @@ mod fathomdb_primary_lifetime {
         drop(context);
 
         assert_eq!(first, Err(error as u32));
-        assert_eq!(second, Err(error as u32), "failed identity query must permanently refuse later binding");
-        assert_eq!(third, Err(error as u32), "later OOM must not replace the actual identity-query error");
-        assert_eq!((after_error.primary_queries, after_error.id_queries), (2, 2));
+        assert_eq!(
+            second,
+            Err(error as u32),
+            "failed identity query must permanently refuse later binding"
+        );
+        assert_eq!(
+            third,
+            Err(error as u32),
+            "later OOM must not replace the actual identity-query error"
+        );
+        assert_eq!(
+            (after_error.primary_queries, after_error.id_queries),
+            (2, 2)
+        );
         assert_eq!((after_error.queries, after_error.binds), (1, 1));
         assert_eq!((dispatch.primary_queries, dispatch.id_queries), (2, 2));
         assert_eq!((dispatch.queries, dispatch.binds), (1, 1));
         assert_eq!(
             *lifetime.loss.lock().unwrap(),
-            Some(PrimaryContextLoss { recorded_id: 17, observed_id: None, error })
+            Some(PrimaryContextLoss {
+                recorded_id: 17,
+                observed_id: None,
+                error
+            })
         );
     }
 }
