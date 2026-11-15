@@ -313,3 +313,32 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod fathomdb_context_lifetime {
+    use super::*;
+    use crate::driver::result::context_test_seams;
+
+    #[test]
+    fn fathomdb_rng_partial_initialization_releases_generator() {
+        let driver = context_test_seams::Guard::new();
+        let rng = result::partial_init_test_seams::Guard::new();
+        let context = context_test_seams::context();
+
+        let error = match CudaRng::new(42, context.default_stream()) {
+            Ok(_) => panic!("stream setup must return its forced error"),
+            Err(error) => error,
+        };
+        assert_eq!(error, result::CurandError(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR));
+        drop(context);
+
+        let native = driver.snapshot();
+        assert_eq!((native.queries, native.binds, native.releases), (2, 1, 1));
+        let calls = rng.snapshot();
+        assert_eq!((calls.creates, calls.stream_sets), (1, 1));
+        assert_eq!(
+            calls.destroys, 1,
+            "failed stream setup must release its acquired RNG generator"
+        );
+    }
+}

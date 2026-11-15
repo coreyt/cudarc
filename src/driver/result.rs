@@ -493,6 +493,22 @@ pub(crate) mod context_test_seams {
         }
     }
 
+    pub(crate) fn context() -> std::sync::Arc<crate::driver::CudaContext> {
+        use std::sync::atomic::{AtomicBool, AtomicU32, AtomicUsize};
+
+        std::sync::Arc::new(crate::driver::CudaContext {
+            cu_device: 0,
+            cu_ctx: 0xC7 as sys::CUcontext,
+            ordinal: 0,
+            has_async_alloc: false,
+            mem_pool: None,
+            is_primary: true,
+            num_streams: AtomicUsize::new(0),
+            event_tracking: AtomicBool::new(true),
+            error_state: AtomicU32::new(0),
+        })
+    }
+
     pub(crate) fn get_current() -> Option<Option<sys::CUcontext>> {
         let mut state = STATE.get()?;
         state.queries += 1;

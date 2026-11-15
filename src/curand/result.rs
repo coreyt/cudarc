@@ -45,6 +45,10 @@ pub fn create_generator() -> Result<sys::curandGenerator_t, CurandError> {
 pub fn create_generator_kind(
     kind: sys::curandRngType_t,
 ) -> Result<sys::curandGenerator_t, CurandError> {
+    #[cfg(test)]
+    if let Some(generator) = partial_init_test_seams::create_generator(kind) {
+        return Ok(generator);
+    }
     let mut generator = MaybeUninit::uninit();
     unsafe {
         sys::curandCreateGenerator(generator.as_mut_ptr(), kind).result()?;
@@ -86,6 +90,10 @@ pub unsafe fn set_stream(
     generator: sys::curandGenerator_t,
     stream: sys::cudaStream_t,
 ) -> Result<(), CurandError> {
+    #[cfg(test)]
+    if let Some(result) = partial_init_test_seams::set_stream(generator, stream) {
+        return result;
+    }
     sys::curandSetStream(generator, stream).result()
 }
 
@@ -96,6 +104,10 @@ pub unsafe fn set_stream(
 /// # Safety
 /// The generator must not have already been freed.
 pub unsafe fn destroy_generator(generator: sys::curandGenerator_t) -> Result<(), CurandError> {
+    #[cfg(test)]
+    if partial_init_test_seams::destroy_generator(generator) {
+        return Ok(());
+    }
     sys::curandDestroyGenerator(generator).result()
 }
 
@@ -323,5 +335,78 @@ impl LogNormalFill<f32> for sys::curandGenerator_t {
 impl LogNormalFill<f64> for sys::curandGenerator_t {
     unsafe fn fill(self, o: *mut f64, n: usize, m: f64, s: f64) -> Result<(), CurandError> {
         generate::log_normal_f64(self, o, n, m, s)
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod partial_init_test_seams {
+    use super::{sys, CurandError};
+    use core::cell::Cell;
+
+    const GENERATOR: usize = 0xA86;
+
+    #[derive(Clone, Copy, Debug)]
+    pub(crate) struct State {
+        pub(crate) creates: usize,
+        pub(crate) stream_sets: usize,
+        pub(crate) destroys: usize,
+    }
+
+    std::thread_local! {
+        static STATE: Cell<Option<State>> = const { Cell::new(None) };
+    }
+
+    pub(crate) struct Guard;
+
+    impl Guard {
+        pub(crate) fn new() -> Self {
+            assert!(STATE.get().is_none());
+            STATE.set(Some(State {
+                creates: 0,
+                stream_sets: 0,
+                destroys: 0,
+            }));
+            Self
+        }
+
+        pub(crate) fn snapshot(&self) -> State {
+            STATE.get().unwrap()
+        }
+    }
+
+    impl Drop for Guard {
+        fn drop(&mut self) {
+            STATE.set(None);
+        }
+    }
+
+    pub(crate) fn create_generator(kind: sys::curandRngType_t) -> Option<sys::curandGenerator_t> {
+        let mut state = STATE.get()?;
+        assert_eq!(kind, sys::curandRngType_t::CURAND_RNG_PSEUDO_DEFAULT);
+        state.creates += 1;
+        STATE.set(Some(state));
+        Some(GENERATOR as sys::curandGenerator_t)
+    }
+
+    pub(crate) fn set_stream(
+        generator: sys::curandGenerator_t,
+        stream: sys::cudaStream_t,
+    ) -> Option<Result<(), CurandError>> {
+        let mut state = STATE.get()?;
+        assert_eq!(generator as usize, GENERATOR);
+        assert!(stream.is_null());
+        state.stream_sets += 1;
+        STATE.set(Some(state));
+        Some(Err(CurandError(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR)))
+    }
+
+    pub(crate) fn destroy_generator(generator: sys::curandGenerator_t) -> bool {
+        let Some(mut state) = STATE.get() else {
+            return false;
+        };
+        assert_eq!(generator as usize, GENERATOR);
+        state.destroys += 1;
+        STATE.set(Some(state));
+        true
     }
 }
