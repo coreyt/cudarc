@@ -1,5 +1,5 @@
 use crate::driver::{sys, DriverError};
-use std::sync::Mutex;
+use std::sync::{Condvar, Mutex};
 
 /// Shared lifetime state for one tracked primary-context generation.
 ///
@@ -10,8 +10,27 @@ use std::sync::Mutex;
 #[derive(Debug)]
 pub struct PrimaryContextLifetime {
     pub(crate) recorded_id: u64,
-    pub(crate) loss: Mutex<Option<PrimaryContextLoss>>,
+    pub(crate) state: Mutex<PrimaryContextState>,
+    pub(crate) ready: Condvar,
+    #[cfg(test)]
+    pub(crate) probe_waiters: std::sync::atomic::AtomicUsize,
     pub(crate) anchor: Option<PrimaryContextAnchor>,
+}
+
+#[derive(Debug, Default)]
+pub(crate) struct PrimaryContextState {
+    pub(crate) loss: Option<PrimaryContextLoss>,
+    pub(crate) active_leases: usize,
+    pub(crate) probing: bool,
+}
+
+/// Healthy admission to one tracked primary-context generation.
+///
+/// Keep this lease through native work and its completion or unwind. Dropping
+/// it returns admission without probing, binding or synchronizing the context.
+#[derive(Debug)]
+pub struct PrimaryContextLease {
+    lifetime: std::sync::Arc<PrimaryContextLifetime>,
 }
 
 #[derive(Debug)]
@@ -62,15 +81,32 @@ impl PrimaryContextLifetime {
         let recorded_id = unsafe { crate::driver::result::ctx::get_id(anchor.context) }?;
         Ok(std::sync::Arc::new(Self {
             recorded_id,
-            loss: Mutex::new(None),
+            state: Mutex::new(PrimaryContextState::default()),
+            ready: Condvar::new(),
+            #[cfg(test)]
+            probe_waiters: std::sync::atomic::AtomicUsize::new(0),
             anchor: Some(anchor),
         }))
     }
 
+    /// Acquires healthy admission for native work using this generation.
+    ///
+    /// An idle generation is probed before admission. Nested or concurrent
+    /// admitted work shares its healthy epoch. Callers must coordinate any
+    /// external reset outside all construction, work, probe and cleanup leases.
+    ///
+    /// # Errors
+    /// Returns the first terminal loss or a probe error, or NOT_SUPPORTED when
+    /// admission is unavailable. Terminal refusal performs no native query.
+    pub fn admit(self: &std::sync::Arc<Self>) -> Result<PrimaryContextLease, DriverError> {
+        Err(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED))
+    }
+
     pub(crate) fn error(&self) -> Option<DriverError> {
-        self.loss
+        self.state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .loss
             .map(|loss| DriverError(loss.error))
     }
 
@@ -122,12 +158,12 @@ impl PrimaryContextLifetime {
     }
 
     fn record_loss(&self, error: DriverError, observed_id: Option<u64>) {
-        let mut loss = self
-            .loss
+        let mut state = self
+            .state
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if loss.is_none() {
-            *loss = Some(PrimaryContextLoss {
+        if state.loss.is_none() {
+            state.loss = Some(PrimaryContextLoss {
                 recorded_id: self.recorded_id,
                 observed_id,
                 error: error.0,
@@ -161,7 +197,10 @@ mod fathomdb_primary_lifetime {
         let _driver = context_test_seams::Guard::new();
         let lifetime = Arc::new(PrimaryContextLifetime {
             recorded_id: 17,
-            loss: Mutex::new(None),
+            state: Mutex::new(PrimaryContextState::default()),
+            ready: Condvar::new(),
+            #[cfg(test)]
+            probe_waiters: std::sync::atomic::AtomicUsize::new(0),
             anchor: None,
         });
         let mut first = context_test_seams::context();
@@ -169,7 +208,7 @@ mod fathomdb_primary_lifetime {
         Arc::get_mut(&mut first).unwrap().primary_lifetime = Some(lifetime.clone());
         Arc::get_mut(&mut sibling).unwrap().primary_lifetime = Some(lifetime.clone());
         assert!(!Arc::ptr_eq(&first, &sibling));
-        assert!(lifetime.loss.lock().unwrap().is_none());
+        assert!(lifetime.state.lock().unwrap().loss.is_none());
         let lost = sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED;
         first.record_err::<()>(Err(DriverError(lost)));
 
@@ -192,7 +231,7 @@ mod fathomdb_primary_lifetime {
             "shared terminal loss must take priority over later OOM"
         );
         assert_eq!(
-            *lifetime.loss.lock().unwrap(),
+            lifetime.state.lock().unwrap().loss,
             Some(PrimaryContextLoss {
                 recorded_id: 17,
                 observed_id: None,
@@ -221,7 +260,10 @@ mod fathomdb_primary_lifetime {
         _driver.set_context_id(23);
         let lifetime = Arc::new(PrimaryContextLifetime {
             recorded_id: 23,
-            loss: Mutex::new(None),
+            state: Mutex::new(PrimaryContextState::default()),
+            ready: Condvar::new(),
+            #[cfg(test)]
+            probe_waiters: std::sync::atomic::AtomicUsize::new(0),
             anchor: None,
         });
         let mut context = context_test_seams::context();
@@ -234,7 +276,7 @@ mod fathomdb_primary_lifetime {
             Err(oom as u32)
         );
         assert_eq!(context.check_err().map_err(|error| error.0 as u32), Ok(()));
-        assert!(lifetime.loss.lock().unwrap().is_none());
+        assert!(lifetime.state.lock().unwrap().loss.is_none());
     }
 
     #[test]
@@ -243,7 +285,10 @@ mod fathomdb_primary_lifetime {
         driver.set_primary_active(false);
         let lifetime = Arc::new(PrimaryContextLifetime {
             recorded_id: 29,
-            loss: Mutex::new(None),
+            state: Mutex::new(PrimaryContextState::default()),
+            ready: Condvar::new(),
+            #[cfg(test)]
+            probe_waiters: std::sync::atomic::AtomicUsize::new(0),
             anchor: None,
         });
         let mut context = context_test_seams::context();
@@ -267,7 +312,7 @@ mod fathomdb_primary_lifetime {
         );
         assert_eq!((dispatch.queries, dispatch.binds), (0, 0));
         assert_eq!(
-            *lifetime.loss.lock().unwrap(),
+            lifetime.state.lock().unwrap().loss,
             Some(PrimaryContextLoss {
                 recorded_id: 29,
                 observed_id: None,
@@ -282,7 +327,10 @@ mod fathomdb_primary_lifetime {
         driver.set_context_id(31);
         let lifetime = Arc::new(PrimaryContextLifetime {
             recorded_id: 31,
-            loss: Mutex::new(None),
+            state: Mutex::new(PrimaryContextState::default()),
+            ready: Condvar::new(),
+            #[cfg(test)]
+            probe_waiters: std::sync::atomic::AtomicUsize::new(0),
             anchor: None,
         });
         let mut context = context_test_seams::context();
@@ -297,7 +345,7 @@ mod fathomdb_primary_lifetime {
             (dispatch.primary_queries, dispatch.queries, dispatch.binds),
             (1, 1, 1)
         );
-        assert!(lifetime.loss.lock().unwrap().is_none());
+        assert!(lifetime.state.lock().unwrap().loss.is_none());
     }
 
     #[test]
@@ -323,7 +371,10 @@ mod fathomdb_primary_lifetime {
         driver.set_context_id(42);
         let lifetime = Arc::new(PrimaryContextLifetime {
             recorded_id: 17,
-            loss: Mutex::new(None),
+            state: Mutex::new(PrimaryContextState::default()),
+            ready: Condvar::new(),
+            #[cfg(test)]
+            probe_waiters: std::sync::atomic::AtomicUsize::new(0),
             anchor: None,
         });
         let mut context = context_test_seams::context();
@@ -344,7 +395,7 @@ mod fathomdb_primary_lifetime {
         assert_eq!((dispatch.primary_queries, dispatch.id_queries), (1, 1));
         assert_eq!((dispatch.queries, dispatch.binds), (0, 0));
         assert_eq!(
-            *lifetime.loss.lock().unwrap(),
+            lifetime.state.lock().unwrap().loss,
             Some(PrimaryContextLoss {
                 recorded_id: 17,
                 observed_id: Some(42),
@@ -360,7 +411,10 @@ mod fathomdb_primary_lifetime {
         driver.set_primary_error(Some(error));
         let lifetime = Arc::new(PrimaryContextLifetime {
             recorded_id: 17,
-            loss: Mutex::new(None),
+            state: Mutex::new(PrimaryContextState::default()),
+            ready: Condvar::new(),
+            #[cfg(test)]
+            probe_waiters: std::sync::atomic::AtomicUsize::new(0),
             anchor: None,
         });
         let mut context = context_test_seams::context();
@@ -388,7 +442,7 @@ mod fathomdb_primary_lifetime {
         assert_eq!((dispatch.primary_queries, dispatch.id_queries), (1, 0));
         assert_eq!((dispatch.queries, dispatch.binds), (0, 0));
         assert_eq!(
-            *lifetime.loss.lock().unwrap(),
+            lifetime.state.lock().unwrap().loss,
             Some(PrimaryContextLoss {
                 recorded_id: 17,
                 observed_id: None,
@@ -412,7 +466,10 @@ mod fathomdb_primary_lifetime {
             });
             let lifetime = Arc::new(PrimaryContextLifetime {
                 recorded_id: 17,
-                loss: Mutex::new(loss),
+                state: Mutex::new(PrimaryContextState { loss, ..PrimaryContextState::default() }),
+                ready: Condvar::new(),
+                #[cfg(test)]
+                probe_waiters: std::sync::atomic::AtomicUsize::new(0),
                 anchor: Some(PrimaryContextAnchor {
                     device: 0,
                     context: retained,
@@ -473,7 +530,10 @@ mod fathomdb_primary_lifetime {
         driver.set_primary_active(true);
         let lifetime = Arc::new(PrimaryContextLifetime {
             recorded_id: 17,
-            loss: Mutex::new(None),
+            state: Mutex::new(PrimaryContextState::default()),
+            ready: Condvar::new(),
+            #[cfg(test)]
+            probe_waiters: std::sync::atomic::AtomicUsize::new(0),
             anchor: None,
         });
         let mut context = context_test_seams::context();
@@ -516,7 +576,7 @@ mod fathomdb_primary_lifetime {
         assert_eq!((dispatch.primary_queries, dispatch.id_queries), (2, 2));
         assert_eq!((dispatch.queries, dispatch.binds), (1, 1));
         assert_eq!(
-            *lifetime.loss.lock().unwrap(),
+            lifetime.state.lock().unwrap().loss,
             Some(PrimaryContextLoss {
                 recorded_id: 17,
                 observed_id: None,
@@ -598,7 +658,7 @@ mod fathomdb_primary_lifetime {
             (1, 0, 1)
         );
         assert_eq!(lifetime.recorded_id, 17);
-        assert!(lifetime.loss.lock().unwrap().is_none());
+        assert!(lifetime.state.lock().unwrap().loss.is_none());
         let anchor = lifetime.anchor.as_ref().unwrap();
         assert_eq!(
             (anchor.ordinal, anchor.device, anchor.context as usize),
@@ -642,5 +702,330 @@ mod fathomdb_primary_lifetime {
             (dispatch.primary_queries, dispatch.queries, dispatch.binds),
             (0, 0, 0)
         );
+    }
+}
+
+#[cfg(all(test, not(any(
+    feature = "cuda-11040",
+    feature = "cuda-11050",
+    feature = "cuda-11060",
+    feature = "cuda-11070",
+    feature = "cuda-11080"
+))))]
+mod fathomdb_primary_admission {
+    use super::*;
+    use crate::driver::result::context_test_seams;
+    use std::sync::Arc;
+
+    #[test]
+    fn healthy_nested_leases_share_one_probe_until_last_drop() {
+        let driver = context_test_seams::Guard::new();
+        let lifetime = PrimaryContextLifetime::new(0).map_err(|error| error.0 as u32).unwrap();
+        let first = lifetime.admit().map_err(|error| error.0 as u32);
+        assert!(first.is_ok(), "healthy lifetime must provide its first admission lease");
+        let first = first.unwrap();
+        let nested = lifetime.admit().map_err(|error| error.0 as u32).unwrap();
+        let admitted = driver.snapshot();
+        assert_eq!((admitted.primary_queries, admitted.id_queries), (1, 2));
+        assert_eq!((admitted.queries, admitted.binds), (0, 0));
+        assert_eq!(lifetime.state.lock().unwrap().active_leases, 2);
+
+        let worker_lifetime = Arc::clone(&lifetime);
+        let worker = std::thread::spawn(move || {
+            let driver = context_test_seams::Guard::new();
+            let lifetime = worker_lifetime;
+            let lease = lifetime.admit().map_err(|error| error.0 as u32).unwrap();
+            let dispatch = driver.snapshot();
+            drop(lease);
+            drop(lifetime);
+            dispatch
+        });
+        let concurrent = worker.join().unwrap();
+        assert_eq!((concurrent.primary_queries, concurrent.id_queries), (0, 0));
+        assert_eq!((concurrent.queries, concurrent.binds), (0, 0));
+        assert_eq!(lifetime.state.lock().unwrap().active_leases, 2);
+
+        drop(first);
+        assert_eq!(lifetime.state.lock().unwrap().active_leases, 1);
+        drop(nested);
+        assert_eq!(lifetime.state.lock().unwrap().active_leases, 0);
+        let drained = driver.snapshot();
+        assert_eq!((drained.primary_queries, drained.id_queries), (1, 2));
+
+        let next = lifetime.admit().map_err(|error| error.0 as u32).unwrap();
+        let next_epoch = driver.snapshot();
+        assert_eq!((next_epoch.primary_queries, next_epoch.id_queries), (2, 3));
+        drop(lifetime);
+        assert_eq!(driver.snapshot().releases, 0);
+        drop(next);
+        let final_drop = driver.snapshot();
+        assert_eq!((final_drop.retains, final_drop.releases), (1, 1));
+        assert_eq!((final_drop.primary_queries, final_drop.id_queries), (2, 3));
+        assert_eq!((final_drop.queries, final_drop.binds), (0, 0));
+    }
+
+    #[test]
+    fn terminal_loss_refuses_new_leases_during_an_active_epoch() {
+        let driver = context_test_seams::Guard::new();
+        let lifetime = PrimaryContextLifetime::new(0).map_err(|error| error.0 as u32).unwrap();
+        let lease = lifetime.admit().map_err(|error| error.0 as u32).unwrap();
+        let lost = sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED;
+        lifetime.record_error(DriverError(lost));
+        let before = driver.snapshot();
+        let refused = lifetime.admit().map(|_| ()).map_err(|error| error.0 as u32);
+        drop(lease);
+        let after_drop = lifetime.admit().map(|_| ()).map_err(|error| error.0 as u32);
+        let after = driver.snapshot();
+
+        assert_eq!(refused, Err(lost as u32));
+        assert_eq!(after_drop, Err(lost as u32));
+        assert_eq!(lifetime.state.lock().unwrap().active_leases, 0);
+        assert_eq!((after.primary_queries, after.id_queries), (before.primary_queries, before.id_queries));
+        assert_eq!((after.queries, after.binds), (0, 0));
+        drop(lifetime);
+        assert_eq!((driver.snapshot().retains, driver.snapshot().releases), (1, 1));
+    }
+
+    #[derive(Clone, Copy)]
+    enum ProbeMode {
+        Healthy,
+        QueryError,
+        Panic,
+        OtherLoss,
+    }
+
+    struct ProbePair {
+        first: Result<(), u32>,
+        second: Result<(), u32>,
+        first_native: context_test_seams::State,
+        second_native: context_test_seams::State,
+        panic_ran: bool,
+    }
+
+    struct OwnedProbeThreads {
+        lifetime: Arc<PrimaryContextLifetime>,
+        probe_release: std::sync::mpsc::Sender<()>,
+        first_release: std::sync::mpsc::Sender<()>,
+        second_release: std::sync::mpsc::Sender<()>,
+        first: Option<std::thread::JoinHandle<context_test_seams::State>>,
+        second: Option<std::thread::JoinHandle<context_test_seams::State>>,
+        finished: bool,
+    }
+
+    impl Drop for OwnedProbeThreads {
+        fn drop(&mut self) {
+            if !self.finished {
+                let mut state = self.lifetime.state.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+                if state.loss.is_none() {
+                    state.loss = Some(PrimaryContextLoss {
+                        recorded_id: self.lifetime.recorded_id,
+                        observed_id: None,
+                        error: sys::CUresult::CUDA_ERROR_UNKNOWN,
+                    });
+                }
+                state.probing = false;
+                drop(state);
+                self.lifetime.ready.notify_all();
+                let _ = self.probe_release.send(());
+                let _ = self.first_release.send(());
+                let _ = self.second_release.send(());
+                if let Some(first) = self.first.take() {
+                    let _ = first.join();
+                }
+                if let Some(second) = self.second.take() {
+                    let _ = second.join();
+                }
+            }
+        }
+    }
+
+    fn admission_status(result: &std::thread::Result<Result<PrimaryContextLease, DriverError>>) -> Result<(), u32> {
+        match result {
+            Ok(Ok(_)) => Ok(()),
+            Ok(Err(error)) => Err(error.0 as u32),
+            Err(_) => Err(sys::CUresult::CUDA_ERROR_UNKNOWN as u32),
+        }
+    }
+
+    fn run_contended_probe(lifetime: &Arc<PrimaryContextLifetime>, mode: ProbeMode) -> ProbePair {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        use std::sync::mpsc::channel;
+        use std::time::{Duration, Instant};
+
+        let (probe_entered_tx, probe_entered_rx) = channel();
+        let (probe_release, probe_release_rx) = channel();
+        let (first_release, first_release_rx) = channel();
+        let (second_release, second_release_rx) = channel();
+        let (first_status_tx, first_status_rx) = channel();
+        let (second_status_tx, second_status_rx) = channel();
+        let panic_ran = Arc::new(AtomicBool::new(false));
+        let mut owned = OwnedProbeThreads {
+            lifetime: Arc::clone(lifetime),
+            probe_release,
+            first_release,
+            second_release,
+            first: None,
+            second: None,
+            finished: false,
+        };
+        let first_lifetime = Arc::clone(lifetime);
+        let first_panic_ran = Arc::clone(&panic_ran);
+        owned.first = Some(std::thread::spawn(move || {
+            let driver = context_test_seams::Guard::new();
+            let lifetime = first_lifetime;
+            if matches!(mode, ProbeMode::QueryError) {
+                driver.set_primary_error(Some(sys::CUresult::CUDA_ERROR_UNKNOWN));
+            }
+            let probe_lifetime = Arc::clone(&lifetime);
+            driver.set_primary_probe_hook(move || {
+                assert!(probe_lifetime.state.try_lock().is_ok(), "native probe must run outside the admission state mutex");
+                probe_entered_tx.send(()).unwrap();
+                probe_release_rx.recv_timeout(Duration::from_secs(5)).expect("release the owned first probe");
+                if matches!(mode, ProbeMode::Panic) {
+                    first_panic_ran.store(true, Ordering::SeqCst);
+                    panic!("synthetic native-probe unwind");
+                }
+            });
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| lifetime.admit()));
+            let _ = first_status_tx.send(admission_status(&result));
+            first_release_rx.recv_timeout(Duration::from_secs(5)).expect("release the owned first lease");
+            drop(result);
+            let dispatch = driver.snapshot();
+            drop(lifetime);
+            dispatch
+        }));
+        probe_entered_rx.recv_timeout(Duration::from_secs(3)).expect("first admission must enter its native probe");
+
+        let second_lifetime = Arc::clone(lifetime);
+        owned.second = Some(std::thread::spawn(move || {
+            let driver = context_test_seams::Guard::new();
+            let lifetime = second_lifetime;
+            let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| lifetime.admit()));
+            let _ = second_status_tx.send(admission_status(&result));
+            second_release_rx.recv_timeout(Duration::from_secs(5)).expect("release the owned second lease");
+            drop(result);
+            let dispatch = driver.snapshot();
+            drop(lifetime);
+            dispatch
+        }));
+        let deadline = Instant::now() + Duration::from_secs(3);
+        while lifetime.probe_waiters.load(Ordering::SeqCst) == 0 {
+            assert!(Instant::now() < deadline, "second admission must wait behind the reserved probe");
+            std::thread::sleep(Duration::from_millis(1));
+        }
+        let second = if matches!(mode, ProbeMode::OtherLoss) {
+            lifetime.record_error(DriverError(sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED));
+            Some(second_status_rx.recv_timeout(Duration::from_secs(3)).expect("published loss must wake the waiter before the first probe returns"))
+        } else {
+            None
+        };
+        owned.probe_release.send(()).unwrap();
+        let first = first_status_rx.recv_timeout(Duration::from_secs(3)).expect("first admission must terminate");
+        let second = second.unwrap_or_else(|| second_status_rx.recv_timeout(Duration::from_secs(3)).expect("second admission must wake and terminate"));
+        owned.first_release.send(()).unwrap();
+        owned.second_release.send(()).unwrap();
+        let first_native = owned.first.take().unwrap().join().unwrap();
+        let second_native = owned.second.take().unwrap().join().unwrap();
+        owned.finished = true;
+        ProbePair { first, second, first_native, second_native, panic_ran: panic_ran.load(Ordering::SeqCst) }
+    }
+
+    #[test]
+    fn concurrent_idle_admission_serializes_one_unlocked_probe() {
+        let driver = context_test_seams::Guard::new();
+        let lifetime = PrimaryContextLifetime::new(0).map_err(|error| error.0 as u32).unwrap();
+        let pair = run_contended_probe(&lifetime, ProbeMode::Healthy);
+
+        assert_eq!(pair.first, Ok(()));
+        assert_eq!(pair.second, Ok(()));
+        assert_eq!((pair.first_native.primary_queries, pair.first_native.id_queries), (1, 1));
+        assert_eq!((pair.second_native.primary_queries, pair.second_native.id_queries), (0, 0));
+        assert_eq!((pair.first_native.queries, pair.first_native.binds, pair.second_native.queries, pair.second_native.binds), (0, 0, 0, 0));
+        assert_eq!(lifetime.state.lock().unwrap().active_leases, 0);
+        assert!(!lifetime.state.lock().unwrap().probing);
+        assert!(lifetime.state.lock().unwrap().loss.is_none());
+        drop(lifetime);
+        assert_eq!((driver.snapshot().retains, driver.snapshot().releases), (1, 1));
+    }
+
+    #[test]
+    fn failed_probe_wakes_waiters_and_preserves_terminal_refusal() {
+        let driver = context_test_seams::Guard::new();
+        let lifetime = PrimaryContextLifetime::new(0).map_err(|error| error.0 as u32).unwrap();
+        let pair = run_contended_probe(&lifetime, ProbeMode::QueryError);
+        let error = sys::CUresult::CUDA_ERROR_UNKNOWN;
+
+        assert_eq!(pair.first, Err(error as u32));
+        assert_eq!(pair.second, Err(error as u32));
+        assert_eq!((pair.first_native.primary_queries, pair.first_native.id_queries), (1, 0));
+        assert_eq!((pair.second_native.primary_queries, pair.second_native.id_queries), (0, 0));
+        assert_eq!(lifetime.state.lock().unwrap().active_leases, 0);
+        assert!(!lifetime.state.lock().unwrap().probing);
+        assert_eq!(lifetime.admit().map(|_| ()).map_err(|error| error.0 as u32), Err(error as u32));
+        assert_eq!((driver.snapshot().primary_queries, driver.snapshot().id_queries), (0, 1));
+        drop(lifetime);
+        assert_eq!((driver.snapshot().retains, driver.snapshot().releases), (1, 1));
+    }
+
+    #[test]
+    fn panicking_probe_wakes_waiters_and_terminally_refuses() {
+        let driver = context_test_seams::Guard::new();
+        let lifetime = PrimaryContextLifetime::new(0).map_err(|error| error.0 as u32).unwrap();
+        let pair = run_contended_probe(&lifetime, ProbeMode::Panic);
+        let error = sys::CUresult::CUDA_ERROR_UNKNOWN;
+
+        assert!(pair.panic_ran);
+        assert_eq!(pair.first, Err(error as u32));
+        assert_eq!(pair.second, Err(error as u32));
+        assert_eq!((pair.first_native.primary_queries, pair.first_native.id_queries), (1, 0));
+        assert_eq!((pair.second_native.primary_queries, pair.second_native.id_queries), (0, 0));
+        assert_eq!(lifetime.state.lock().unwrap().active_leases, 0);
+        assert!(!lifetime.state.lock().unwrap().probing);
+        assert_eq!(lifetime.admit().map(|_| ()).map_err(|error| error.0 as u32), Err(error as u32));
+        assert_eq!((driver.snapshot().primary_queries, driver.snapshot().id_queries), (0, 1));
+        drop(lifetime);
+        assert_eq!((driver.snapshot().retains, driver.snapshot().releases), (1, 1));
+    }
+
+    #[test]
+    fn published_loss_wakes_waiters_before_the_probe_returns() {
+        let driver = context_test_seams::Guard::new();
+        let lifetime = PrimaryContextLifetime::new(0).map_err(|error| error.0 as u32).unwrap();
+        let pair = run_contended_probe(&lifetime, ProbeMode::OtherLoss);
+        let error = sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED;
+
+        assert_eq!(pair.first, Err(error as u32));
+        assert_eq!(pair.second, Err(error as u32));
+        assert_eq!((pair.first_native.primary_queries, pair.first_native.id_queries), (1, 0));
+        assert_eq!((pair.second_native.primary_queries, pair.second_native.id_queries), (0, 0));
+        assert_eq!(lifetime.state.lock().unwrap().active_leases, 0);
+        assert!(!lifetime.state.lock().unwrap().probing);
+        drop(lifetime);
+        assert_eq!((driver.snapshot().retains, driver.snapshot().releases), (1, 1));
+    }
+
+    #[test]
+    fn poisoned_admission_state_refuses_without_native_queries() {
+        let driver = context_test_seams::Guard::new();
+        let lifetime = PrimaryContextLifetime::new(0).map_err(|error| error.0 as u32).unwrap();
+        let poisoned = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _state = lifetime.state.lock().unwrap();
+            panic!("synthetic state-owner unwind");
+        }));
+        assert!(poisoned.is_err());
+        let error = sys::CUresult::CUDA_ERROR_UNKNOWN;
+        let refusal = lifetime.admit().map(|_| ()).map_err(|error| error.0 as u32);
+        let repeated = lifetime.admit().map(|_| ()).map_err(|error| error.0 as u32);
+
+        assert_eq!(refusal, Err(error as u32));
+        assert_eq!(repeated, Err(error as u32));
+        let state = lifetime.state.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+        assert_eq!(state.loss.as_ref().map(|loss| loss.error as u32), Some(error as u32));
+        assert_eq!(state.active_leases, 0);
+        assert!(!state.probing);
+        drop(state);
+        assert_eq!((driver.snapshot().primary_queries, driver.snapshot().id_queries), (0, 1));
+        drop(lifetime);
+        assert_eq!((driver.snapshot().retains, driver.snapshot().releases), (1, 1));
     }
 }
