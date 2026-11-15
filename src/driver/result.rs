@@ -1990,8 +1990,26 @@ pub unsafe fn launch_kernel(
     stream: sys::CUstream,
     kernel_params: &mut [*mut c_void],
 ) -> Result<(), DriverError> {
-    #[cfg(all(test, feature = "std", feature = "nvrtc", not(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080"))))]
-    if let Some(result) = crate::driver::safe::ordinary_launch_tests::seams::launch(f, grid_dim, block_dim, shared_mem_bytes, stream, kernel_params) {
+    #[cfg(all(
+        test,
+        feature = "std",
+        feature = "nvrtc",
+        not(any(
+            feature = "cuda-11040",
+            feature = "cuda-11050",
+            feature = "cuda-11060",
+            feature = "cuda-11070",
+            feature = "cuda-11080"
+        ))
+    ))]
+    if let Some(result) = crate::driver::safe::ordinary_launch_tests::seams::launch(
+        f,
+        grid_dim,
+        block_dim,
+        shared_mem_bytes,
+        stream,
+        kernel_params,
+    ) {
         return result;
     }
 

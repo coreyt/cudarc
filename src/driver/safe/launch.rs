@@ -204,11 +204,27 @@ impl LaunchArgs<'_> {
     /// Since [LaunchArgs::launch()] properly records reads/writes for [CudaSlice]/[CudaView]/[CudaViewMut],
     /// and the drop implementation of [CudaSlice] waits on those events to finish,
     /// we will never encounter a use after free situation.
+    /// Tracked function and stream owners must share the identical lifetime.
+    /// Admission covers native waits, kernel dispatch and event recording;
+    /// cached/delayed errors are checked again after preparation. A mismatched
+    /// tracked association returns INVALID_CONTEXT before native work.
     #[inline(always)]
     pub unsafe fn launch(
         &mut self,
         cfg: LaunchConfig,
     ) -> Result<Option<(CudaEvent, CudaEvent)>, DriverError> {
+        #[cfg(feature = "std")]
+        let _lease = match (
+            &self.stream.ctx.primary_lifetime,
+            &self.func.module.ctx.primary_lifetime,
+        ) {
+            (Some(stream), Some(function)) if std::sync::Arc::ptr_eq(stream, function) => {
+                self.stream.ctx.check_err()?;
+                Some(stream.admit()?)
+            }
+            (None, None) => None,
+            _ => return Err(DriverError(sys::CUresult::CUDA_ERROR_INVALID_CONTEXT)),
+        };
         self.stream.ctx.bind_to_thread()?;
         for &event in self.waits.iter() {
             self.stream.wait(event)?;
@@ -217,6 +233,10 @@ impl LaunchArgs<'_> {
             .flags
             .map(|flags| self.stream.record_event(Some(flags)))
             .transpose()?;
+        #[cfg(feature = "std")]
+        if self.stream.ctx.primary_lifetime.is_some() {
+            self.stream.ctx.check_err()?;
+        }
         result::launch_kernel(
             self.func.cu_function,
             cfg.grid_dim,
