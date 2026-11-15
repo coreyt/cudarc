@@ -2396,6 +2396,14 @@ impl CudaStream {
         self: &Arc<Self>,
         dst: &mut Dst,
     ) -> Result<(), DriverError> {
+        #[cfg(feature = "std")]
+        let _lease = match &self.ctx.primary_lifetime {
+            Some(lifetime) => {
+                self.ctx.check_err()?;
+                Some(lifetime.admit()?)
+            }
+            None => None,
+        };
         self.ctx.bind_to_thread()?;
         let num_bytes = dst.num_bytes();
         let (dptr, _record) = dst.device_ptr_mut(self);
@@ -2430,6 +2438,14 @@ impl CudaStream {
         src: &Src,
         dst: &mut Dst,
     ) -> Result<(), DriverError> {
+        #[cfg(feature = "std")]
+        let _lease = match &self.ctx.primary_lifetime {
+            Some(lifetime) => {
+                self.ctx.check_err()?;
+                Some(lifetime.admit()?)
+            }
+            None => None,
+        };
         assert!(dst.len() >= src.len());
         self.ctx.bind_to_thread()?;
         let (src, _record_src) = unsafe { src.stream_synced_slice(self) };
@@ -2472,6 +2488,14 @@ impl CudaStream {
         src: &Src,
         dst: &mut Dst,
     ) -> Result<(), DriverError> {
+        #[cfg(feature = "std")]
+        let _lease = match &self.ctx.primary_lifetime {
+            Some(lifetime) => {
+                self.ctx.check_err()?;
+                Some(lifetime.admit()?)
+            }
+            None => None,
+        };
         assert!(dst.len() >= src.len());
         self.ctx.bind_to_thread()?;
         let (src, _record_src) = src.device_ptr(self);
@@ -2485,6 +2509,14 @@ impl CudaStream {
         src: &Src,
         dst: &mut Dst,
     ) -> Result<(), DriverError> {
+        #[cfg(feature = "std")]
+        let _lease = match &self.ctx.primary_lifetime {
+            Some(lifetime) => {
+                self.ctx.check_err()?;
+                Some(lifetime.admit()?)
+            }
+            None => None,
+        };
         assert!(dst.len() >= src.len());
         self.ctx.bind_to_thread()?;
 

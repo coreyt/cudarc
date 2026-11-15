@@ -1499,9 +1499,22 @@ pub unsafe fn memset_d8_async(
     num_bytes: usize,
     stream: sys::CUstream,
 ) -> Result<(), DriverError> {
-    #[cfg(all(test, feature = "std", not(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080"))))]
+    #[cfg(all(
+        test,
+        feature = "std",
+        not(any(
+            feature = "cuda-11040",
+            feature = "cuda-11050",
+            feature = "cuda-11060",
+            feature = "cuda-11070",
+            feature = "cuda-11080"
+        ))
+    ))]
     if let Some(result) = crate::driver::safe::slice_memory_use_tests::seams::dispatch(
-        crate::driver::safe::slice_memory_use_tests::Operation::Memset, dptr, num_bytes, stream,
+        crate::driver::safe::slice_memory_use_tests::Operation::Memset,
+        dptr,
+        num_bytes,
+        stream,
     ) {
         return result;
     }
@@ -1541,9 +1554,22 @@ pub unsafe fn memcpy_htod_async<T>(
     src: &[T],
     stream: sys::CUstream,
 ) -> Result<(), DriverError> {
-    #[cfg(all(test, feature = "std", not(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080"))))]
+    #[cfg(all(
+        test,
+        feature = "std",
+        not(any(
+            feature = "cuda-11040",
+            feature = "cuda-11050",
+            feature = "cuda-11060",
+            feature = "cuda-11070",
+            feature = "cuda-11080"
+        ))
+    ))]
     if let Some(result) = crate::driver::safe::slice_memory_use_tests::seams::dispatch(
-        crate::driver::safe::slice_memory_use_tests::Operation::Htod, dst, std::mem::size_of_val(src), stream,
+        crate::driver::safe::slice_memory_use_tests::Operation::Htod,
+        dst,
+        std::mem::size_of_val(src),
+        stream,
     ) {
         return result;
     }
@@ -1586,9 +1612,22 @@ pub unsafe fn memcpy_dtoh_async<T>(
     src: sys::CUdeviceptr,
     stream: sys::CUstream,
 ) -> Result<(), DriverError> {
-    #[cfg(all(test, feature = "std", not(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080"))))]
+    #[cfg(all(
+        test,
+        feature = "std",
+        not(any(
+            feature = "cuda-11040",
+            feature = "cuda-11050",
+            feature = "cuda-11060",
+            feature = "cuda-11070",
+            feature = "cuda-11080"
+        ))
+    ))]
     if let Some(result) = crate::driver::safe::slice_memory_use_tests::seams::dispatch(
-        crate::driver::safe::slice_memory_use_tests::Operation::Dtoh, src, std::mem::size_of_val(dst), stream,
+        crate::driver::safe::slice_memory_use_tests::Operation::Dtoh,
+        src,
+        std::mem::size_of_val(dst),
+        stream,
     ) {
         return result;
     }
@@ -1629,9 +1668,22 @@ pub unsafe fn memcpy_dtod_async(
     num_bytes: usize,
     stream: sys::CUstream,
 ) -> Result<(), DriverError> {
-    #[cfg(all(test, feature = "std", not(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080"))))]
+    #[cfg(all(
+        test,
+        feature = "std",
+        not(any(
+            feature = "cuda-11040",
+            feature = "cuda-11050",
+            feature = "cuda-11060",
+            feature = "cuda-11070",
+            feature = "cuda-11080"
+        ))
+    ))]
     if let Some(result) = crate::driver::safe::slice_memory_use_tests::seams::dispatch(
-        crate::driver::safe::slice_memory_use_tests::Operation::Dtod, dst, num_bytes, stream,
+        crate::driver::safe::slice_memory_use_tests::Operation::Dtod,
+        dst,
+        num_bytes,
+        stream,
     ) {
         return result;
     }
