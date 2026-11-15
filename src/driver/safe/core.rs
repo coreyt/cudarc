@@ -661,7 +661,7 @@ impl CudaContext {
         self.check_err()?;
         #[cfg(feature = "std")]
         if let Some(lifetime) = &self.primary_lifetime {
-            lifetime.check_primary_active(self.cu_device)?;
+            lifetime.check_primary(self.cu_device, self.cu_ctx)?;
         }
         if match result::ctx::get_current()? {
             Some(curr_ctx) => curr_ctx != self.cu_ctx,

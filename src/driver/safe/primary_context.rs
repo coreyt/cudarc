@@ -19,13 +19,25 @@ impl PrimaryContextLifetime {
             .map(|loss| DriverError(loss.error))
     }
 
-    pub(crate) fn check_primary_active(&self, device: sys::CUdevice) -> Result<(), DriverError> {
+    pub(crate) fn check_primary(
+        &self,
+        device: sys::CUdevice,
+        context: sys::CUcontext,
+    ) -> Result<(), DriverError> {
         if let Some(error) = self.error() {
             return Err(error);
         }
         let (_, active) = unsafe { crate::driver::result::primary_ctx::get_state(device) }?;
         if !active {
             self.record_error(DriverError(sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED));
+        } else {
+            let id = unsafe { crate::driver::result::ctx::get_id(context) }?;
+            if id != self.recorded_id {
+                self.record_loss(
+                    DriverError(sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED),
+                    Some(id),
+                );
+            }
         }
         match self.error() {
             Some(error) => Err(error),
@@ -35,17 +47,21 @@ impl PrimaryContextLifetime {
 
     pub(crate) fn record_error(&self, error: DriverError) {
         if error.0 == sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED {
-            let mut loss = self
-                .loss
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            if loss.is_none() {
-                *loss = Some(PrimaryContextLoss {
-                    recorded_id: self.recorded_id,
-                    observed_id: None,
-                    error: error.0,
-                });
-            }
+            self.record_loss(error, None);
+        }
+    }
+
+    fn record_loss(&self, error: DriverError, observed_id: Option<u64>) {
+        let mut loss = self
+            .loss
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if loss.is_none() {
+            *loss = Some(PrimaryContextLoss {
+                recorded_id: self.recorded_id,
+                observed_id,
+                error: error.0,
+            });
         }
     }
 }
@@ -244,13 +260,21 @@ mod fathomdb_primary_lifetime {
         drop(context);
 
         let lost = sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED;
-        assert_eq!(first, Err(lost as u32), "replaced context identity must refuse before stale binding");
+        assert_eq!(
+            first,
+            Err(lost as u32),
+            "replaced context identity must refuse before stale binding"
+        );
         assert_eq!(second, Err(lost as u32));
         assert_eq!((dispatch.primary_queries, dispatch.id_queries), (1, 1));
         assert_eq!((dispatch.queries, dispatch.binds), (0, 0));
         assert_eq!(
             *lifetime.loss.lock().unwrap(),
-            Some(PrimaryContextLoss { recorded_id: 17, observed_id: Some(42), error: lost })
+            Some(PrimaryContextLoss {
+                recorded_id: 17,
+                observed_id: Some(42),
+                error: lost
+            })
         );
     }
 }
