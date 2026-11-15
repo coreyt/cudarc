@@ -17,6 +17,10 @@ use std::mem::MaybeUninit;
 
 /// Wrapper around [sys::CUresult]. See
 /// nvidia's [CUresult docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__TYPES.html#group__CUDA__TYPES_1gc6c391505e117393cc2558fff6bfc2e9)
+///
+/// Debug and Display format the cached status without querying the driver.
+/// Call [Self::error_string] explicitly for a driver-provided description when
+/// native queries are admissible.
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct DriverError(pub sys::CUresult);
 
@@ -60,18 +64,7 @@ impl DriverError {
 
 impl std::fmt::Debug for DriverError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self.error_string() {
-            Ok(err_str) => f
-                .debug_tuple("DriverError")
-                .field(&self.0)
-                .field(&err_str)
-                .finish(),
-            Err(_) => f
-                .debug_tuple("DriverError")
-                .field(&self.0)
-                .field(&"<Failure when calling cuGetErrorString()>")
-                .finish(),
-        }
+        f.debug_tuple("DriverError").field(&self.0).finish()
     }
 }
 
@@ -558,7 +551,7 @@ pub(crate) mod context_test_seams {
         let mut state = STATE.get()?;
         state.error_string_queries += 1;
         STATE.set(Some(state));
-        Some(core::ffi::CStr::from_bytes_with_nul(b"synthetic driver status\0").unwrap())
+        Some(c"synthetic driver status")
     }
 
     pub(crate) fn get_context_id(ctx: sys::CUcontext) -> Option<u64> {
@@ -1938,12 +1931,21 @@ mod fathomdb_driver_error_diagnostics {
     fn formatting_uses_cached_status_without_querying_driver() {
         let driver = context_test_seams::Guard::new();
         for (status, name) in [
-            (sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED, "CUDA_ERROR_CONTEXT_IS_DESTROYED"),
-            (sys::CUresult::CUDA_ERROR_OUT_OF_MEMORY, "CUDA_ERROR_OUT_OF_MEMORY"),
+            (
+                sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED,
+                "CUDA_ERROR_CONTEXT_IS_DESTROYED",
+            ),
+            (
+                sys::CUresult::CUDA_ERROR_OUT_OF_MEMORY,
+                "CUDA_ERROR_OUT_OF_MEMORY",
+            ),
         ] {
             let error = DriverError(status);
             let before_description = driver.snapshot().error_string_queries;
-            let description = error.error_string().map_err(|error| error.0 as u32).unwrap();
+            let description = error
+                .error_string()
+                .map_err(|error| error.0 as u32)
+                .unwrap();
             assert_eq!(description.to_bytes(), b"synthetic driver status");
             let after_description = driver.snapshot().error_string_queries;
             assert_eq!(after_description, before_description + 1);

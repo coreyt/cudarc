@@ -811,8 +811,9 @@ impl CudaContext {
     /// Checks to see if there have been any calls that stored an Err in a function
     /// that couldn't return a result (e.g. Drop calls).
     ///
-    /// If there are any errors stored, this method will return the Err value, and
-    /// then clear the stored error state.
+    /// Returns and clears a stored transient error, if any. Terminal loss in a
+    /// shared tracked primary lifetime takes priority and remains sticky across
+    /// reads; returning it does not clear that loss or the transient error slot.
     pub fn check_err(&self) -> Result<(), DriverError> {
         #[cfg(feature = "std")]
         if let Some(error) = self
