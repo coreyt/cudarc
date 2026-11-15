@@ -208,6 +208,8 @@ impl LaunchArgs<'_> {
     /// Admission covers native waits, kernel dispatch and event recording;
     /// cached/delayed errors are checked again after preparation. A mismatched
     /// tracked association returns INVALID_CONTEXT before native work.
+    /// Actual native kernel CONTEXT_IS_DESTROYED or INVALID_CONTEXT errors
+    /// publish shared first loss before return; ordinary OOM remains retryable.
     #[inline(always)]
     pub unsafe fn launch(
         &mut self,
@@ -237,14 +239,14 @@ impl LaunchArgs<'_> {
         if self.stream.ctx.primary_lifetime.is_some() {
             self.stream.ctx.check_err()?;
         }
-        result::launch_kernel(
+        self.stream.ctx.record_memory_result(result::launch_kernel(
             self.func.cu_function,
             cfg.grid_dim,
             cfg.block_dim,
             cfg.shared_mem_bytes,
             self.stream.cu_stream,
             &mut self.args,
-        )?;
+        ))?;
         let end_event = self
             .flags
             .map(|flags| self.stream.record_event(Some(flags)))

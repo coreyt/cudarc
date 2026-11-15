@@ -986,7 +986,10 @@ impl CudaContext {
         result
     }
 
-    fn record_memory_result<T>(&self, result: Result<T, DriverError>) -> Result<T, DriverError> {
+    pub(super) fn record_memory_result<T>(
+        &self,
+        result: Result<T, DriverError>,
+    ) -> Result<T, DriverError> {
         #[cfg(feature = "std")]
         if let Err(error) = &result {
             if matches!(
