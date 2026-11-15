@@ -53,7 +53,7 @@ fn check_cleanup_failure(wait: bool) {
 
         drop(allocation);
 
-        assert_eq!(lifetime.loss().map(|loss| (loss.recorded_id, loss.observed_id, loss.error as u32)), Some((17, None, error as u32)), "actual native cleanup prerequisite failure must publish shared loss before abandoning memory");
+        assert_eq!(lifetime.loss().map(|loss| (loss.recorded_id, loss.observed_id, loss.refusal().driver_status() as u32)), Some((17, None, error as u32)), "actual native cleanup prerequisite failure must publish shared loss before abandoning memory");
         assert_eq!(
             memory.snapshot().async_frees + memory.snapshot().sync_frees,
             0
@@ -89,7 +89,7 @@ fn check_cleanup_failure(wait: bool) {
             sibling.check_err().map_err(|error| error.0 as u32),
             Err(error as u32)
         );
-        assert_eq!(lifetime.loss().unwrap().error as u32, error as u32);
+        assert_eq!(lifetime.loss().unwrap().refusal().driver_status() as u32, error as u32);
         let after = driver.snapshot();
         assert_eq!(
             (

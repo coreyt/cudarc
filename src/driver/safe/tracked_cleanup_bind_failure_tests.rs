@@ -125,7 +125,7 @@ fn check_native_failure(error: sys::CUresult) {
                 )
             );
             assert_eq!(
-                lifetime.state.lock().unwrap().loss.unwrap().error as u32,
+                lifetime.state.lock().unwrap().loss.unwrap().refusal().driver_status() as u32,
                 error as u32
             );
             assert_eq!(lifetime.state.lock().unwrap().active_leases, 0);

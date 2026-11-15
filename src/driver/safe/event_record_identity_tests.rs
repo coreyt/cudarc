@@ -75,7 +75,7 @@ fn equal_native_handles_with_distinct_lifetimes_refuse_record_before_dispatch() 
                 .lock()
                 .unwrap()
                 .loss
-                .map(|loss| loss.error as u32),
+                .map(|loss| loss.refusal().driver_status() as u32),
             stream_lost.then_some(lost as u32)
         );
         assert_eq!(event_lifetime.state.lock().unwrap().active_leases, 0);
@@ -159,7 +159,7 @@ fn missing_lifetime_on_either_side_refuses_record_before_dispatch() {
                 .lock()
                 .unwrap()
                 .loss
-                .map(|loss| loss.error as u32),
+                .map(|loss| loss.refusal().driver_status() as u32),
             (!tracked_event).then_some(lost as u32)
         );
         assert_eq!(lifetime.state.lock().unwrap().active_leases, 0);

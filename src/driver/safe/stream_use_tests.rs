@@ -205,7 +205,7 @@ fn stream_native_terminal_result_is_shared_before_later_use() {
             .lock()
             .unwrap()
             .loss
-            .map(|loss| (loss.recorded_id, loss.observed_id, loss.error as u32));
+            .map(|loss| (loss.recorded_id, loss.observed_id, loss.refusal().driver_status() as u32));
         let failed = driver.snapshot();
         let failed_calls = streams.snapshot();
         set_error(&streams, operation, None);

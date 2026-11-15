@@ -59,7 +59,7 @@ fn public_loss_observation_exposes_terminal_cleanup_oom_without_native_dispatch(
     let expected = Some(PrimaryContextLoss {
         recorded_id: 17,
         observed_id: None,
-        error: oom,
+        cause: crate::driver::PrimaryContextLossCause::DriverStatus(oom),
     });
 
     assert_eq!(
@@ -155,7 +155,7 @@ fn public_loss_observation_reports_synthetic_poison_refusal_without_ffi() {
     let expected = Some(PrimaryContextLoss {
         recorded_id: 17,
         observed_id: None,
-        error: sys::CUresult::CUDA_ERROR_UNKNOWN,
+        cause: crate::driver::PrimaryContextLossCause::SyntheticUnknown,
     });
 
     assert_eq!(lifetime.loss(), expected);

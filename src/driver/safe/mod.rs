@@ -30,6 +30,8 @@ pub(crate) mod primary_context_bind_tests;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod primary_context_constructor_tests;
 #[cfg(all(test, feature = "std"))]
+pub(crate) mod primary_context_library_cause_tests;
+#[cfg(all(test, feature = "std"))]
 pub(crate) mod primary_context_observation_tests;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod primary_context_probe_publication_tests;
@@ -64,7 +66,7 @@ pub use self::graph::CudaGraph;
 pub use self::launch::{LaunchArgs, LaunchConfig, PushKernelArg};
 pub use self::mem_pool::{CudaMemPool, MemPoolProps};
 #[cfg(feature = "std")]
-pub use self::primary_context::{PrimaryContextLease, PrimaryContextLifetime, PrimaryContextLoss};
+pub use self::primary_context::{NativeLibrary, PrimaryContextLease, PrimaryContextLifetime, PrimaryContextLoss, PrimaryContextLossCause, PrimaryContextRefusal};
 pub use self::profile::{profiler_start, profiler_stop, Profiler};
 pub use self::unified_memory::{UnifiedSlice, UnifiedView, UnifiedViewMut};
 pub use crate::driver::result::DriverError;

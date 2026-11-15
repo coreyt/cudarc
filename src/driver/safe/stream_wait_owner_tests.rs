@@ -318,11 +318,11 @@ fn terminal_native_wait_result_quarantines_both_admitted_owners() {
     );
 
     assert_eq!(
-        stream_lifetime.state.lock().unwrap().loss.unwrap().error as u32,
+        stream_lifetime.state.lock().unwrap().loss.unwrap().refusal().driver_status() as u32,
         lost as u32
     );
     assert_eq!(
-        event_lifetime.state.lock().unwrap().loss.unwrap().error as u32,
+        event_lifetime.state.lock().unwrap().loss.unwrap().refusal().driver_status() as u32,
         lost as u32
     );
     let before = driver.snapshot();
