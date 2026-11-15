@@ -792,7 +792,18 @@ impl CudaContext {
     }
 
     pub(crate) fn bind_for_cleanup(&self) -> Result<(), DriverError> {
-        // A stored ordinary error is not a failure of native cleanup binding.
+        // Cleanup preserves pending ordinary errors for their caller; only a
+        // shared terminal loss can veto a tracked owner's native binding.
+        #[cfg(feature = "std")]
+        match &self.primary_lifetime {
+            Some(lifetime) => {
+                if let Some(error) = lifetime.error() {
+                    return Err(error);
+                }
+            }
+            None => self.check_err()?,
+        }
+        #[cfg(not(feature = "std"))]
         self.check_err()?;
         let result = self.bind_current_to_thread();
         #[cfg(feature = "std")]
@@ -1455,6 +1466,35 @@ impl CudaStream {
             }))
     }
 
+    // Slice cleanup already holds admission for this stream and its own events.
+    // Fresh cleanup binding must not consume an earlier ordinary operation error.
+    fn wait_for_cleanup(&self, event: &CudaEvent) -> Result<(), DriverError> {
+        #[cfg(feature = "std")]
+        if self.ctx.primary_lifetime.is_some() {
+            debug_assert!(Arc::ptr_eq(&self.ctx, &event.ctx));
+            self.ctx.bind_for_cleanup()?;
+            return self.ctx.record_terminal_result(unsafe {
+                result::stream::wait_event(
+                    self.cu_stream,
+                    event.cu_event,
+                    sys::CUevent_wait_flags::CU_EVENT_WAIT_DEFAULT,
+                )
+            });
+        }
+        self.wait(event)
+    }
+
+    fn synchronize_for_cleanup(&self) -> Result<(), DriverError> {
+        #[cfg(feature = "std")]
+        if self.ctx.primary_lifetime.is_some() {
+            self.ctx.bind_for_cleanup()?;
+            return self
+                .ctx
+                .record_terminal_result(unsafe { result::stream::synchronize(self.cu_stream) });
+        }
+        self.synchronize()
+    }
+
     /// Ensures this stream waits for the current workload in `other` to complete.
     /// This is shorthand for `self.wait(other.record_event())`
     pub fn join(&self, other: &CudaStream) -> Result<(), DriverError> {
@@ -1508,7 +1548,7 @@ impl<T> Drop for CudaSlice<T> {
                 .into_iter()
                 .flatten()
             {
-                if let Err(error) = self.stream.wait(event) {
+                if let Err(error) = self.stream.wait_for_cleanup(event) {
                     ctx.record_err::<()>(Err(error));
                     #[cfg(feature = "std")]
                     if ctx.primary_lifetime.is_some() {
@@ -1520,7 +1560,7 @@ impl<T> Drop for CudaSlice<T> {
         if ctx.has_async_alloc {
             ctx.record_err(unsafe { result::free_async(pointer, self.stream.cu_stream) });
         } else {
-            if let Err(error) = self.stream.synchronize() {
+            if let Err(error) = self.stream.synchronize_for_cleanup() {
                 ctx.record_err::<()>(Err(error));
                 #[cfg(feature = "std")]
                 if ctx.primary_lifetime.is_some() {

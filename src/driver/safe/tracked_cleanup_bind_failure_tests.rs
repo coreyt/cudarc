@@ -175,10 +175,13 @@ fn preexisting_ordinary_oom_does_not_become_terminal_cleanup_failure() {
         let after = driver.snapshot();
         assert_eq!(
             events.snapshot().destroyed + streams.snapshot().destroyed,
-            0
+            1
         );
         assert_eq!(context.num_streams.load(Ordering::Relaxed), 0);
-        assert_eq!((after.queries, after.binds), (before.queries, before.binds));
+        assert_eq!(
+            (after.queries, after.binds),
+            (before.queries + 1, before.binds)
+        );
         assert_eq!(
             context.check_err().map_err(|error| error.0 as u32),
             Err(error as u32)
@@ -195,7 +198,7 @@ fn preexisting_ordinary_oom_does_not_become_terminal_cleanup_failure() {
         assert_eq!(healthy.queries, after.queries + 1);
         assert_eq!(
             events.snapshot().destroyed + streams.snapshot().destroyed,
-            0
+            1
         );
         drop(context);
         drop(sibling);
