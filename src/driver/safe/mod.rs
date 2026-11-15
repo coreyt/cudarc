@@ -8,8 +8,6 @@ pub(crate) mod launch;
 pub(crate) mod lifetime_event_cleanup_tests;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod lifetime_stream_cleanup_tests;
-#[cfg(all(test, feature = "std"))]
-pub(crate) mod stream_construction_tests;
 pub(crate) mod mem_pool;
 #[cfg(feature = "std")]
 pub(crate) mod primary_context;
@@ -20,6 +18,8 @@ pub(crate) mod primary_context_constructor_tests;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod primary_context_probe_publication_tests;
 pub(crate) mod profile;
+#[cfg(all(test, feature = "std"))]
+pub(crate) mod stream_construction_tests;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod tracked_cleanup_bind_failure_tests;
 pub(crate) mod unified_memory;

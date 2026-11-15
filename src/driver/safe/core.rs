@@ -1117,6 +1117,16 @@ pub struct CudaStream {
     pub(crate) owned: bool,
 }
 
+struct StreamCountReservation<'a>(Option<&'a AtomicUsize>);
+
+impl Drop for StreamCountReservation<'_> {
+    fn drop(&mut self) {
+        if let Some(count) = self.0 {
+            count.fetch_sub(1, Ordering::Relaxed);
+        }
+    }
+}
+
 unsafe impl Send for CudaStream {}
 unsafe impl Sync for CudaStream {}
 
@@ -1211,15 +1221,19 @@ impl CudaContext {
     pub fn new_stream(self: &Arc<Self>) -> Result<Arc<CudaStream>, DriverError> {
         self.bind_to_thread()?;
         let prev_num_streams = self.num_streams.fetch_add(1, Ordering::Relaxed);
+        let mut reservation = StreamCountReservation(Some(&self.num_streams));
         if prev_num_streams == 0 && self.is_event_tracking() {
             self.synchronize()?;
         }
         let cu_stream = result::stream::create(result::stream::StreamKind::NonBlocking)?;
-        Ok(Arc::new(CudaStream {
+        let stream = CudaStream {
             cu_stream,
             ctx: self.clone(),
             owned: true,
-        }))
+        };
+        // The stack owner takes the count before Arc allocation can unwind.
+        reservation.0 = None;
+        Ok(Arc::new(stream))
     }
 
     /// Create a new [sys::CUstream_flags::CU_STREAM_NON_BLOCKING] stream with the
