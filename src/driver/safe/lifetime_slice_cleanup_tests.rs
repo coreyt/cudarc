@@ -135,7 +135,10 @@ pub(crate) mod seams {
 
     pub(crate) fn assert_stream(stream: sys::CUstream) {
         let state = STATE.get().unwrap();
-        assert_eq!(stream, state.expected_stream.unwrap_or(std::ptr::null_mut()));
+        assert_eq!(
+            stream,
+            state.expected_stream.unwrap_or(std::ptr::null_mut())
+        );
     }
 
     pub(crate) fn stream_synchronize(stream: sys::CUstream) -> Option<Result<(), DriverError>> {
