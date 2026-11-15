@@ -736,6 +736,12 @@ impl CudaContext {
         self.cu_device
     }
 
+    /// Returns this context's cached tracked generation, without native work.
+    #[cfg(feature = "std")]
+    pub fn primary_lifetime(&self) -> Option<&Arc<super::PrimaryContextLifetime>> {
+        None
+    }
+
     /// Get the underlying [sys::CUcontext] of this [CudaContext].
     ///
     /// # Safety

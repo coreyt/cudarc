@@ -80,6 +80,8 @@ pub(crate) mod stream_wait_owner_tests;
 pub(crate) mod sync_on_drop_tests;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod tracked_cleanup_bind_failure_tests;
+#[cfg(all(test, feature = "std"))]
+pub(crate) mod tracked_pool_tests;
 pub(crate) mod unified_memory;
 
 pub use self::core::{

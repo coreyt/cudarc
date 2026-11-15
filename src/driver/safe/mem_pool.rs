@@ -256,6 +256,15 @@ unsafe impl Send for CudaMemPool {}
 unsafe impl Sync for CudaMemPool {}
 
 impl CudaMemPool {
+    /// Creates a pool owned by the supplied tracked primary generation.
+    ///
+    /// Returns NOT_SUPPORTED when tracked construction is unavailable.
+    #[cfg(feature = "std")]
+    pub fn create_tracked(lifetime: std::sync::Arc<super::PrimaryContextLifetime>, props: &MemPoolProps) -> Result<Self, DriverError> {
+        let _ = (lifetime, props);
+        Err(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED))
+    }
+
     /// Creates a pool of pinned device memory on device `ordinal` with
     /// `props`. Initializes the driver if needed; needs no current context.
     ///
