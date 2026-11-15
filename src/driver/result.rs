@@ -451,6 +451,76 @@ pub mod occupancy {
     }
 }
 
+#[cfg(test)]
+pub(crate) mod context_test_seams {
+    use super::sys;
+    use core::cell::Cell;
+
+    #[derive(Clone, Copy, Debug)]
+    pub(crate) struct State {
+        pub(crate) current: usize,
+        pub(crate) queries: usize,
+        pub(crate) binds: usize,
+        pub(crate) releases: usize,
+    }
+
+    std::thread_local! {
+        static STATE: Cell<Option<State>> = const { Cell::new(None) };
+    }
+
+    pub(crate) struct Guard;
+
+    impl Guard {
+        pub(crate) fn new() -> Self {
+            assert!(STATE.get().is_none());
+            STATE.set(Some(State {
+                current: 0,
+                queries: 0,
+                binds: 0,
+                releases: 0,
+            }));
+            Self
+        }
+
+        pub(crate) fn snapshot(&self) -> State {
+            STATE.get().unwrap()
+        }
+    }
+
+    impl Drop for Guard {
+        fn drop(&mut self) {
+            STATE.set(None);
+        }
+    }
+
+    pub(crate) fn get_current() -> Option<Option<sys::CUcontext>> {
+        let mut state = STATE.get()?;
+        state.queries += 1;
+        STATE.set(Some(state));
+        Some((state.current != 0).then_some(state.current as sys::CUcontext))
+    }
+
+    pub(crate) fn set_current(ctx: sys::CUcontext) -> bool {
+        let Some(mut state) = STATE.get() else {
+            return false;
+        };
+        state.current = ctx as usize;
+        state.binds += 1;
+        STATE.set(Some(state));
+        true
+    }
+
+    pub(crate) fn release(dev: sys::CUdevice) -> bool {
+        let Some(mut state) = STATE.get() else {
+            return false;
+        };
+        assert_eq!(dev, 0);
+        state.releases += 1;
+        STATE.set(Some(state));
+        true
+    }
+}
+
 pub mod primary_ctx {
     //! Primary context management functions (`cuDevicePrimaryCtx*`).
     //!
@@ -484,6 +554,10 @@ pub mod primary_ctx {
     ///
     /// This is only safe with a device that was returned from [super::device::get].
     pub unsafe fn release(dev: sys::CUdevice) -> Result<(), DriverError> {
+        #[cfg(test)]
+        if super::context_test_seams::release(dev) {
+            return Ok(());
+        }
         sys::cuDevicePrimaryCtxRelease_v2(dev).result()
     }
 }
@@ -568,6 +642,10 @@ pub mod ctx {
     /// In general this should only be called with an already initialized context,
     /// and one that wasn't already freed.
     pub unsafe fn set_current(ctx: sys::CUcontext) -> Result<(), DriverError> {
+        #[cfg(test)]
+        if super::context_test_seams::set_current(ctx) {
+            return Ok(());
+        }
         sys::cuCtxSetCurrent(ctx).result()
     }
 
@@ -575,6 +653,10 @@ pub mod ctx {
     ///
     /// See [cuda docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__CTX.html#group__CUDA__CTX_1g8f13165846b73750693640fb3e8380d0)
     pub fn get_current() -> Result<Option<sys::CUcontext>, DriverError> {
+        #[cfg(test)]
+        if let Some(ctx) = super::context_test_seams::get_current() {
+            return Ok(ctx);
+        }
         let mut ctx = MaybeUninit::uninit();
         unsafe {
             sys::cuCtxGetCurrent(ctx.as_mut_ptr()).result()?;

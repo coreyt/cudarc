@@ -124,3 +124,43 @@ mod tests {
         );
     }
 }
+
+#[cfg(test)]
+mod fathomdb_context_lifetime {
+    use super::*;
+    use crate::driver::{result::context_test_seams, sys as driver_sys, CudaContext};
+    use std::sync::atomic::{AtomicBool, AtomicU32, AtomicUsize};
+
+    #[test]
+    fn fathomdb_blas_partial_initialization_releases_handle() {
+        let driver = context_test_seams::Guard::new();
+        let blas = result::partial_init_test_seams::Guard::new();
+        let context = Arc::new(CudaContext {
+            cu_device: 0,
+            cu_ctx: 0xC7 as driver_sys::CUcontext,
+            ordinal: 0,
+            has_async_alloc: false,
+            mem_pool: None,
+            is_primary: true,
+            num_streams: AtomicUsize::new(0),
+            event_tracking: AtomicBool::new(true),
+            error_state: AtomicU32::new(0),
+        });
+
+        let error = CudaBlas::new(context.default_stream()).unwrap_err();
+        assert_eq!(
+            error,
+            CublasError(sys::cublasStatus_t::CUBLAS_STATUS_INVALID_VALUE)
+        );
+        drop(context);
+
+        let native = driver.snapshot();
+        assert_eq!((native.queries, native.binds, native.releases), (2, 1, 1));
+        let calls = blas.snapshot();
+        assert_eq!((calls.creates, calls.stream_sets), (1, 1));
+        assert_eq!(
+            calls.destroys, 1,
+            "failed stream setup must release its acquired BLAS handle"
+        );
+    }
+}

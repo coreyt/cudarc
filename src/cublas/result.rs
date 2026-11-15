@@ -27,6 +27,10 @@ impl std::error::Error for CublasError {}
 /// Creates a handle to the cuBLAS library. See
 /// [nvidia docs](https://docs.nvidia.com/cuda/cublas/index.html#cublascreate)
 pub fn create_handle() -> Result<sys::cublasHandle_t, CublasError> {
+    #[cfg(test)]
+    if let Some(handle) = partial_init_test_seams::create_handle() {
+        return Ok(handle);
+    }
     let mut handle = MaybeUninit::uninit();
     unsafe {
         sys::cublasCreate_v2(handle.as_mut_ptr()).result()?;
@@ -41,6 +45,10 @@ pub fn create_handle() -> Result<sys::cublasHandle_t, CublasError> {
 ///
 /// `handle` must not have been freed already.
 pub unsafe fn destroy_handle(handle: sys::cublasHandle_t) -> Result<(), CublasError> {
+    #[cfg(test)]
+    if partial_init_test_seams::destroy_handle(handle) {
+        return Ok(());
+    }
     sys::cublasDestroy_v2(handle).result()
 }
 
@@ -54,6 +62,10 @@ pub unsafe fn set_stream(
     handle: sys::cublasHandle_t,
     stream: sys::cudaStream_t,
 ) -> Result<(), CublasError> {
+    #[cfg(test)]
+    if let Some(result) = partial_init_test_seams::set_stream(handle, stream) {
+        return result;
+    }
     sys::cublasSetStream_v2(handle, stream).result()
 }
 
@@ -513,4 +525,78 @@ pub unsafe fn dasum(
     result: *mut f64,
 ) -> Result<(), CublasError> {
     sys::cublasDasum_v2(handle, n, x, incx, result).result()
+}
+
+#[cfg(test)]
+pub(crate) mod partial_init_test_seams {
+    use super::{sys, CublasError};
+    use core::cell::Cell;
+
+    const HANDLE: usize = 0xBA5;
+
+    #[derive(Clone, Copy, Debug)]
+    pub(crate) struct State {
+        pub(crate) creates: usize,
+        pub(crate) stream_sets: usize,
+        pub(crate) destroys: usize,
+    }
+
+    std::thread_local! {
+        static STATE: Cell<Option<State>> = const { Cell::new(None) };
+    }
+
+    pub(crate) struct Guard;
+
+    impl Guard {
+        pub(crate) fn new() -> Self {
+            assert!(STATE.get().is_none());
+            STATE.set(Some(State {
+                creates: 0,
+                stream_sets: 0,
+                destroys: 0,
+            }));
+            Self
+        }
+
+        pub(crate) fn snapshot(&self) -> State {
+            STATE.get().unwrap()
+        }
+    }
+
+    impl Drop for Guard {
+        fn drop(&mut self) {
+            STATE.set(None);
+        }
+    }
+
+    pub(crate) fn create_handle() -> Option<sys::cublasHandle_t> {
+        let mut state = STATE.get()?;
+        state.creates += 1;
+        STATE.set(Some(state));
+        Some(HANDLE as sys::cublasHandle_t)
+    }
+
+    pub(crate) fn set_stream(
+        handle: sys::cublasHandle_t,
+        stream: sys::cudaStream_t,
+    ) -> Option<Result<(), CublasError>> {
+        let mut state = STATE.get()?;
+        assert_eq!(handle as usize, HANDLE);
+        assert!(stream.is_null());
+        state.stream_sets += 1;
+        STATE.set(Some(state));
+        Some(Err(CublasError(
+            sys::cublasStatus_t::CUBLAS_STATUS_INVALID_VALUE,
+        )))
+    }
+
+    pub(crate) fn destroy_handle(handle: sys::cublasHandle_t) -> bool {
+        let Some(mut state) = STATE.get() else {
+            return false;
+        };
+        assert_eq!(handle as usize, HANDLE);
+        state.destroys += 1;
+        STATE.set(Some(state));
+        true
+    }
 }
