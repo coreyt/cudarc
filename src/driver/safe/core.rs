@@ -3043,6 +3043,9 @@ pub(super) fn to_range(range: impl RangeBounds<usize>, len: usize) -> Option<(us
 /// Wrapper around [sys::CUmodule]. Create with [CudaContext::load_module()].
 ///
 /// Call [CudaModule::load_function] to load a [CudaFunction].
+///
+/// Tracked cleanup holds admission through fresh binding and unload. Terminal
+/// refusal disarms the native handle while releasing ordinary Rust owners.
 #[derive(Debug)]
 pub struct CudaModule {
     pub(crate) cu_module: sys::CUmodule,
@@ -3054,9 +3057,27 @@ unsafe impl Sync for CudaModule {}
 
 impl Drop for CudaModule {
     fn drop(&mut self) {
-        self.ctx.record_err(self.ctx.bind_to_thread());
+        let module = std::mem::replace(&mut self.cu_module, std::ptr::null_mut());
+        #[cfg(feature = "std")]
+        let _lease = match &self.ctx.primary_lifetime {
+            Some(lifetime) => match lifetime.admit() {
+                Ok(lease) => Some(lease),
+                Err(error) => {
+                    self.ctx.record_err::<()>(Err(error));
+                    return;
+                }
+            },
+            None => None,
+        };
+        if let Err(error) = self.ctx.bind_for_cleanup() {
+            self.ctx.record_err::<()>(Err(error));
+            #[cfg(feature = "std")]
+            if self.ctx.primary_lifetime.is_some() {
+                return;
+            }
+        }
         self.ctx
-            .record_err(unsafe { result::module::unload(self.cu_module) });
+            .record_err(unsafe { result::module::unload(module) });
     }
 }
 
@@ -3064,11 +3085,21 @@ impl CudaContext {
     /// Dynamically load a compiled ptx into this context.
     ///
     /// - `ptx` contains the compiled ptx
+    ///
+    /// Tracked construction retains admission until the module owner is complete.
     #[cfg(feature = "nvrtc")]
     pub fn load_module(
         self: &Arc<Self>,
         ptx: crate::nvrtc::Ptx,
     ) -> Result<Arc<CudaModule>, result::DriverError> {
+        #[cfg(feature = "std")]
+        let _lease = match &self.primary_lifetime {
+            Some(lifetime) => {
+                self.check_err()?;
+                Some(lifetime.admit()?)
+            }
+            None => None,
+        };
         self.bind_to_thread()?;
 
         let cu_module = match ptx.0 {
@@ -3107,7 +3138,20 @@ unsafe impl Sync for CudaFunction {}
 
 impl CudaModule {
     /// Loads a function from the loaded module with the given name.
+    ///
+    /// Tracked lookup holds admission and binds before native dispatch. The
+    /// returned function retains its module and shared generation owner.
     pub fn load_function(self: &Arc<Self>, fn_name: &str) -> Result<CudaFunction, DriverError> {
+        #[cfg(feature = "std")]
+        let _lease = match &self.ctx.primary_lifetime {
+            Some(lifetime) => {
+                self.ctx.check_err()?;
+                let lease = lifetime.admit()?;
+                self.ctx.bind_to_thread()?;
+                Some(lease)
+            }
+            None => None,
+        };
         let fn_name_c = CString::new(fn_name).unwrap();
         let cu_function = unsafe { result::module::get_function(self.cu_module, fn_name_c) }?;
         Ok(CudaFunction {

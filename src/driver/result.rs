@@ -1771,7 +1771,9 @@ pub mod module {
     /// The image must be properly formed pointer
     pub unsafe fn load_data(image: *const c_void) -> Result<sys::CUmodule, DriverError> {
         #[cfg(all(test, feature = "std"))]
-        if let Some(result) = crate::driver::safe::lifetime_module_cleanup_tests::seams::load_data(image) {
+        if let Some(result) =
+            crate::driver::safe::lifetime_module_cleanup_tests::seams::load_data(image)
+        {
             return result;
         }
 
@@ -1791,7 +1793,12 @@ pub mod module {
         name: CString,
     ) -> Result<sys::CUfunction, DriverError> {
         #[cfg(all(test, feature = "std"))]
-        if let Some(result) = crate::driver::safe::lifetime_module_cleanup_tests::seams::get_function(module, name.as_c_str()) {
+        if let Some(result) =
+            crate::driver::safe::lifetime_module_cleanup_tests::seams::get_function(
+                module,
+                name.as_c_str(),
+            )
+        {
             return result;
         }
 
@@ -1827,7 +1834,9 @@ pub mod module {
     /// `module` must not have be unloaded already.
     pub unsafe fn unload(module: sys::CUmodule) -> Result<(), DriverError> {
         #[cfg(all(test, feature = "std"))]
-        if let Some(result) = crate::driver::safe::lifetime_module_cleanup_tests::seams::unload(module) {
+        if let Some(result) =
+            crate::driver::safe::lifetime_module_cleanup_tests::seams::unload(module)
+        {
             return result;
         }
 
