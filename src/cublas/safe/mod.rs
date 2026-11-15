@@ -44,8 +44,20 @@ pub struct CudaBlasLease<'a> {
 }
 
 impl CudaBlasLease<'_> {
-    /// Returns the borrowed raw handle for one unsafe library call.
+    /// Rechecks cached terminal and delayed errors before one unsafe raw call.
+    ///
+    /// Call immediately before dispatch, after pointer preparation. This performs
+    /// no native query; ordinary delayed errors are consumed once, while cached
+    /// terminal loss remains sticky and preserves its authoritative cause.
     pub fn handle(&self) -> Result<sys::cublasHandle_t, CublasError> {
+        #[cfg(feature = "std")]
+        if self.blas.stream.ctx.primary_lifetime.is_some() {
+            self.blas
+                .stream
+                .ctx
+                .check_err()
+                .map_err(|error| CudaBlas::admission_error(&self.blas.stream, error))?;
+        }
         Ok(self.blas.handle)
     }
 }
