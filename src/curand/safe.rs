@@ -38,8 +38,8 @@ impl CudaRng {
         let ctx = &stream.ctx;
         ctx.record_err(ctx.bind_to_thread());
         let gen = result::create_generator()?;
-        unsafe { result::set_stream(gen, stream.cu_stream as _) }?;
         let mut rng = Self { gen, stream };
+        unsafe { result::set_stream(rng.gen, rng.stream.cu_stream as _) }?;
         rng.set_seed(seed)?;
         Ok(rng)
     }
@@ -329,7 +329,10 @@ mod fathomdb_context_lifetime {
             Ok(_) => panic!("stream setup must return its forced error"),
             Err(error) => error,
         };
-        assert_eq!(error, result::CurandError(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR));
+        assert_eq!(
+            error,
+            result::CurandError(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR)
+        );
         drop(context);
 
         let native = driver.snapshot();
@@ -339,6 +342,105 @@ mod fathomdb_context_lifetime {
         assert_eq!(
             calls.destroys, 1,
             "failed stream setup must release its acquired RNG generator"
+        );
+    }
+
+    fn expect_error(result: Result<CudaRng, result::CurandError>) -> result::CurandError {
+        match result {
+            Ok(_) => panic!("initialization must return its forced error"),
+            Err(error) => error,
+        }
+    }
+
+    #[test]
+    fn fathomdb_rng_failed_create_has_no_generator_to_destroy() {
+        let driver = context_test_seams::Guard::new();
+        let rng = result::partial_init_test_seams::Guard::new();
+        rng.fail_create();
+        let context = context_test_seams::context();
+
+        let error = expect_error(CudaRng::new(42, context.default_stream()));
+        assert_eq!(
+            error,
+            result::CurandError(sys::curandStatus_t::CURAND_STATUS_ALLOCATION_FAILED)
+        );
+        drop(context);
+
+        let native = driver.snapshot();
+        assert_eq!((native.queries, native.binds, native.releases), (2, 1, 1));
+        let calls = rng.snapshot();
+        assert_eq!(
+            (
+                calls.creates,
+                calls.stream_sets,
+                calls.seed_sets,
+                calls.destroys
+            ),
+            (1, 0, 0, 0)
+        );
+    }
+
+    #[test]
+    fn fathomdb_rng_seed_failure_releases_generator() {
+        let driver = context_test_seams::Guard::new();
+        let rng = result::partial_init_test_seams::Guard::new();
+        rng.allow_stream_setup();
+        rng.fail_seed();
+        let context = context_test_seams::context();
+
+        let error = expect_error(CudaRng::new(42, context.default_stream()));
+        assert_eq!(
+            error,
+            result::CurandError(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR)
+        );
+        drop(context);
+
+        let native = driver.snapshot();
+        assert_eq!((native.queries, native.binds, native.releases), (2, 1, 1));
+        let calls = rng.snapshot();
+        assert_eq!(
+            (
+                calls.creates,
+                calls.stream_sets,
+                calls.seed_sets,
+                calls.destroys
+            ),
+            (1, 1, 1, 1)
+        );
+    }
+
+    #[test]
+    fn fathomdb_rng_completed_owner_destroys_generator_once() {
+        let driver = context_test_seams::Guard::new();
+        let rng = result::partial_init_test_seams::Guard::new();
+        rng.allow_stream_setup();
+        let context = context_test_seams::context();
+
+        let owner = CudaRng::new(42, context.default_stream()).unwrap();
+        let calls = rng.snapshot();
+        assert_eq!(
+            (
+                calls.creates,
+                calls.stream_sets,
+                calls.seed_sets,
+                calls.destroys
+            ),
+            (1, 1, 1, 0)
+        );
+        drop(owner);
+        drop(context);
+
+        let native = driver.snapshot();
+        assert_eq!((native.queries, native.binds, native.releases), (2, 1, 1));
+        let calls = rng.snapshot();
+        assert_eq!(
+            (
+                calls.creates,
+                calls.stream_sets,
+                calls.seed_sets,
+                calls.destroys
+            ),
+            (1, 1, 1, 1)
         );
     }
 }

@@ -47,7 +47,7 @@ pub fn create_generator_kind(
 ) -> Result<sys::curandGenerator_t, CurandError> {
     #[cfg(test)]
     if let Some(generator) = partial_init_test_seams::create_generator(kind) {
-        return Ok(generator);
+        return generator;
     }
     let mut generator = MaybeUninit::uninit();
     unsafe {
@@ -63,6 +63,10 @@ pub fn create_generator_kind(
 /// # Safety
 /// The generator must be allocated and not already freed.
 pub unsafe fn set_seed(generator: sys::curandGenerator_t, seed: u64) -> Result<(), CurandError> {
+    #[cfg(test)]
+    if let Some(result) = partial_init_test_seams::set_seed(generator, seed) {
+        return result;
+    }
     sys::curandSetPseudoRandomGeneratorSeed(generator, seed).result()
 }
 
@@ -350,6 +354,10 @@ pub(crate) mod partial_init_test_seams {
         pub(crate) creates: usize,
         pub(crate) stream_sets: usize,
         pub(crate) destroys: usize,
+        pub(crate) seed_sets: usize,
+        create_error: Option<CurandError>,
+        stream_error: Option<CurandError>,
+        seed_error: Option<CurandError>,
     }
 
     std::thread_local! {
@@ -365,12 +373,36 @@ pub(crate) mod partial_init_test_seams {
                 creates: 0,
                 stream_sets: 0,
                 destroys: 0,
+                seed_sets: 0,
+                create_error: None,
+                stream_error: Some(CurandError(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR)),
+                seed_error: None,
             }));
             Self
         }
 
         pub(crate) fn snapshot(&self) -> State {
             STATE.get().unwrap()
+        }
+
+        pub(crate) fn fail_create(&self) {
+            let mut state = self.snapshot();
+            state.create_error = Some(CurandError(
+                sys::curandStatus_t::CURAND_STATUS_ALLOCATION_FAILED,
+            ));
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn allow_stream_setup(&self) {
+            let mut state = self.snapshot();
+            state.stream_error = None;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn fail_seed(&self) {
+            let mut state = self.snapshot();
+            state.seed_error = Some(CurandError(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR));
+            STATE.set(Some(state));
         }
     }
 
@@ -380,12 +412,17 @@ pub(crate) mod partial_init_test_seams {
         }
     }
 
-    pub(crate) fn create_generator(kind: sys::curandRngType_t) -> Option<sys::curandGenerator_t> {
+    pub(crate) fn create_generator(
+        kind: sys::curandRngType_t,
+    ) -> Option<Result<sys::curandGenerator_t, CurandError>> {
         let mut state = STATE.get()?;
         assert_eq!(kind, sys::curandRngType_t::CURAND_RNG_PSEUDO_DEFAULT);
         state.creates += 1;
         STATE.set(Some(state));
-        Some(GENERATOR as sys::curandGenerator_t)
+        Some(match state.create_error {
+            Some(error) => Err(error),
+            None => Ok(GENERATOR as sys::curandGenerator_t),
+        })
     }
 
     pub(crate) fn set_stream(
@@ -397,7 +434,25 @@ pub(crate) mod partial_init_test_seams {
         assert!(stream.is_null());
         state.stream_sets += 1;
         STATE.set(Some(state));
-        Some(Err(CurandError(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR)))
+        Some(match state.stream_error {
+            Some(error) => Err(error),
+            None => Ok(()),
+        })
+    }
+
+    pub(crate) fn set_seed(
+        generator: sys::curandGenerator_t,
+        seed: u64,
+    ) -> Option<Result<(), CurandError>> {
+        let mut state = STATE.get()?;
+        assert_eq!(generator as usize, GENERATOR);
+        assert_eq!(seed, 42);
+        state.seed_sets += 1;
+        STATE.set(Some(state));
+        Some(match state.seed_error {
+            Some(error) => Err(error),
+            None => Ok(()),
+        })
     }
 
     pub(crate) fn destroy_generator(generator: sys::curandGenerator_t) -> bool {
