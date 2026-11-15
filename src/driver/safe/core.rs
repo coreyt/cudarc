@@ -986,6 +986,22 @@ impl CudaContext {
         result
     }
 
+    fn record_memory_result<T>(&self, result: Result<T, DriverError>) -> Result<T, DriverError> {
+        #[cfg(feature = "std")]
+        if let Err(error) = &result {
+            if matches!(
+                error.0,
+                sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED
+                    | sys::CUresult::CUDA_ERROR_INVALID_CONTEXT
+            ) {
+                if let Some(lifetime) = &self.primary_lifetime {
+                    lifetime.record_loss(*error, None);
+                }
+            }
+        }
+        result
+    }
+
     fn record_cleanup_prerequisite_result<T>(
         &self,
         result: Result<T, DriverError>,
@@ -2407,8 +2423,9 @@ impl CudaStream {
         self.ctx.bind_to_thread()?;
         let num_bytes = dst.num_bytes();
         let (dptr, _record) = dst.device_ptr_mut(self);
-        unsafe { result::memset_d8_async(dptr, 0, num_bytes, self.cu_stream) }?;
-        Ok(())
+        self.ctx.record_memory_result(unsafe {
+            result::memset_d8_async(dptr, 0, num_bytes, self.cu_stream)
+        })
     }
 
     /// Copy a `[T]`/`Vec<T>`/[`PinnedHostSlice<T>`] to a new [`CudaSlice`].
@@ -2450,7 +2467,8 @@ impl CudaStream {
         self.ctx.bind_to_thread()?;
         let (src, _record_src) = unsafe { src.stream_synced_slice(self) };
         let (dst, _record_dst) = dst.device_ptr_mut(self);
-        unsafe { result::memcpy_htod_async(dst, src, self.cu_stream) }
+        self.ctx
+            .record_memory_result(unsafe { result::memcpy_htod_async(dst, src, self.cu_stream) })
     }
 
     /// Copy a [`CudaSlice`]/[`CudaView`] to a new [`Vec<T>`].
@@ -2500,7 +2518,8 @@ impl CudaStream {
         self.ctx.bind_to_thread()?;
         let (src, _record_src) = src.device_ptr(self);
         let (dst, _record_dst) = unsafe { dst.stream_synced_mut_slice(self) };
-        unsafe { result::memcpy_dtoh_async(dst, src, self.cu_stream) }
+        self.ctx
+            .record_memory_result(unsafe { result::memcpy_dtoh_async(dst, src, self.cu_stream) })
     }
 
     /// Copy a [`CudaSlice`]/[`CudaView`] to a existing [`CudaSlice`]/[`CudaViewMut`].
@@ -2528,7 +2547,9 @@ impl CudaStream {
         if src_ctx == dst_ctx {
             let (src_ptr, _record_src) = src.device_ptr(self);
             let (dst_ptr, _record_dst) = dst.device_ptr_mut(self);
-            unsafe { result::memcpy_dtod_async(dst_ptr, src_ptr, num_bytes, self.cu_stream) }
+            self.ctx.record_memory_result(unsafe {
+                result::memcpy_dtod_async(dst_ptr, src_ptr, num_bytes, self.cu_stream)
+            })
         } else {
             // NOTE: Although we want the current stream to wait on src to be ready,
             // we can't use src.device_ptr(self). When `_record_src` is dropped,
