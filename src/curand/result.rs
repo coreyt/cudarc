@@ -7,17 +7,32 @@
 use super::sys::{self};
 use std::mem::MaybeUninit;
 
-/// Wrapper around [sys::curandStatus_t].
-/// See [cuRAND docs](https://docs.nvidia.com/cuda/curand/group__HOST.html#group__HOST_1gb94a31d5c165858c96b6c18b70644437)
+/// Failure from a native library call, tracked driver admission, or owner association.
+///
+/// Driver errors preserve the original status. Inspect the shared lifetime's
+/// cached loss record to distinguish terminal refusal from ordinary OOM.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct CurandError(pub sys::curandStatus_t);
+pub enum CurandError {
+    /// The unchanged native curand status.
+    Native(sys::curandStatus_t),
+    /// The original driver status from admission or context binding.
+    Driver(crate::driver::DriverError),
+    /// A stream belongs to a different tracked context generation.
+    ContextMismatch,
+}
+
+impl From<crate::driver::DriverError> for CurandError {
+    fn from(error: crate::driver::DriverError) -> Self {
+        Self::Driver(error)
+    }
+}
 
 impl sys::curandStatus_t {
     /// Transforms into a [Result] of [CurandError]
     pub fn result(self) -> Result<(), CurandError> {
         match self {
             sys::curandStatus_t::CURAND_STATUS_SUCCESS => Ok(()),
-            _ => Err(CurandError(self)),
+            _ => Err(CurandError::Native(self)),
         }
     }
 }
@@ -376,7 +391,9 @@ pub(crate) mod partial_init_test_seams {
                 destroys: 0,
                 seed_sets: 0,
                 create_error: None,
-                stream_error: Some(CurandError(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR)),
+                stream_error: Some(CurandError::Native(
+                    sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR,
+                )),
                 seed_error: None,
                 destroy_error: None,
             }));
@@ -389,7 +406,7 @@ pub(crate) mod partial_init_test_seams {
 
         pub(crate) fn fail_create(&self) {
             let mut state = self.snapshot();
-            state.create_error = Some(CurandError(
+            state.create_error = Some(CurandError::Native(
                 sys::curandStatus_t::CURAND_STATUS_ALLOCATION_FAILED,
             ));
             STATE.set(Some(state));
@@ -403,13 +420,15 @@ pub(crate) mod partial_init_test_seams {
 
         pub(crate) fn fail_seed(&self) {
             let mut state = self.snapshot();
-            state.seed_error = Some(CurandError(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR));
+            state.seed_error = Some(CurandError::Native(
+                sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR,
+            ));
             STATE.set(Some(state));
         }
 
         pub(crate) fn fail_destroy(&self) {
             let mut state = self.snapshot();
-            state.destroy_error = Some(CurandError(
+            state.destroy_error = Some(CurandError::Native(
                 sys::curandStatus_t::CURAND_STATUS_INTERNAL_ERROR,
             ));
             STATE.set(Some(state));

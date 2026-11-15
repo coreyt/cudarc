@@ -2,14 +2,31 @@ use super::sys::{self};
 use core::ffi::{c_int, c_longlong, c_void};
 use core::mem::MaybeUninit;
 
+/// Failure from a native library call, tracked driver admission, or owner association.
+///
+/// Driver errors preserve the original status. Inspect the shared lifetime's
+/// cached loss record to distinguish terminal refusal from ordinary OOM.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub struct CublasError(pub sys::cublasStatus_t);
+pub enum CublasError {
+    /// The unchanged native cublas status.
+    Native(sys::cublasStatus_t),
+    /// The original driver status from admission or context binding.
+    Driver(crate::driver::DriverError),
+    /// A stream belongs to a different tracked context generation.
+    ContextMismatch,
+}
+
+impl From<crate::driver::DriverError> for CublasError {
+    fn from(error: crate::driver::DriverError) -> Self {
+        Self::Driver(error)
+    }
+}
 
 impl sys::cublasStatus_t {
     pub fn result(self) -> Result<(), CublasError> {
         match self {
             sys::cublasStatus_t::CUBLAS_STATUS_SUCCESS => Ok(()),
-            _ => Err(CublasError(self)),
+            _ => Err(CublasError::Native(self)),
         }
     }
 }
@@ -558,7 +575,7 @@ pub(crate) mod partial_init_test_seams {
                 stream_sets: 0,
                 destroys: 0,
                 create_error: None,
-                stream_error: Some(CublasError(
+                stream_error: Some(CublasError::Native(
                     sys::cublasStatus_t::CUBLAS_STATUS_INVALID_VALUE,
                 )),
                 destroy_error: None,
@@ -572,7 +589,9 @@ pub(crate) mod partial_init_test_seams {
 
         pub(crate) fn fail_create(&self) {
             let mut state = self.snapshot();
-            state.create_error = Some(CublasError(sys::cublasStatus_t::CUBLAS_STATUS_ALLOC_FAILED));
+            state.create_error = Some(CublasError::Native(
+                sys::cublasStatus_t::CUBLAS_STATUS_ALLOC_FAILED,
+            ));
             STATE.set(Some(state));
         }
 
@@ -584,7 +603,7 @@ pub(crate) mod partial_init_test_seams {
 
         pub(crate) fn fail_destroy(&self) {
             let mut state = self.snapshot();
-            state.destroy_error = Some(CublasError(
+            state.destroy_error = Some(CublasError::Native(
                 sys::cublasStatus_t::CUBLAS_STATUS_INTERNAL_ERROR,
             ));
             STATE.set(Some(state));

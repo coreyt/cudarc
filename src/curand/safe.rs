@@ -34,14 +34,44 @@ pub struct CudaRng {
 
 impl CudaRng {
     /// Constructs the RNG with the given `seed`. All calls run on `stream`.
+    ///
+    /// Tracked construction holds admission through initialization and unwind.
+    /// Returns the original driver refusal before library calls after loss,
+    /// or the unchanged native library error from generator initialization.
     pub fn new(seed: u64, stream: Arc<CudaStream>) -> Result<Self, result::CurandError> {
+        let _lease = Self::admit_stream(&stream)?;
         let ctx = &stream.ctx;
-        ctx.record_err(ctx.bind_to_thread());
+        #[cfg(feature = "std")]
+        let untracked = ctx.primary_lifetime.is_none();
+        #[cfg(not(feature = "std"))]
+        let untracked = true;
+        if untracked {
+            ctx.record_err(ctx.bind_to_thread());
+        }
         let gen = result::create_generator()?;
         let mut rng = Self { gen, stream };
         unsafe { result::set_stream(rng.gen, rng.stream.cu_stream as _) }?;
         rng.set_seed(seed)?;
         Ok(rng)
+    }
+
+    #[cfg(feature = "std")]
+    fn admit_stream(
+        stream: &CudaStream,
+    ) -> Result<Option<crate::driver::PrimaryContextLease>, result::CurandError> {
+        let ctx = stream.context();
+        let Some(lifetime) = &ctx.primary_lifetime else {
+            return Ok(None);
+        };
+        ctx.check_err()?;
+        let lease = lifetime.admit()?;
+        ctx.bind_to_thread()?;
+        Ok(Some(lease))
+    }
+
+    #[cfg(not(feature = "std"))]
+    fn admit_stream(_stream: &CudaStream) -> Result<(), result::CurandError> {
+        Ok(())
     }
 
     /// # Safety
@@ -331,7 +361,7 @@ mod fathomdb_context_lifetime {
         };
         assert_eq!(
             error,
-            result::CurandError(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR)
+            result::CurandError::Native(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR)
         );
         drop(context);
 
@@ -362,7 +392,7 @@ mod fathomdb_context_lifetime {
         let error = expect_error(CudaRng::new(42, context.default_stream()));
         assert_eq!(
             error,
-            result::CurandError(sys::curandStatus_t::CURAND_STATUS_ALLOCATION_FAILED)
+            result::CurandError::Native(sys::curandStatus_t::CURAND_STATUS_ALLOCATION_FAILED)
         );
         drop(context);
 
@@ -391,7 +421,7 @@ mod fathomdb_context_lifetime {
         let error = expect_error(CudaRng::new(42, context.default_stream()));
         assert_eq!(
             error,
-            result::CurandError(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR)
+            result::CurandError::Native(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR)
         );
         drop(context);
 

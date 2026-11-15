@@ -33,14 +33,44 @@ unsafe impl Send for CudaBlas {}
 unsafe impl Sync for CudaBlas {}
 
 impl CudaBlas {
-    /// Creates a new cublas handle and sets the stream to the `device`'s stream.
+    /// Creates a new cublas handle and assigns `stream`.
+    ///
+    /// Tracked construction holds admission through initialization and unwind.
+    /// Returns the original driver refusal before library calls after loss,
+    /// or the unchanged native library error from handle/stream initialization.
     pub fn new(stream: Arc<CudaStream>) -> Result<Self, CublasError> {
+        let _lease = Self::admit_stream(&stream)?;
         let ctx = stream.context();
-        ctx.record_err(ctx.bind_to_thread());
+        #[cfg(feature = "std")]
+        let untracked = ctx.primary_lifetime.is_none();
+        #[cfg(not(feature = "std"))]
+        let untracked = true;
+        if untracked {
+            ctx.record_err(ctx.bind_to_thread());
+        }
         let handle = result::create_handle()?;
         let blas = Self { handle, stream };
         unsafe { result::set_stream(blas.handle, blas.stream.cu_stream() as _) }?;
         Ok(blas)
+    }
+
+    #[cfg(feature = "std")]
+    fn admit_stream(
+        stream: &CudaStream,
+    ) -> Result<Option<crate::driver::PrimaryContextLease>, CublasError> {
+        let ctx = stream.context();
+        let Some(lifetime) = &ctx.primary_lifetime else {
+            return Ok(None);
+        };
+        ctx.check_err()?;
+        let lease = lifetime.admit()?;
+        ctx.bind_to_thread()?;
+        Ok(Some(lease))
+    }
+
+    #[cfg(not(feature = "std"))]
+    fn admit_stream(_stream: &CudaStream) -> Result<(), CublasError> {
+        Ok(())
     }
 
     /// Returns a reference to the underlying cublas handle.
@@ -152,7 +182,7 @@ mod fathomdb_context_lifetime {
         let error = CudaBlas::new(context.default_stream()).unwrap_err();
         assert_eq!(
             error,
-            CublasError(sys::cublasStatus_t::CUBLAS_STATUS_INVALID_VALUE)
+            CublasError::Native(sys::cublasStatus_t::CUBLAS_STATUS_INVALID_VALUE)
         );
         drop(context);
 
@@ -192,7 +222,7 @@ mod fathomdb_context_lifetime {
         let error = CudaBlas::new(context.default_stream()).unwrap_err();
         assert_eq!(
             error,
-            CublasError(sys::cublasStatus_t::CUBLAS_STATUS_ALLOC_FAILED)
+            CublasError::Native(sys::cublasStatus_t::CUBLAS_STATUS_ALLOC_FAILED)
         );
         drop(context);
 
