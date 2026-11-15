@@ -1,6 +1,8 @@
 //! Safe abstractions over [crate::driver::result] provided by [CudaSlice], [CudaContext], [CudaStream], and more.
 
 #[cfg(all(test, feature = "std"))]
+pub(crate) mod cleanup_pending_error_tests;
+#[cfg(all(test, feature = "std"))]
 pub(crate) mod constructor_terminal_result_tests;
 pub(crate) mod core;
 #[cfg(all(test, feature = "std"))]
