@@ -5,6 +5,8 @@
 crate. This file lists everything it changes, so that a consumer can see
 what differs from upstream and when each change can go away.
 
+- **Fork release candidate:** `0.20.0`, unpublished. The upstream base below
+  is unchanged. Publication and artifact qualification remain separate steps.
 - **Base:** upstream tag `v0.19.10`, commit `ec1cac71`.
 - **Source:** [coreyt/cudarc](https://github.com/coreyt/cudarc), branch
   `fathomdb/0.19.10`. The fork's plan, requirements, design, test plan and
@@ -20,10 +22,19 @@ The package is named `cudarc-fathomdb`, but the library is still named
 
 ```toml
 [dependencies]
-cudarc = { package = "cudarc-fathomdb", version = "0.19.10" }
+cudarc = { package = "cudarc-fathomdb", version = "0.20.0" }
 ```
 
 The feature names are upstream's, plus `fathomdb-private-pool` (item 6).
+
+Version 0.20.0 is a breaking pre-1.0 release. `CublasError` and `CurandError`
+are typed enums rather than public tuple structs; callers must handle `Native`,
+`Driver`, `Lost` and `ContextMismatch` instead of reading `.0`. Tracked primary
+lifetime, cached loss/identity observation, context and private-pool APIs share
+one irreversible generation. The balanced final primary release is permitted
+after loss; other tracked native use and cleanup refuse cached terminal loss.
+The selected CPU seam qualification does not establish real-reset survival.
+
 
 ## Items
 

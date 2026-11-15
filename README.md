@@ -4,7 +4,9 @@
 > It carries a small set of changes that FathomDB needs, each listed with its
 > upstream status and removal path in [FATHOMDB.md](FATHOMDB.md). The library
 > is still named `cudarc`; depend on it with
-> `cudarc = { package = "cudarc-fathomdb", version = "0.19.10" }`.
+> `cudarc = { package = "cudarc-fathomdb", version = "0.20.0" }`.
+> Version 0.20.0 is an unpublished release candidate with breaking typed
+> cuBLAS/cuRAND errors and tracked primary-context lifetime APIs.
 > Licence (MIT OR Apache-2.0) and authorship are upstream's, unchanged.
 > Do not report problems with this fork to upstream; its source is
 > [coreyt/cudarc](https://github.com/coreyt/cudarc), branch `fathomdb/0.19.10`.
