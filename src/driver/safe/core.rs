@@ -2283,22 +2283,19 @@ impl CudaStream {
         } else {
             malloc_sync_or_null(len * std::mem::size_of::<T>())? // FATHOMDB PATCH
         };
-        let (read, write) = if self.ctx.is_event_tracking() {
-            (
-                Some(self.ctx.new_event(None)?),
-                Some(self.ctx.new_event(None)?),
-            )
-        } else {
-            (None, None)
-        };
-        Ok(CudaSlice {
+        let mut allocation = CudaSlice {
             cu_device_ptr,
             len,
-            read,
-            write,
+            read: None,
+            write: None,
             stream: self.clone(),
             marker: PhantomData,
-        })
+        };
+        if self.ctx.is_event_tracking() {
+            allocation.read = Some(self.ctx.new_event(None)?);
+            allocation.write = Some(self.ctx.new_event(None)?);
+        }
+        Ok(allocation)
     }
 
     /// Allocates a [CudaSlice] with `len` elements of type `T`. All values are zero'd out.
