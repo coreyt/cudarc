@@ -165,7 +165,10 @@ pub(crate) mod seams {
         })
     }
 
-    pub(crate) fn record(event: sys::CUevent, _stream: sys::CUstream) -> Option<Result<(), DriverError>> {
+    pub(crate) fn record(
+        event: sys::CUevent,
+        _stream: sys::CUstream,
+    ) -> Option<Result<(), DriverError>> {
         let mut state = STATE.get()?;
         let handle = event as usize;
         assert!(handle > 0xE700 && handle <= 0xE700 + state.counts.created);

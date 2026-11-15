@@ -1069,14 +1069,33 @@ impl CudaEvent {
         if self.ctx != stream.ctx {
             return Err(DriverError(sys::cudaError_enum::CUDA_ERROR_INVALID_CONTEXT));
         }
+        #[cfg(feature = "std")]
+        let _lease = match &self.ctx.primary_lifetime {
+            Some(lifetime) => {
+                self.ctx.check_err()?;
+                Some(lifetime.admit()?)
+            }
+            None => None,
+        };
         self.ctx.bind_to_thread()?;
-        unsafe { result::event::record(self.cu_event, stream.cu_stream) }
+        self.ctx.record_terminal_result(unsafe {
+            result::event::record(self.cu_event, stream.cu_stream)
+        })
     }
 
     /// Will only block CPU thraed if [sys::CUevent_flags::CU_EVENT_BLOCKING_SYNC] was used to create this event.
     pub fn synchronize(&self) -> Result<(), DriverError> {
+        #[cfg(feature = "std")]
+        let _lease = match &self.ctx.primary_lifetime {
+            Some(lifetime) => {
+                self.ctx.check_err()?;
+                Some(lifetime.admit()?)
+            }
+            None => None,
+        };
         self.ctx.bind_to_thread()?;
-        unsafe { result::event::synchronize(self.cu_event) }
+        self.ctx
+            .record_terminal_result(unsafe { result::event::synchronize(self.cu_event) })
     }
 
     /// The time between two events. `self` is the start event, and `end` is the end event.
@@ -1095,7 +1114,7 @@ impl CudaEvent {
     ///
     /// This also returns `false` on CUDA errors. Use [Self::try_is_complete()] to handle errors.
     pub fn is_complete(&self) -> bool {
-        unsafe { result::event::query(self.cu_event) }.is_ok()
+        self.try_is_complete().unwrap_or(false)
     }
 
     /// Queries whether all recorded work has completed, without waiting.
@@ -1103,8 +1122,22 @@ impl CudaEvent {
     /// Returns `Ok(false)` only for [sys::CUresult::CUDA_ERROR_NOT_READY]. Other CUDA errors
     /// are returned to the caller, including errors from earlier asynchronous launches.
     /// An event that has not been recorded returns `Ok(true)`.
+    /// Tracked events hold admission through the query and return cached terminal
+    /// refusal before native dispatch. Known terminal query results are shared
+    /// with every context wrapper of that lifetime before returning.
     pub fn try_is_complete(&self) -> Result<bool, DriverError> {
-        match unsafe { result::event::query(self.cu_event) } {
+        #[cfg(feature = "std")]
+        let _lease = match &self.ctx.primary_lifetime {
+            Some(lifetime) => {
+                self.ctx.check_err()?;
+                Some(lifetime.admit()?)
+            }
+            None => None,
+        };
+        match self
+            .ctx
+            .record_terminal_result(unsafe { result::event::query(self.cu_event) })
+        {
             Ok(()) => Ok(true),
             Err(DriverError(sys::CUresult::CUDA_ERROR_NOT_READY)) => Ok(false),
             Err(error) => Err(error),

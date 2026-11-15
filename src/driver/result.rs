@@ -1723,7 +1723,9 @@ pub mod event {
     /// This function is unsafe because event can be a null event, in which case
     pub unsafe fn record(event: sys::CUevent, stream: sys::CUstream) -> Result<(), DriverError> {
         #[cfg(all(test, feature = "std"))]
-        if let Some(result) = crate::driver::safe::lifetime_event_cleanup_tests::seams::record(event, stream) {
+        if let Some(result) =
+            crate::driver::safe::lifetime_event_cleanup_tests::seams::record(event, stream)
+        {
             return result;
         }
         unsafe { sys::cuEventRecord(event, stream).result() }
@@ -1769,7 +1771,8 @@ pub mod event {
     /// This function is unsafe because event can be a null event, in which case
     pub unsafe fn query(event: sys::CUevent) -> Result<(), DriverError> {
         #[cfg(all(test, feature = "std"))]
-        if let Some(result) = crate::driver::safe::lifetime_event_cleanup_tests::seams::query(event) {
+        if let Some(result) = crate::driver::safe::lifetime_event_cleanup_tests::seams::query(event)
+        {
             return result;
         }
         unsafe { sys::cuEventQuery(event).result() }
@@ -1783,7 +1786,9 @@ pub mod event {
     /// This function is unsafe because event can be a null event, in which case
     pub unsafe fn synchronize(event: sys::CUevent) -> Result<(), DriverError> {
         #[cfg(all(test, feature = "std"))]
-        if let Some(result) = crate::driver::safe::lifetime_event_cleanup_tests::seams::synchronize(event) {
+        if let Some(result) =
+            crate::driver::safe::lifetime_event_cleanup_tests::seams::synchronize(event)
+        {
             return result;
         }
         unsafe { sys::cuEventSynchronize(event).result() }
