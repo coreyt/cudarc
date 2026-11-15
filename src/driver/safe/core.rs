@@ -739,7 +739,7 @@ impl CudaContext {
     /// Returns this context's cached tracked generation, without native work.
     #[cfg(feature = "std")]
     pub fn primary_lifetime(&self) -> Option<&Arc<super::PrimaryContextLifetime>> {
-        None
+        self.primary_lifetime.as_ref()
     }
 
     /// Get the underlying [sys::CUcontext] of this [CudaContext].
@@ -5365,6 +5365,8 @@ mod fathomdb_private_pool {
             cu_device: other_device,
             pool: std::ptr::null_mut(),
             max_size: None,
+            #[cfg(feature = "std")]
+            primary_lifetime: None,
         });
         assert_eq!(
             CudaContext::new_with_mem_pool(0, foreign.clone()).map(|_| ()),

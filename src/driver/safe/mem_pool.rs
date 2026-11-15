@@ -250,6 +250,8 @@ pub struct CudaMemPool {
     pub(crate) pool: sys::CUmemoryPool,
     /// `CU_MEMPOOL_ATTR_MAX_POOL_SIZE` as read back at creation.
     pub(crate) max_size: Option<u64>,
+    #[cfg(feature = "std")]
+    pub(crate) primary_lifetime: Option<std::sync::Arc<super::PrimaryContextLifetime>>,
 }
 
 unsafe impl Send for CudaMemPool {}
@@ -258,11 +260,58 @@ unsafe impl Sync for CudaMemPool {}
 impl CudaMemPool {
     /// Creates a pool owned by the supplied tracked primary generation.
     ///
-    /// Returns NOT_SUPPORTED when tracked construction is unavailable.
+    /// Holds admission through native creation, configuration and partial
+    /// cleanup. The pool retains the generation anchor without another native
+    /// primary-context retain. It never reads or changes the device's current
+    /// pool.
+    ///
+    /// # Errors
+    /// Returns cached terminal refusal, unavailable tracking or unsupported
+    /// size properties, or the native creation/configuration error. Ordinary
+    /// operation OOM remains retryable.
     #[cfg(feature = "std")]
-    pub fn create_tracked(lifetime: std::sync::Arc<super::PrimaryContextLifetime>, props: &MemPoolProps) -> Result<Self, DriverError> {
-        let _ = (lifetime, props);
-        Err(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED))
+    pub fn create_tracked(
+        lifetime: std::sync::Arc<super::PrimaryContextLifetime>,
+        props: &MemPoolProps,
+    ) -> Result<Self, DriverError> {
+        let _lease = lifetime.admit()?;
+        let anchor = lifetime
+            .anchor
+            .as_ref()
+            .ok_or(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED))?;
+        if props.max_size > 0 && !BINDINGS_HAVE_MAX_SIZE {
+            return Err(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED));
+        }
+        let driver = if props.max_size > 0 || BINDINGS_HAVE_MAX_POOL_SIZE {
+            Some(driver_version()?)
+        } else {
+            None
+        };
+        if props.max_size > 0 && matches!(driver, Some(version) if version < 12020) {
+            return Err(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED));
+        }
+        let raw = pool_props(anchor.ordinal as i32, props);
+        let pool = unsafe { result::mem_pool::create(&raw) }?;
+        let mut created = Self {
+            cu_device: anchor.device,
+            pool,
+            max_size: None,
+            primary_lifetime: Some(std::sync::Arc::clone(&lifetime)),
+        };
+        let mut threshold = props.release_threshold;
+        unsafe {
+            result::mem_pool::set_attribute(
+                pool,
+                sys::CUmemPool_attribute::CU_MEMPOOL_ATTR_RELEASE_THRESHOLD,
+                (&mut threshold as *mut u64).cast(),
+            )
+        }?;
+        created.max_size = read_max_pool_size(pool, driver).ok().flatten();
+        if matches!(created.max_size, Some(reported) if props.max_size > 0 && reported < props.max_size as u64)
+        {
+            return Err(DriverError(sys::CUresult::CUDA_ERROR_INVALID_VALUE));
+        }
+        Ok(created)
     }
 
     /// Creates a pool of pinned device memory on device `ordinal` with
@@ -310,6 +359,8 @@ impl CudaMemPool {
             cu_device,
             pool,
             max_size: None,
+            #[cfg(feature = "std")]
+            primary_lifetime: None,
         };
         #[cfg(test)]
         seams::set_threshold()?;

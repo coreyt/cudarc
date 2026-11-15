@@ -2255,7 +2255,17 @@ pub mod mem_pool {
     pub unsafe fn create(
         pool_props: *const sys::CUmemPoolProps,
     ) -> Result<sys::CUmemoryPool, DriverError> {
-        #[cfg(all(test, feature = "std", not(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080"))))]
+        #[cfg(all(
+            test,
+            feature = "std",
+            not(any(
+                feature = "cuda-11040",
+                feature = "cuda-11050",
+                feature = "cuda-11060",
+                feature = "cuda-11070",
+                feature = "cuda-11080"
+            ))
+        ))]
         if let Some(result) = crate::driver::safe::tracked_pool_tests::seams::create(pool_props) {
             return result;
         }
@@ -2272,7 +2282,17 @@ pub mod mem_pool {
     /// # Safety
     /// Pool must be valid and not already destroyed.
     pub unsafe fn destroy(pool: sys::CUmemoryPool) -> Result<(), DriverError> {
-        #[cfg(all(test, feature = "std", not(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080"))))]
+        #[cfg(all(
+            test,
+            feature = "std",
+            not(any(
+                feature = "cuda-11040",
+                feature = "cuda-11050",
+                feature = "cuda-11060",
+                feature = "cuda-11070",
+                feature = "cuda-11080"
+            ))
+        ))]
         if let Some(result) = crate::driver::safe::tracked_pool_tests::seams::destroy(pool) {
             return result;
         }
@@ -2290,8 +2310,20 @@ pub mod mem_pool {
         pool: sys::CUmemoryPool,
         min_bytes_to_keep: usize,
     ) -> Result<(), DriverError> {
-        #[cfg(all(test, feature = "std", not(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080"))))]
-        if let Some(result) = crate::driver::safe::tracked_pool_tests::seams::trim(pool, min_bytes_to_keep) {
+        #[cfg(all(
+            test,
+            feature = "std",
+            not(any(
+                feature = "cuda-11040",
+                feature = "cuda-11050",
+                feature = "cuda-11060",
+                feature = "cuda-11070",
+                feature = "cuda-11080"
+            ))
+        ))]
+        if let Some(result) =
+            crate::driver::safe::tracked_pool_tests::seams::trim(pool, min_bytes_to_keep)
+        {
             return result;
         }
 
@@ -2310,8 +2342,19 @@ pub mod mem_pool {
         attr: sys::CUmemPool_attribute,
         value: *mut core::ffi::c_void,
     ) -> Result<(), DriverError> {
-        #[cfg(all(test, feature = "std", not(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080"))))]
-        if let Some(result) = crate::driver::safe::tracked_pool_tests::seams::get(pool, attr, value) {
+        #[cfg(all(
+            test,
+            feature = "std",
+            not(any(
+                feature = "cuda-11040",
+                feature = "cuda-11050",
+                feature = "cuda-11060",
+                feature = "cuda-11070",
+                feature = "cuda-11080"
+            ))
+        ))]
+        if let Some(result) = crate::driver::safe::tracked_pool_tests::seams::get(pool, attr, value)
+        {
             return result;
         }
 
@@ -2332,8 +2375,19 @@ pub mod mem_pool {
         attr: sys::CUmemPool_attribute,
         value: *mut core::ffi::c_void,
     ) -> Result<(), DriverError> {
-        #[cfg(all(test, feature = "std", not(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080"))))]
-        if let Some(result) = crate::driver::safe::tracked_pool_tests::seams::set(pool, attr, value) {
+        #[cfg(all(
+            test,
+            feature = "std",
+            not(any(
+                feature = "cuda-11040",
+                feature = "cuda-11050",
+                feature = "cuda-11060",
+                feature = "cuda-11070",
+                feature = "cuda-11080"
+            ))
+        ))]
+        if let Some(result) = crate::driver::safe::tracked_pool_tests::seams::set(pool, attr, value)
+        {
             return result;
         }
 
@@ -2354,8 +2408,20 @@ pub mod mem_pool {
         num_bytes: usize,
         stream: sys::CUstream,
     ) -> Result<sys::CUdeviceptr, DriverError> {
-        #[cfg(all(test, feature = "std", not(any(feature = "cuda-11040", feature = "cuda-11050", feature = "cuda-11060", feature = "cuda-11070", feature = "cuda-11080"))))]
-        if let Some(result) = crate::driver::safe::tracked_pool_tests::seams::allocate(pool, num_bytes, stream) {
+        #[cfg(all(
+            test,
+            feature = "std",
+            not(any(
+                feature = "cuda-11040",
+                feature = "cuda-11050",
+                feature = "cuda-11060",
+                feature = "cuda-11070",
+                feature = "cuda-11080"
+            ))
+        ))]
+        if let Some(result) =
+            crate::driver::safe::tracked_pool_tests::seams::allocate(pool, num_bytes, stream)
+        {
             return result;
         }
 
