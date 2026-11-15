@@ -1,0 +1,80 @@
+# Selected library lifetime admission
+
+Proposed 2026-11-15 against `53e77220d1187b709da5126b8e8c551068d531c2`.
+This focused amendment owns cuBLAS/cuRAND admission and stream ownership;
+`design.md`, `requirements.md` and `test-plan.md` retain the fork-wide contract.
+Independent design review precedes production edits. Actual resets remain held.
+
+## Source fit and public contract
+
+Selected Candle K9 F32 GEMM obtains pointer guards then invokes unsafe raw
+`cublas::result::gemm_strided_batched_ex` with `CudaBlas::handle()`. Existing110
+outer product admission must span model construction, forward and unwind,
+including that helper and guards. No new Candle API is needed. Raw handles and
+result functions cannot establish ownership and remain unsafe caller
+responsibility. Standalone safe BLAS/RNG methods need their own admission.
+Candle creates BLAS then RNG even without random model operations.
+
+Keep existing safe method/result type names. Change `CublasError` and
+`CurandError` from tuple wrappers to enums with `Native(status)`,
+`Driver(DriverError)` and `ContextMismatch` variants. Raw result wrappers return
+`Native`; safe admission/binding returns the exact `Driver` status, including
+cached terminal OOM. This is a public source change with no compatibility shim.
+Exact K9 `182ceab0547348993b6dbec4b1aed610dcc8b23f` uses only these error
+types and typed From conversions, which need no Candle edit. Product
+`candle_bge.rs` currently reads `CublasError.0` for ARCH_MISMATCH/NOT_SUPPORTED
+and has three tuple test constructors. Pin adoption must migrate those exact
+Native matches, preserving their statuses, and classify Driver variants through
+the existing driver/shared-loss policy. Consumers
+query shared cached `loss()` to distinguish terminal from ordinary OOM; native
+allocation failure alone never publishes loss.
+
+## Operations and ownership
+
+- Tracked construction acquires the context's lifetime lease before binding or
+  library handle creation; retain it through stream/seed setup and partial-owner
+  Drop. Immediately wrap each successful create as at baseline. Propagate tracked
+  binding failure before library FFI. Preserve untracked constructor behavior.
+- Safe use and setters acquire admission before binding, pointer acquisition or
+  library FFI and retain it through pointer-guard drops. Cached Lost performs no
+  native work. Cover existing safe BLAS and RNG seed/offset/fill methods without
+  expanding supported model dtypes or APIs.
+- When either old or target stream context is tracked, set_stream requires both
+  to share the same lifetime (Arc identity), refusing mismatch before native
+  work. The old context/lifetime remains authoritative for the native handle.
+  Replace the stored stream only after successful native reassociation, with
+  the lease held. Both-untracked retains its existing unsafe caller contract.
+- Drop disarms its own handle first. Tracked Drop acquires admission, uses the
+  existing conservative CudaContext::bind_for_cleanup, and destroys only on
+  success, with admission across both. The core owner exposes that existing
+  helper crate-wide; no state mutex spans FFI. Lost or failed cleanup binding
+  skips native destroy. Rust descendants drop normally. Untracked Drop retains
+  existing destruction behavior; no destructor unwinds.
+- Library statuses are not fabricated into driver loss. Cleanup binding
+  uncertainty uses existing core first-loss publication. Later refusal cannot
+  overwrite it. Ordinary OOM remains retryable.
+
+## Tests and order
+
+Use owned test FFI seams; no GPU/reset/model execution is implied. Each changed
+behavior receives actual semantic RED/output before minimal GREEN. Existing
+partial-owner cleanup is correct reuse, never manufactured RED. Existing
+assertions migrate mechanically from tuple construction to Native only.
+
+1. Constructors: inactive/changed identity and cached terminal OOM refuse before
+   bind/create; healthy tracked and ordinary native OOM controls. RNG includes
+   stream/seed partial initialization and first-owner unwind.
+2. Use: tracked BLAS pointer-mode/GEMM and RNG seed/offset/fills refuse before
+   pointer acquisition/FFI after loss. Healthy counters/native error controls
+   prevent always-refuse. Share one admission helper per library.
+3. Stream setter: failed native setter retains original Arc; mixed/distinct
+   tracked owners refuse before FFI; same generation succeeds. Cover both BLAS
+   and RNG, including premature release of the old Rust stream owner.
+4. Drop: no-forward-close discovers loss and skips destroy; cached Lost skips
+   native cleanup; healthy destroys once; cleanup-binding failure publishes
+   first loss and skips destroy. Existing untracked partial-failure/nonpanic
+   controls remain passing.
+
+Root authorizes bounded native/build/test leases. Focused new selectors use
+`fathomdb_library_admission` modules. Final independent implementation review
+covers this coherent library family and raw outputs before integration.
