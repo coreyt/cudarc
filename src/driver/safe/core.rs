@@ -1219,6 +1219,14 @@ impl CudaContext {
     /// This will swap the calling context to multi stream mode [CudaContext::is_in_multi_stream_mode()].
     /// If the context is not already in multiple stream mode, then this function will also call [CudaContext::synchronize()].
     pub fn new_stream(self: &Arc<Self>) -> Result<Arc<CudaStream>, DriverError> {
+        #[cfg(feature = "std")]
+        let _lease = match &self.primary_lifetime {
+            Some(lifetime) => {
+                self.check_err()?;
+                Some(lifetime.admit()?)
+            }
+            None => None,
+        };
         self.bind_to_thread()?;
         let prev_num_streams = self.num_streams.fetch_add(1, Ordering::Relaxed);
         let mut reservation = StreamCountReservation(Some(&self.num_streams));
