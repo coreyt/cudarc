@@ -773,7 +773,7 @@ impl CudaContext {
         Ok(())
     }
 
-    fn bind_for_cleanup(&self) -> Result<(), DriverError> {
+    pub(crate) fn bind_for_cleanup(&self) -> Result<(), DriverError> {
         // A stored ordinary error is not a failure of native cleanup binding.
         self.check_err()?;
         let result = self.bind_current_to_thread();
