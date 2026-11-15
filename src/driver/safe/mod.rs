@@ -8,6 +8,8 @@ pub(crate) mod mem_pool;
 #[cfg(feature = "std")]
 pub(crate) mod primary_context;
 pub(crate) mod profile;
+#[cfg(all(test, feature = "std"))]
+pub(crate) mod primary_context_probe_publication_tests;
 pub(crate) mod unified_memory;
 
 pub use self::core::{

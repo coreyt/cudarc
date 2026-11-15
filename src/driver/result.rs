@@ -483,6 +483,7 @@ pub(crate) mod context_test_seams {
 
     std::thread_local! {
         static STATE: Cell<Option<State>> = const { Cell::new(None) };
+        static PRIMARY_PROBE_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
     }
 
     pub(crate) struct Guard;
@@ -513,6 +514,10 @@ pub(crate) mod context_test_seams {
 
         pub(crate) fn snapshot(&self) -> State {
             STATE.get().unwrap()
+        }
+
+        pub(crate) fn set_primary_probe_hook(&self, hook: impl FnMut() + 'static) {
+            PRIMARY_PROBE_HOOK.with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
         }
 
         pub(crate) fn set_tracking_symbols(&self, available: bool) {
@@ -548,6 +553,7 @@ pub(crate) mod context_test_seams {
 
     impl Drop for Guard {
         fn drop(&mut self) {
+            PRIMARY_PROBE_HOOK.with(|slot| *slot.borrow_mut() = None);
             STATE.set(None);
         }
     }
@@ -636,6 +642,11 @@ pub(crate) mod context_test_seams {
         assert_eq!(dev, 0);
         state.primary_queries += 1;
         STATE.set(Some(state));
+        PRIMARY_PROBE_HOOK.with(|slot| {
+            if let Some(hook) = slot.borrow_mut().as_mut() {
+                hook();
+            }
+        });
         Some(match state.primary_error {
             Some(error) => Err(DriverError(error)),
             None => Ok((0, state.primary_active)),
