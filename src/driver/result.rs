@@ -459,6 +459,7 @@ pub(crate) mod context_test_seams {
         pub(crate) queries: usize,
         pub(crate) binds: usize,
         pub(crate) releases: usize,
+        pub(crate) retains: usize,
         pub(crate) primary_queries: usize,
         primary_active: bool,
         primary_error: Option<sys::CUresult>,
@@ -481,6 +482,7 @@ pub(crate) mod context_test_seams {
                 queries: 0,
                 binds: 0,
                 releases: 0,
+                retains: 0,
                 primary_queries: 0,
                 primary_active: true,
                 primary_error: None,
@@ -583,6 +585,14 @@ pub(crate) mod context_test_seams {
         })
     }
 
+    pub(crate) fn retain(dev: sys::CUdevice) -> Option<sys::CUcontext> {
+        let mut state = STATE.get()?;
+        assert_eq!(dev, 0);
+        state.retains += 1;
+        STATE.set(Some(state));
+        Some(0xC7 as sys::CUcontext)
+    }
+
     pub(crate) fn release(dev: sys::CUdevice) -> bool {
         let Some(mut state) = STATE.get() else {
             return false;
@@ -614,6 +624,10 @@ pub mod primary_ctx {
     ///
     /// This is only safe with a device that was returned from [super::device::get].
     pub unsafe fn retain(dev: sys::CUdevice) -> Result<sys::CUcontext, DriverError> {
+        #[cfg(test)]
+        if let Some(ctx) = super::context_test_seams::retain(dev) {
+            return Ok(ctx);
+        }
         let mut ctx = MaybeUninit::uninit();
         sys::cuDevicePrimaryCtxRetain(ctx.as_mut_ptr(), dev).result()?;
         Ok(ctx.assume_init())

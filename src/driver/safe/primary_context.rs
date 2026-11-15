@@ -9,7 +9,18 @@ use std::sync::Mutex;
 pub struct PrimaryContextLifetime {
     pub(crate) recorded_id: u64,
     pub(crate) loss: Mutex<Option<PrimaryContextLoss>>,
+    pub(crate) anchor: Option<PrimaryContextAnchor>,
 }
+
+#[derive(Debug)]
+pub(crate) struct PrimaryContextAnchor {
+    pub(crate) device: sys::CUdevice,
+    pub(crate) context: sys::CUcontext,
+}
+
+// Primary contexts support cross-thread use; the lifetime owns their retain.
+unsafe impl Send for PrimaryContextAnchor {}
+unsafe impl Sync for PrimaryContextAnchor {}
 
 impl PrimaryContextLifetime {
     pub(crate) fn error(&self) -> Option<DriverError> {
@@ -98,6 +109,7 @@ mod fathomdb_primary_lifetime {
         let lifetime = Arc::new(PrimaryContextLifetime {
             recorded_id: 17,
             loss: Mutex::new(None),
+            anchor: None,
         });
         let mut first = context_test_seams::context();
         let mut sibling = context_test_seams::context();
@@ -157,6 +169,7 @@ mod fathomdb_primary_lifetime {
         let lifetime = Arc::new(PrimaryContextLifetime {
             recorded_id: 23,
             loss: Mutex::new(None),
+            anchor: None,
         });
         let mut context = context_test_seams::context();
         Arc::get_mut(&mut context).unwrap().primary_lifetime = Some(lifetime.clone());
@@ -178,6 +191,7 @@ mod fathomdb_primary_lifetime {
         let lifetime = Arc::new(PrimaryContextLifetime {
             recorded_id: 29,
             loss: Mutex::new(None),
+            anchor: None,
         });
         let mut context = context_test_seams::context();
         Arc::get_mut(&mut context).unwrap().primary_lifetime = Some(lifetime.clone());
@@ -216,6 +230,7 @@ mod fathomdb_primary_lifetime {
         let lifetime = Arc::new(PrimaryContextLifetime {
             recorded_id: 31,
             loss: Mutex::new(None),
+            anchor: None,
         });
         let mut context = context_test_seams::context();
         Arc::get_mut(&mut context).unwrap().primary_lifetime = Some(lifetime.clone());
@@ -256,6 +271,7 @@ mod fathomdb_primary_lifetime {
         let lifetime = Arc::new(PrimaryContextLifetime {
             recorded_id: 17,
             loss: Mutex::new(None),
+            anchor: None,
         });
         let mut context = context_test_seams::context();
         Arc::get_mut(&mut context).unwrap().primary_lifetime = Some(lifetime.clone());
@@ -292,6 +308,7 @@ mod fathomdb_primary_lifetime {
         let lifetime = Arc::new(PrimaryContextLifetime {
             recorded_id: 17,
             loss: Mutex::new(None),
+            anchor: None,
         });
         let mut context = context_test_seams::context();
         Arc::get_mut(&mut context).unwrap().primary_lifetime = Some(lifetime.clone());
@@ -325,5 +342,45 @@ mod fathomdb_primary_lifetime {
                 error
             })
         );
+    }
+
+    #[test]
+    fn tracked_wrappers_release_only_through_the_final_anchor() {
+        for terminal in [false, true] {
+            let driver = context_test_seams::Guard::new();
+            let retained = unsafe { crate::driver::result::primary_ctx::retain(0) }
+                .map_err(|error| error.0 as u32)
+                .unwrap();
+            assert_eq!(driver.snapshot().retains, 1);
+            let loss = terminal.then_some(PrimaryContextLoss {
+                recorded_id: 17,
+                observed_id: None,
+                error: sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED,
+            });
+            let lifetime = Arc::new(PrimaryContextLifetime {
+                recorded_id: 17,
+                loss: Mutex::new(loss),
+                anchor: Some(PrimaryContextAnchor { device: 0, context: retained }),
+            });
+            let mut first = context_test_seams::context();
+            let mut sibling = context_test_seams::context();
+            assert_eq!(first.cu_ctx as usize, retained as usize);
+            assert_eq!(sibling.cu_ctx as usize, retained as usize);
+            Arc::get_mut(&mut first).unwrap().primary_lifetime = Some(lifetime.clone());
+            Arc::get_mut(&mut sibling).unwrap().primary_lifetime = Some(lifetime.clone());
+
+            drop(first);
+            drop(sibling);
+            let after_wrappers = driver.snapshot();
+            assert_eq!(after_wrappers.releases, 0, "tracked wrappers borrow the single anchor retain");
+            assert_eq!((after_wrappers.primary_queries, after_wrappers.id_queries), (0, 0));
+            assert_eq!((after_wrappers.queries, after_wrappers.binds), (0, 0));
+
+            drop(lifetime);
+            let after_anchor = driver.snapshot();
+            assert_eq!((after_anchor.retains, after_anchor.releases), (1, 1));
+            assert_eq!((after_anchor.primary_queries, after_anchor.id_queries), (0, 0));
+            assert_eq!((after_anchor.queries, after_anchor.binds), (0, 0));
+        }
     }
 }
