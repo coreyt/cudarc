@@ -584,7 +584,9 @@ pub(crate) mod partial_init_test_seams {
 
         pub(crate) fn fail_destroy(&self) {
             let mut state = self.snapshot();
-            state.destroy_error = Some(CublasError(sys::cublasStatus_t::CUBLAS_STATUS_INTERNAL_ERROR));
+            state.destroy_error = Some(CublasError(
+                sys::cublasStatus_t::CUBLAS_STATUS_INTERNAL_ERROR,
+            ));
             STATE.set(Some(state));
         }
     }
@@ -620,9 +622,7 @@ pub(crate) mod partial_init_test_seams {
         })
     }
 
-    pub(crate) fn destroy_handle(
-        handle: sys::cublasHandle_t,
-    ) -> Option<Result<(), CublasError>> {
+    pub(crate) fn destroy_handle(handle: sys::cublasHandle_t) -> Option<Result<(), CublasError>> {
         let mut state = STATE.get()?;
         assert_eq!(handle as usize, HANDLE);
         state.destroys += 1;

@@ -91,7 +91,7 @@ impl Drop for CudaBlas {
     fn drop(&mut self) {
         let handle = std::mem::replace(&mut self.handle, std::ptr::null_mut());
         if !handle.is_null() {
-            unsafe { result::destroy_handle(handle) }.unwrap();
+            let _ = unsafe { result::destroy_handle(handle) };
         }
     }
 }
@@ -245,6 +245,9 @@ mod fathomdb_context_lifetime {
             (calls.creates, calls.stream_sets, calls.destroys),
             (1, 1, 1)
         );
-        assert!(outcome.is_ok(), "native BLAS cleanup errors must not unwind Rust owners");
+        assert!(
+            outcome.is_ok(),
+            "native BLAS cleanup errors must not unwind Rust owners"
+        );
     }
 }
