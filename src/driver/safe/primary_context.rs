@@ -27,7 +27,13 @@ impl PrimaryContextLifetime {
         if let Some(error) = self.error() {
             return Err(error);
         }
-        let (_, active) = unsafe { crate::driver::result::primary_ctx::get_state(device) }?;
+        let (_, active) = match unsafe { crate::driver::result::primary_ctx::get_state(device) } {
+            Ok(state) => state,
+            Err(error) => {
+                self.record_loss(error, None);
+                return Err(self.error().unwrap_or(error));
+            }
+        };
         if !active {
             self.record_error(DriverError(sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED));
         } else {
@@ -299,13 +305,25 @@ mod fathomdb_primary_lifetime {
         drop(context);
 
         assert_eq!(first, Err(error as u32));
-        assert_eq!(second, Err(error as u32), "a failed liveness query must permanently refuse later binding");
-        assert_eq!(third, Err(error as u32), "later OOM must not replace the first failed-probe observation");
+        assert_eq!(
+            second,
+            Err(error as u32),
+            "a failed liveness query must permanently refuse later binding"
+        );
+        assert_eq!(
+            third,
+            Err(error as u32),
+            "later OOM must not replace the first failed-probe observation"
+        );
         assert_eq!((dispatch.primary_queries, dispatch.id_queries), (1, 0));
         assert_eq!((dispatch.queries, dispatch.binds), (0, 0));
         assert_eq!(
             *lifetime.loss.lock().unwrap(),
-            Some(PrimaryContextLoss { recorded_id: 17, observed_id: None, error })
+            Some(PrimaryContextLoss {
+                recorded_id: 17,
+                observed_id: None,
+                error
+            })
         );
     }
 }
