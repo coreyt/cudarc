@@ -35,6 +35,10 @@ allocation failure alone never publishes loss.
   library handle creation; retain it through stream/seed setup and partial-owner
   Drop. Immediately wrap each successful create as at baseline. Propagate tracked
   binding failure before library FFI. Preserve untracked constructor behavior.
+  Depend on the independently qualified core normal-binding repair: an actual
+  terminal709 bind failure after healthy admission publishes the first loss
+  before returning Driver; a later call refuses without native work. Ordinary
+  bind OOM remains retryable. Libraries must not duplicate core publication.
 - Safe use and setters acquire admission before binding, pointer acquisition or
   library FFI and retain it through pointer-guard drops. Cached Lost performs no
   native work. Cover existing safe BLAS and RNG seed/offset/fill methods without
@@ -63,7 +67,12 @@ assertions migrate mechanically from tuple construction to Native only.
 
 1. Constructors: inactive/changed identity and cached terminal OOM refuse before
    bind/create; healthy tracked and ordinary native OOM controls. RNG includes
-   stream/seed partial initialization and first-owner unwind.
+   stream/seed partial initialization and first-owner unwind. Paired normal-bind
+   controls start with healthy admission, force actual709 binding failure, and
+   require exact Driver return, first-loss publication, zero library FFI, then
+   zero-native subsequent refusal; ordinary bind OOM publishes no loss and
+   succeeds on retry after removing the fault. The shared core repair owns the
+   corresponding actual RED/GREEN before library integration.
 2. Use: tracked BLAS pointer-mode/GEMM and RNG seed/offset/fills refuse before
    pointer acquisition/FFI after loss. Healthy counters/native error controls
    prevent always-refuse. Share one admission helper per library.
