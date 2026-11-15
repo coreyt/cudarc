@@ -12,6 +12,10 @@ pub enum CublasError {
     Native(sys::cublasStatus_t),
     /// The original driver status from admission or context binding.
     Driver(crate::driver::DriverError),
+    /// Cached terminal refusal with a synthetic driver-status projection.
+    /// The authoritative cause and identities are retained without native queries.
+    #[cfg(feature = "std")]
+    Lost(crate::driver::PrimaryContextLoss),
     /// A stream belongs to a different tracked context generation.
     ContextMismatch,
 }
@@ -606,6 +610,12 @@ pub(crate) mod partial_init_test_seams {
         pub(crate) fn allow_stream_setup(&self) {
             let mut state = self.snapshot();
             state.stream_error = None;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_destroy_error(&self, error: Option<CublasError>) {
+            let mut state = self.snapshot();
+            state.destroy_error = error;
             STATE.set(Some(state));
         }
 

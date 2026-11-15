@@ -16,7 +16,7 @@ fn drop_discovers_loss_without_forward_and_skips_destroy() {
 
         assert_eq!(calls.snapshot().destroys, 0, "no-forward close must discover loss before native library destruction");
         let first = lifetime.loss().expect("Drop must publish discovered identity loss");
-        assert_eq!(first.error, driver_sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED);
+        assert_eq!(first.refusal().driver_status(), driver_sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED);
         assert_eq!(first.observed_id, if changed_id { Some(18) } else { None });
     }
 }
@@ -64,7 +64,7 @@ fn cleanup_binding_failure_publishes_first_loss_and_skips_destroy() {
 
             assert_eq!(calls.snapshot().destroys, 0, "native cleanup binding uncertainty must stop destruction");
             let first = lifetime.loss().expect("actual cleanup binding failure is conservative terminal loss");
-            assert_eq!(first.error, error);
+            assert_eq!(first.refusal().driver_status(), error);
             let before = driver.snapshot();
             driver.set_current_bind_error(None);
             driver.set_current_query_error(None);

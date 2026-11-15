@@ -92,7 +92,7 @@ fn constructor_discovers_inactive_or_changed_primary_before_create() {
             .loss()
             .expect("constructor publishes terminal identity loss");
         assert_eq!(
-            loss.error,
+            loss.refusal().driver_status(),
             driver_sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED
         );
         assert_eq!(loss.observed_id, if changed_id { Some(18) } else { None });
