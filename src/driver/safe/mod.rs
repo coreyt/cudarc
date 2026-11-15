@@ -82,6 +82,8 @@ pub(crate) mod sync_on_drop_tests;
 pub(crate) mod tracked_cleanup_bind_failure_tests;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod tracked_pool_tests;
+#[cfg(all(test, feature = "std"))]
+pub(crate) mod tracked_pool_attachment_tests;
 pub(crate) mod unified_memory;
 
 pub use self::core::{

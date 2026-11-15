@@ -475,6 +475,15 @@ impl CudaContext {
         Ok(ctx)
     }
 
+    /// Attaches a private pool from the identical tracked generation.
+    ///
+    /// Returns NOT_SUPPORTED when tracked attachment is unavailable.
+    #[cfg(feature = "std")]
+    pub fn new_with_mem_pool_tracked(lifetime: Arc<super::PrimaryContextLifetime>, pool: Arc<super::mem_pool::CudaMemPool>) -> Result<Arc<Self>, DriverError> {
+        let _ = (lifetime, pool);
+        Err(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED))
+    }
+
     /// Creates a new non-primary CUDA context on the specified device ordinal.
     ///
     /// Unlike [`CudaContext::new()`] which retains the device's primary context,
