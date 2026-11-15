@@ -1372,8 +1372,17 @@ impl CudaStream {
     ///
     /// See [cuda docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g15e49dd91ec15991eb7c0a741beb7dad)
     pub fn synchronize(&self) -> Result<(), DriverError> {
+        #[cfg(feature = "std")]
+        let _lease = match &self.ctx.primary_lifetime {
+            Some(lifetime) => {
+                self.ctx.check_err()?;
+                Some(lifetime.admit()?)
+            }
+            None => None,
+        };
         self.ctx.bind_to_thread()?;
-        unsafe { result::stream::synchronize(self.cu_stream) }
+        self.ctx
+            .record_terminal_result(unsafe { result::stream::synchronize(self.cu_stream) })
     }
 
     /// Creates a new [CudaEvent] and records the current work in the stream to the event.
@@ -1393,14 +1402,22 @@ impl CudaStream {
     ///
     /// See [cuda docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__STREAM.html#group__CUDA__STREAM_1g6a898b652dfc6aa1d5c8d97062618b2f)
     pub fn wait(&self, event: &CudaEvent) -> Result<(), DriverError> {
+        #[cfg(feature = "std")]
+        let _lease = match &self.ctx.primary_lifetime {
+            Some(lifetime) => {
+                self.ctx.check_err()?;
+                Some(lifetime.admit()?)
+            }
+            None => None,
+        };
         self.ctx.bind_to_thread()?;
-        unsafe {
+        self.ctx.record_terminal_result(unsafe {
             result::stream::wait_event(
                 self.cu_stream,
                 event.cu_event,
                 sys::CUevent_wait_flags::CU_EVENT_WAIT_DEFAULT,
             )
-        }
+        })
     }
 
     /// Ensures this stream waits for the current workload in `other` to complete.

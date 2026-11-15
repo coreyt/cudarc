@@ -81,7 +81,8 @@ pub(crate) mod seams {
         }
 
         pub(crate) fn set_stream_synchronize_hook(&self, hook: impl FnMut() + 'static) {
-            STREAM_SYNCHRONIZE_HOOK.with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
+            STREAM_SYNCHRONIZE_HOOK
+                .with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
         }
 
         pub(crate) fn set_wait_error(&self, error: Option<sys::CUresult>) {
@@ -152,7 +153,11 @@ pub(crate) mod seams {
     pub(crate) fn stream_synchronize(stream: sys::CUstream) -> Option<Result<(), DriverError>> {
         let mut state = STATE.get()?;
         let handle = stream as usize;
-        assert!(handle == 0 || handle == 2 || (handle > 0x5700 && handle <= 0x5700 + state.counts.created));
+        assert!(
+            handle == 0
+                || handle == 2
+                || (handle > 0x5700 && handle <= 0x5700 + state.counts.created)
+        );
         state.counts.stream_synchronizes += 1;
         STATE.set(Some(state));
         STREAM_SYNCHRONIZE_HOOK.with(|slot| {
@@ -166,12 +171,23 @@ pub(crate) mod seams {
         })
     }
 
-    pub(crate) fn wait(stream: sys::CUstream, event: sys::CUevent, flags: sys::CUevent_wait_flags) -> Option<Result<(), DriverError>> {
+    pub(crate) fn wait(
+        stream: sys::CUstream,
+        event: sys::CUevent,
+        flags: sys::CUevent_wait_flags,
+    ) -> Option<Result<(), DriverError>> {
         let mut state = STATE.get()?;
         let handle = stream as usize;
-        assert!(handle == 0 || handle == 2 || (handle > 0x5700 && handle <= 0x5700 + state.counts.created));
+        assert!(
+            handle == 0
+                || handle == 2
+                || (handle > 0x5700 && handle <= 0x5700 + state.counts.created)
+        );
         assert!(event as usize > 0xE700);
-        assert_eq!(flags as u32, sys::CUevent_wait_flags::CU_EVENT_WAIT_DEFAULT as u32);
+        assert_eq!(
+            flags as u32,
+            sys::CUevent_wait_flags::CU_EVENT_WAIT_DEFAULT as u32
+        );
         state.counts.waits += 1;
         STATE.set(Some(state));
         WAIT_HOOK.with(|slot| {
