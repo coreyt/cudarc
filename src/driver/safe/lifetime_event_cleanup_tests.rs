@@ -26,6 +26,7 @@ pub(crate) mod seams {
     std::thread_local! {
         static STATE: Cell<Option<State>> = const { Cell::new(None) };
         static DESTROY_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
+        static CREATE_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
     }
 
     pub(crate) struct Guard;
@@ -46,6 +47,10 @@ pub(crate) mod seams {
             state.create_error = Some(error);
             state.fail_on_attempt = Some(attempt);
             STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_create_hook(&self, hook: impl FnMut() + 'static) {
+            CREATE_HOOK.with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
         }
 
         pub(crate) fn set_destroy_hook(&self, hook: impl FnMut() + 'static) {
@@ -69,6 +74,7 @@ pub(crate) mod seams {
     impl Drop for Guard {
         fn drop(&mut self) {
             DESTROY_HOOK.with(|slot| *slot.borrow_mut() = None);
+            CREATE_HOOK.with(|slot| *slot.borrow_mut() = None);
             STATE.set(None);
         }
     }
@@ -76,6 +82,12 @@ pub(crate) mod seams {
     pub(crate) fn create(_flags: sys::CUevent_flags) -> Option<Result<sys::CUevent, DriverError>> {
         let mut state = STATE.get()?;
         state.counts.create_attempts += 1;
+        STATE.set(Some(state));
+        CREATE_HOOK.with(|slot| {
+            if let Some(hook) = slot.borrow_mut().as_mut() {
+                hook();
+            }
+        });
         let failure = if state
             .fail_on_attempt
             .is_none_or(|attempt| attempt == state.counts.create_attempts)

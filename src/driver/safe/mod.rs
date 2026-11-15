@@ -2,6 +2,8 @@
 
 pub(crate) mod core;
 pub(crate) mod external_memory;
+#[cfg(all(test, feature = "std"))]
+pub(crate) mod event_constructor_admission_tests;
 pub(crate) mod graph;
 pub(crate) mod launch;
 #[cfg(all(test, feature = "std"))]
