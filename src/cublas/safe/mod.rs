@@ -78,15 +78,29 @@ impl CudaBlas {
         &self.handle
     }
 
-    /// Sets the handle's current to either the stream specified, or the device's default work
-    /// stream.
+    /// Assigns the handle to `stream`, retaining its original stream on failure.
+    ///
+    /// If either context is tracked, both must share one lifetime. Returns
+    /// ContextMismatch before native calls for incompatible owners, the exact
+    /// driver admission/binding error, or the unchanged native setter error.
     ///
     /// # Safety
     /// This is unsafe because you can end up scheduling multiple concurrent kernels that all
     /// write to the same memory address.
     pub unsafe fn set_stream(&mut self, stream: Arc<CudaStream>) -> Result<(), CublasError> {
+        #[cfg(feature = "std")]
+        match (
+            &self.stream.ctx.primary_lifetime,
+            &stream.ctx.primary_lifetime,
+        ) {
+            (None, None) => {}
+            (Some(current), Some(target)) if Arc::ptr_eq(current, target) => {}
+            _ => return Err(CublasError::ContextMismatch),
+        }
+        let _lease = Self::admit_stream(&self.stream)?;
+        unsafe { result::set_stream(self.handle, stream.cu_stream as _) }?;
         self.stream = stream;
-        unsafe { result::set_stream(self.handle, self.stream.cu_stream() as _) }
+        Ok(())
     }
 
     /// Set the handle's pointer mode.

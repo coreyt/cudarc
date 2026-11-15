@@ -1,5 +1,7 @@
 use super::*;
-use crate::driver::{result::context_test_seams, sys as driver_sys, CudaContext, DriverError, PrimaryContextLifetime};
+use crate::driver::{
+    result::context_test_seams, sys as driver_sys, CudaContext, DriverError, PrimaryContextLifetime,
+};
 
 #[test]
 fn failed_setter_retains_original_stream_owner() {
@@ -15,10 +17,21 @@ fn failed_setter_retains_original_stream_owner() {
 
     let failed = unsafe { owner.set_stream(target.clone()) };
 
-    assert_eq!(failed, Err(CublasError::Native(sys::cublasStatus_t::CUBLAS_STATUS_INVALID_VALUE)));
-    assert!(old.upgrade().is_some(), "failed reassociation must retain the native handle's original stream owner");
+    assert_eq!(
+        failed,
+        Err(CublasError::Native(
+            sys::cublasStatus_t::CUBLAS_STATUS_INVALID_VALUE
+        ))
+    );
+    assert!(
+        old.upgrade().is_some(),
+        "failed reassociation must retain the native handle's original stream owner"
+    );
     assert!(!Arc::ptr_eq(&owner.stream, &target));
-    assert!(lifetime.loss().is_none(), "ordinary library setter error must not publish loss");
+    assert!(
+        lifetime.loss().is_none(),
+        "ordinary library setter error must not publish loss"
+    );
 }
 
 #[test]
@@ -29,10 +42,16 @@ fn setter_refuses_mixed_or_distinct_tracked_generations_before_native() {
         calls.allow_stream_setup();
         let lifetime = PrimaryContextLifetime::new(0).unwrap();
         let tracked = CudaContext::new_tracked(lifetime.clone()).unwrap();
-        let context = if mode == 2 { context_test_seams::context() } else { tracked };
+        let context = if mode == 2 {
+            context_test_seams::context()
+        } else {
+            tracked
+        };
         let mut owner = CudaBlas::new(context.default_stream()).unwrap();
         let original = owner.stream.clone();
-        let other = if mode == 1 { context_test_seams::context() } else {
+        let other = if mode == 1 {
+            context_test_seams::context()
+        } else {
             CudaContext::new_tracked(PrimaryContextLifetime::new(0).unwrap()).unwrap()
         };
         let before = calls.snapshot().stream_sets;
@@ -41,10 +60,26 @@ fn setter_refuses_mixed_or_distinct_tracked_generations_before_native() {
         let failed = unsafe { owner.set_stream(other.default_stream()) };
 
         assert_eq!(failed, Err(CublasError::ContextMismatch));
-        assert_eq!(calls.snapshot().stream_sets, before, "association refusal precedes library FFI");
+        assert_eq!(
+            calls.snapshot().stream_sets,
+            before,
+            "association refusal precedes library FFI"
+        );
         let after = driver.snapshot();
-        assert_eq!((after.queries, after.binds, after.primary_queries, after.id_queries),
-            (native_before.queries, native_before.binds, native_before.primary_queries, native_before.id_queries));
+        assert_eq!(
+            (
+                after.queries,
+                after.binds,
+                after.primary_queries,
+                after.id_queries
+            ),
+            (
+                native_before.queries,
+                native_before.binds,
+                native_before.primary_queries,
+                native_before.id_queries
+            )
+        );
         assert!(Arc::ptr_eq(&owner.stream, &original));
         assert!(lifetime.loss().is_none());
     }
@@ -67,12 +102,29 @@ fn setter_refuses_cached_loss_without_native_work() {
 
     let failed = unsafe { owner.set_stream(context.default_stream()) };
 
-    assert_eq!(failed, Err(CublasError::Driver(DriverError(driver_sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED))));
+    assert_eq!(
+        failed,
+        Err(CublasError::Driver(DriverError(
+            driver_sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED
+        )))
+    );
     assert_eq!(calls.snapshot().stream_sets, native_before);
     assert!(Arc::ptr_eq(&owner.stream, &original));
     let after = driver.snapshot();
-    assert_eq!((after.queries, after.binds, after.primary_queries, after.id_queries),
-        (before.queries, before.binds, before.primary_queries, before.id_queries));
+    assert_eq!(
+        (
+            after.queries,
+            after.binds,
+            after.primary_queries,
+            after.id_queries
+        ),
+        (
+            before.queries,
+            before.binds,
+            before.primary_queries,
+            before.id_queries
+        )
+    );
     assert_eq!(lifetime.loss(), first);
 }
 
@@ -85,7 +137,9 @@ fn setter_accepts_same_generation_and_changes_owner_after_success() {
     let context = CudaContext::new_tracked(lifetime.clone()).unwrap();
     let mut owner = CudaBlas::new(context.default_stream()).unwrap();
     let old = Arc::downgrade(&owner.stream);
-    let target = CudaContext::new_tracked(lifetime.clone()).unwrap().default_stream();
+    let target = CudaContext::new_tracked(lifetime.clone())
+        .unwrap()
+        .default_stream();
 
     assert_eq!(unsafe { owner.set_stream(target.clone()) }, Ok(()));
 

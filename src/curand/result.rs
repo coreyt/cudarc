@@ -414,7 +414,9 @@ pub(crate) mod partial_init_test_seams {
 
         pub(crate) fn fail_stream_setup(&self) {
             let mut state = self.snapshot();
-            state.stream_error = Some(CurandError::Native(sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR));
+            state.stream_error = Some(CurandError::Native(
+                sys::curandStatus_t::CURAND_STATUS_TYPE_ERROR,
+            ));
             STATE.set(Some(state));
         }
 

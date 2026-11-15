@@ -597,7 +597,9 @@ pub(crate) mod partial_init_test_seams {
 
         pub(crate) fn fail_stream_setup(&self) {
             let mut state = self.snapshot();
-            state.stream_error = Some(CublasError::Native(sys::cublasStatus_t::CUBLAS_STATUS_INVALID_VALUE));
+            state.stream_error = Some(CublasError::Native(
+                sys::cublasStatus_t::CUBLAS_STATUS_INVALID_VALUE,
+            ));
             STATE.set(Some(state));
         }
 

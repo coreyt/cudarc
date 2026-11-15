@@ -74,14 +74,31 @@ impl CudaRng {
         Ok(())
     }
 
+    /// Assigns the generator to `stream`, retaining its original stream on failure.
+    ///
+    /// If either context is tracked, both must share one lifetime. Returns
+    /// ContextMismatch before native calls for incompatible owners, the exact
+    /// driver admission/binding error, or the unchanged native setter error.
+    ///
     /// # Safety
-    /// Users must ensure this stream is properly synchronized
+    /// Users must ensure this stream is properly synchronized.
     pub unsafe fn set_stream(
         &mut self,
         stream: Arc<CudaStream>,
     ) -> Result<(), result::CurandError> {
+        #[cfg(feature = "std")]
+        match (
+            &self.stream.ctx.primary_lifetime,
+            &stream.ctx.primary_lifetime,
+        ) {
+            (None, None) => {}
+            (Some(current), Some(target)) if Arc::ptr_eq(current, target) => {}
+            _ => return Err(result::CurandError::ContextMismatch),
+        }
+        let _lease = Self::admit_stream(&self.stream)?;
+        unsafe { result::set_stream(self.gen, stream.cu_stream as _) }?;
         self.stream = stream;
-        result::set_stream(self.gen, self.stream.cu_stream as _)
+        Ok(())
     }
 
     /// Re-seed the RNG.
