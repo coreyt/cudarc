@@ -286,7 +286,9 @@ pub struct PrimaryContextLoss {
     pub recorded_id: u64,
     /// A different observed identity, when the probe obtained one.
     pub observed_id: Option<u64>,
-    /// The driver status that caused terminal refusal.
+    /// The status recorded for terminal refusal. UNKNOWN can be a synthetic
+    /// conservative refusal after state poisoning or probe unwind, rather than
+    /// a status measured from a native query.
     pub error: sys::CUresult,
 }
 

@@ -666,12 +666,17 @@ impl CudaContext {
     }
 
     /// Binds this context to the calling thread. Calling this is key for thread safety.
+    ///
+    /// A tracked context holds admission through binding and shares an existing
+    /// admitted epoch. Keep an outer lifetime lease across compound native work.
     pub fn bind_to_thread(&self) -> Result<(), DriverError> {
         self.check_err()?;
         #[cfg(feature = "std")]
-        if let Some(lifetime) = &self.primary_lifetime {
-            lifetime.check_primary(self.cu_device, self.cu_ctx)?;
-        }
+        let _lease = self
+            .primary_lifetime
+            .as_ref()
+            .map(|lifetime| lifetime.admit())
+            .transpose()?;
         if match result::ctx::get_current()? {
             Some(curr_ctx) => curr_ctx != self.cu_ctx,
             None => true,
