@@ -1159,6 +1159,9 @@ impl CudaEvent {
     }
 
     /// Will only block CPU thraed if [sys::CUevent_flags::CU_EVENT_BLOCKING_SYNC] was used to create this event.
+    ///
+    /// Actual native CONTEXT_IS_DESTROYED or INVALID_CONTEXT results publish
+    /// shared terminal loss before return; ordinary OOM remains retryable.
     pub fn synchronize(&self) -> Result<(), DriverError> {
         #[cfg(feature = "std")]
         let _lease = match &self.ctx.primary_lifetime {
@@ -1170,7 +1173,7 @@ impl CudaEvent {
         };
         self.ctx.bind_to_thread()?;
         self.ctx
-            .record_terminal_result(unsafe { result::event::synchronize(self.cu_event) })
+            .record_memory_result(unsafe { result::event::synchronize(self.cu_event) })
     }
 
     /// The time between two events. `self` is the start event, and `end` is the end event.
@@ -2188,6 +2191,11 @@ impl<T> HostSlice<T> for Vec<T> {
 ///
 /// Allocate this with [CudaContext::alloc_pinned()], and do device copies with
 /// [CudaStream::clone_htod()]/[CudaStream::memcpy_htod()]/[CudaStream::memcpy_dtoh()]
+///
+/// Tracked cleanup retains admission through binding, synchronization and free.
+/// Cached loss disarms native cleanup; an actual native cleanup failure records
+/// its first driver cause before abandonment. Pending ordinary errors remain
+/// available for later inspection and do not suppress healthy cleanup.
 #[derive(Debug)]
 pub struct PinnedHostSlice<T> {
     pub(crate) ptr: *mut T,
@@ -2200,9 +2208,34 @@ unsafe impl<T> Sync for PinnedHostSlice<T> {}
 
 impl<T> Drop for PinnedHostSlice<T> {
     fn drop(&mut self) {
+        let pointer = std::mem::replace(&mut self.ptr, std::ptr::null_mut());
         let ctx = &self.event.ctx;
+        #[cfg(feature = "std")]
+        if let Some(lifetime) = &ctx.primary_lifetime {
+            let _lease = match lifetime.admit() {
+                Ok(lease) => lease,
+                Err(error) => {
+                    ctx.record_err::<()>(Err(error));
+                    return;
+                }
+            };
+            if let Err(error) = ctx.bind_for_cleanup() {
+                ctx.record_err::<()>(Err(error));
+                return;
+            }
+            if let Err(error) = ctx.record_cleanup_prerequisite_result(unsafe {
+                result::event::synchronize(self.event.cu_event)
+            }) {
+                ctx.record_err::<()>(Err(error));
+                return;
+            }
+            ctx.record_err(
+                ctx.record_cleanup_prerequisite_result(unsafe { result::free_host(pointer as _) }),
+            );
+            return;
+        }
         ctx.record_err(self.event.synchronize());
-        ctx.record_err(unsafe { result::free_host(self.ptr as _) });
+        ctx.record_err(unsafe { result::free_host(pointer as _) });
     }
 }
 
@@ -2228,6 +2261,11 @@ impl CudaContext {
     /// - [sys::CU_MEMHOSTALLOC_DEVICEMAP]
     /// - [sys::CU_MEMHOSTALLOC_WRITECOMBINED]
     ///
+    /// Tracked construction holds admission through its child event and native
+    /// allocation, including error unwind. Native CONTEXT_IS_DESTROYED or
+    /// INVALID_CONTEXT results publish shared loss before partial child cleanup;
+    /// ordinary OOM remains retryable.
+    ///
     /// These flags are orthogonal and may be combined without restriction.
     /// See [cuda docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__MEM.html#group__CUDA__MEM_1g572ca4011bfcb25034888a14d4e035b9)
     ///
@@ -2238,13 +2276,21 @@ impl CudaContext {
         len: usize,
         flags: u32,
     ) -> Result<PinnedHostSlice<T>, DriverError> {
+        #[cfg(feature = "std")]
+        let _lease = match &self.primary_lifetime {
+            Some(lifetime) => {
+                self.check_err()?;
+                Some(lifetime.admit()?)
+            }
+            None => None,
+        };
         self.bind_to_thread()?;
         let num_bytes = len
             .checked_mul(std::mem::size_of::<T>())
             .expect("Pinned host allocation size overflow");
         assert!(num_bytes < isize::MAX as usize);
         let event = self.new_event(Some(sys::CUevent_flags::CU_EVENT_BLOCKING_SYNC))?;
-        let ptr = result::malloc_host(num_bytes, flags)?;
+        let ptr = self.record_memory_result(result::malloc_host(num_bytes, flags))?;
         let ptr = ptr as *mut T;
         let allocation = PinnedHostSlice { ptr, len, event };
         assert!(!ptr.is_null());
