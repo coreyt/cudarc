@@ -465,7 +465,16 @@ impl Drop for CudaMemPool {
     fn drop(&mut self) {
         #[cfg(test)]
         seams::POOL_DESTROYS.set(seams::POOL_DESTROYS.get() + 1);
-        let _ = unsafe { result::mem_pool::destroy(self.pool) };
+        #[cfg(feature = "std")]
+        if self
+            .primary_lifetime
+            .as_ref()
+            .is_some_and(|lifetime| lifetime.loss().is_some())
+        {
+            return;
+        }
+        let pool = std::mem::replace(&mut self.pool, std::ptr::null_mut());
+        let _ = unsafe { result::mem_pool::destroy(pool) };
     }
 }
 

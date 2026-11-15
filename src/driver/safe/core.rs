@@ -445,6 +445,8 @@ impl CudaContext {
     /// memory must size their graphs.
     ///
     /// # Errors
+    /// `CUDA_ERROR_INVALID_CONTEXT` before native work if `pool` is tracked;
+    /// use [Self::new_with_mem_pool_tracked] with its token instead.
     /// `CUDA_ERROR_INVALID_VALUE` if `pool` belongs to another device (no
     /// context is retained), and the driver errors of `cuInit`, `cuDeviceGet`,
     /// retaining the primary context and binding it to the calling thread.
@@ -452,6 +454,10 @@ impl CudaContext {
         ordinal: usize,
         pool: Arc<super::mem_pool::CudaMemPool>,
     ) -> Result<Arc<Self>, DriverError> {
+        #[cfg(feature = "std")]
+        if pool.primary_lifetime.is_some() {
+            return Err(DriverError(sys::CUresult::CUDA_ERROR_INVALID_CONTEXT));
+        }
         result::init()?;
         let cu_device = result::device::get(ordinal as i32)?;
         if pool.cu_device != cu_device {
@@ -477,11 +483,44 @@ impl CudaContext {
 
     /// Attaches a private pool from the identical tracked generation.
     ///
-    /// Returns NOT_SUPPORTED when tracked attachment is unavailable.
+    /// Borrows the token's primary anchor, retaining the pool in every context
+    /// descendant. Admission spans construction and binding; no extra native
+    /// primary retain or release is performed.
+    ///
+    /// # Errors
+    /// Returns INVALID_CONTEXT before native work for a missing or different
+    /// pool token; INVALID_VALUE for a different device; otherwise cached
+    /// terminal refusal or the native binding error. Ordinary OOM can retry.
     #[cfg(feature = "std")]
-    pub fn new_with_mem_pool_tracked(lifetime: Arc<super::PrimaryContextLifetime>, pool: Arc<super::mem_pool::CudaMemPool>) -> Result<Arc<Self>, DriverError> {
-        let _ = (lifetime, pool);
-        Err(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED))
+    pub fn new_with_mem_pool_tracked(
+        lifetime: Arc<super::PrimaryContextLifetime>,
+        pool: Arc<super::mem_pool::CudaMemPool>,
+    ) -> Result<Arc<Self>, DriverError> {
+        if !matches!(&pool.primary_lifetime, Some(owner) if Arc::ptr_eq(owner, &lifetime)) {
+            return Err(DriverError(sys::CUresult::CUDA_ERROR_INVALID_CONTEXT));
+        }
+        let _lease = lifetime.admit()?;
+        let anchor = lifetime
+            .anchor
+            .as_ref()
+            .ok_or(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED))?;
+        if pool.cu_device != anchor.device {
+            return Err(DriverError(sys::CUresult::CUDA_ERROR_INVALID_VALUE));
+        }
+        let context = Arc::new(Self {
+            cu_device: anchor.device,
+            cu_ctx: anchor.context,
+            ordinal: anchor.ordinal,
+            has_async_alloc: true,
+            mem_pool: Some(pool),
+            is_primary: true,
+            num_streams: AtomicUsize::new(0),
+            event_tracking: AtomicBool::new(true),
+            error_state: AtomicU32::new(0),
+            primary_lifetime: Some(Arc::clone(&lifetime)),
+        });
+        context.bind_to_thread()?;
+        Ok(context)
     }
 
     /// Creates a new non-primary CUDA context on the specified device ordinal.
