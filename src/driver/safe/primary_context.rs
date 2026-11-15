@@ -311,7 +311,7 @@ impl PrimaryContextLifetime {
             return Err(error);
         }
         if !active {
-            self.record_error(DriverError(sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED));
+            self.record_cause(PrimaryContextLossCause::PrimaryInactive, None);
         } else {
             let id = match unsafe { crate::driver::result::ctx::get_id(context) } {
                 Ok(id) => id,
@@ -321,10 +321,7 @@ impl PrimaryContextLifetime {
                 }
             };
             if id != self.recorded_id {
-                self.record_loss(
-                    DriverError(sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED),
-                    Some(id),
-                );
+                self.record_cause(PrimaryContextLossCause::IdentityChanged, Some(id));
             }
         }
         match self.error() {
@@ -389,7 +386,9 @@ impl PrimaryContextLoss {
             PrimaryContextLossCause::DriverStatus(status) => {
                 PrimaryContextRefusal::DriverStatus(status)
             }
-            PrimaryContextLossCause::PrimaryInactive | PrimaryContextLossCause::IdentityChanged => PrimaryContextRefusal::SyntheticContextDestroyed,
+            PrimaryContextLossCause::PrimaryInactive | PrimaryContextLossCause::IdentityChanged => {
+                PrimaryContextRefusal::SyntheticContextDestroyed
+            }
             PrimaryContextLossCause::NativeLibraryCleanup { .. }
             | PrimaryContextLossCause::SyntheticUnknown => PrimaryContextRefusal::SyntheticUnknown,
         }
@@ -544,7 +543,7 @@ mod fathomdb_primary_lifetime {
             Some(PrimaryContextLoss {
                 recorded_id: 29,
                 observed_id: None,
-                cause: PrimaryContextLossCause::DriverStatus(lost)
+                cause: PrimaryContextLossCause::PrimaryInactive
             })
         );
     }
@@ -639,7 +638,7 @@ mod fathomdb_primary_lifetime {
             Some(PrimaryContextLoss {
                 recorded_id: 17,
                 observed_id: Some(42),
-                cause: PrimaryContextLossCause::DriverStatus(lost)
+                cause: PrimaryContextLossCause::IdentityChanged
             })
         );
     }
