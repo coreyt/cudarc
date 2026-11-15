@@ -305,7 +305,13 @@ mod fathomdb_primary_lifetime {
             ready: Condvar::new(),
             #[cfg(test)]
             probe_waiters: std::sync::atomic::AtomicUsize::new(0),
-            anchor: None,
+            anchor: Some(PrimaryContextAnchor {
+                device: 0,
+                context: unsafe { crate::driver::result::primary_ctx::retain(0) }
+                    .map_err(|error| error.0 as u32)
+                    .unwrap(),
+                ordinal: 0,
+            }),
         });
         let mut first = context_test_seams::context();
         let mut sibling = context_test_seams::context();
@@ -368,7 +374,13 @@ mod fathomdb_primary_lifetime {
             ready: Condvar::new(),
             #[cfg(test)]
             probe_waiters: std::sync::atomic::AtomicUsize::new(0),
-            anchor: None,
+            anchor: Some(PrimaryContextAnchor {
+                device: 0,
+                context: unsafe { crate::driver::result::primary_ctx::retain(0) }
+                    .map_err(|error| error.0 as u32)
+                    .unwrap(),
+                ordinal: 0,
+            }),
         });
         let mut context = context_test_seams::context();
         Arc::get_mut(&mut context).unwrap().primary_lifetime = Some(lifetime.clone());
@@ -393,7 +405,13 @@ mod fathomdb_primary_lifetime {
             ready: Condvar::new(),
             #[cfg(test)]
             probe_waiters: std::sync::atomic::AtomicUsize::new(0),
-            anchor: None,
+            anchor: Some(PrimaryContextAnchor {
+                device: 0,
+                context: unsafe { crate::driver::result::primary_ctx::retain(0) }
+                    .map_err(|error| error.0 as u32)
+                    .unwrap(),
+                ordinal: 0,
+            }),
         });
         let mut context = context_test_seams::context();
         Arc::get_mut(&mut context).unwrap().primary_lifetime = Some(lifetime.clone());
@@ -435,7 +453,13 @@ mod fathomdb_primary_lifetime {
             ready: Condvar::new(),
             #[cfg(test)]
             probe_waiters: std::sync::atomic::AtomicUsize::new(0),
-            anchor: None,
+            anchor: Some(PrimaryContextAnchor {
+                device: 0,
+                context: unsafe { crate::driver::result::primary_ctx::retain(0) }
+                    .map_err(|error| error.0 as u32)
+                    .unwrap(),
+                ordinal: 0,
+            }),
         });
         let mut context = context_test_seams::context();
         Arc::get_mut(&mut context).unwrap().primary_lifetime = Some(lifetime.clone());
@@ -479,7 +503,13 @@ mod fathomdb_primary_lifetime {
             ready: Condvar::new(),
             #[cfg(test)]
             probe_waiters: std::sync::atomic::AtomicUsize::new(0),
-            anchor: None,
+            anchor: Some(PrimaryContextAnchor {
+                device: 0,
+                context: unsafe { crate::driver::result::primary_ctx::retain(0) }
+                    .map_err(|error| error.0 as u32)
+                    .unwrap(),
+                ordinal: 0,
+            }),
         });
         let mut context = context_test_seams::context();
         Arc::get_mut(&mut context).unwrap().primary_lifetime = Some(lifetime.clone());
@@ -519,7 +549,13 @@ mod fathomdb_primary_lifetime {
             ready: Condvar::new(),
             #[cfg(test)]
             probe_waiters: std::sync::atomic::AtomicUsize::new(0),
-            anchor: None,
+            anchor: Some(PrimaryContextAnchor {
+                device: 0,
+                context: unsafe { crate::driver::result::primary_ctx::retain(0) }
+                    .map_err(|error| error.0 as u32)
+                    .unwrap(),
+                ordinal: 0,
+            }),
         });
         let mut context = context_test_seams::context();
         Arc::get_mut(&mut context).unwrap().primary_lifetime = Some(lifetime.clone());
@@ -641,7 +677,13 @@ mod fathomdb_primary_lifetime {
             ready: Condvar::new(),
             #[cfg(test)]
             probe_waiters: std::sync::atomic::AtomicUsize::new(0),
-            anchor: None,
+            anchor: Some(PrimaryContextAnchor {
+                device: 0,
+                context: unsafe { crate::driver::result::primary_ctx::retain(0) }
+                    .map_err(|error| error.0 as u32)
+                    .unwrap(),
+                ordinal: 0,
+            }),
         });
         let mut context = context_test_seams::context();
         Arc::get_mut(&mut context).unwrap().primary_lifetime = Some(lifetime.clone());

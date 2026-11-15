@@ -484,6 +484,7 @@ pub(crate) mod context_test_seams {
     std::thread_local! {
         static STATE: Cell<Option<State>> = const { Cell::new(None) };
         static PRIMARY_PROBE_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
+        static CONTEXT_ENTRY_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
     }
 
     pub(crate) struct Guard;
@@ -520,6 +521,10 @@ pub(crate) mod context_test_seams {
             PRIMARY_PROBE_HOOK.with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
         }
 
+        pub(crate) fn set_context_entry_hook(&self, hook: impl FnMut() + 'static) {
+            CONTEXT_ENTRY_HOOK.with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
+        }
+
         pub(crate) fn set_tracking_symbols(&self, available: bool) {
             let mut state = self.snapshot();
             state.tracking_symbols = available;
@@ -554,6 +559,7 @@ pub(crate) mod context_test_seams {
     impl Drop for Guard {
         fn drop(&mut self) {
             PRIMARY_PROBE_HOOK.with(|slot| *slot.borrow_mut() = None);
+            CONTEXT_ENTRY_HOOK.with(|slot| *slot.borrow_mut() = None);
             STATE.set(None);
         }
     }
@@ -604,6 +610,11 @@ pub(crate) mod context_test_seams {
         let mut state = STATE.get()?;
         state.queries += 1;
         STATE.set(Some(state));
+        CONTEXT_ENTRY_HOOK.with(|slot| {
+            if let Some(hook) = slot.borrow_mut().as_mut() {
+                hook();
+            }
+        });
         Some((state.current != 0).then_some(state.current as sys::CUcontext))
     }
 
@@ -614,6 +625,11 @@ pub(crate) mod context_test_seams {
         state.current = ctx as usize;
         state.binds += 1;
         STATE.set(Some(state));
+        CONTEXT_ENTRY_HOOK.with(|slot| {
+            if let Some(hook) = slot.borrow_mut().as_mut() {
+                hook();
+            }
+        });
         true
     }
 
