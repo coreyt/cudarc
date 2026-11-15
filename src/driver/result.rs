@@ -151,6 +151,10 @@ pub mod device {
         dev: sys::CUdevice,
         attrib: sys::CUdevice_attribute,
     ) -> Result<i32, DriverError> {
+        #[cfg(test)]
+        if let Some(result) = super::context_test_seams::get_device_attribute(dev, attrib) {
+            return result;
+        }
         let mut value = MaybeUninit::uninit();
         sys::cuDeviceGetAttribute(value.as_mut_ptr(), attrib, dev).result()?;
         Ok(value.assume_init())
@@ -203,6 +207,10 @@ pub mod device {
     pub unsafe fn get_default_mem_pool(
         dev: sys::CUdevice,
     ) -> Result<sys::CUmemoryPool, DriverError> {
+        #[cfg(test)]
+        if let Some(pool) = super::context_test_seams::get_default_pool(dev) {
+            return Ok(pool);
+        }
         #[cfg(test)]
         seams::DEFAULT_POOL_QUERIES.set(seams::DEFAULT_POOL_QUERIES.get() + 1);
         let mut pool = MaybeUninit::uninit();
@@ -471,6 +479,9 @@ pub(crate) mod context_test_seams {
         pub(crate) initializations: usize,
         pub(crate) device_queries: usize,
         pub(crate) symbol_checks: usize,
+        pub(crate) attribute_queries: usize,
+        attribute_error: Option<sys::CUresult>,
+        pub(crate) default_pool_queries: usize,
         tracking_symbols: bool,
         pub(crate) primary_queries: usize,
         primary_active: bool,
@@ -485,6 +496,7 @@ pub(crate) mod context_test_seams {
         static STATE: Cell<Option<State>> = const { Cell::new(None) };
         static PRIMARY_PROBE_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
         static CONTEXT_ENTRY_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
+        static ALLOCATOR_QUERY_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
     }
 
     pub(crate) struct Guard;
@@ -501,6 +513,9 @@ pub(crate) mod context_test_seams {
                 initializations: 0,
                 device_queries: 0,
                 symbol_checks: 0,
+                attribute_queries: 0,
+                attribute_error: None,
+                default_pool_queries: 0,
                 tracking_symbols: true,
                 primary_queries: 0,
                 primary_active: true,
@@ -523,6 +538,16 @@ pub(crate) mod context_test_seams {
 
         pub(crate) fn set_context_entry_hook(&self, hook: impl FnMut() + 'static) {
             CONTEXT_ENTRY_HOOK.with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
+        }
+
+        pub(crate) fn set_allocator_query_hook(&self, hook: impl FnMut() + 'static) {
+            ALLOCATOR_QUERY_HOOK.with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
+        }
+
+        pub(crate) fn set_attribute_error(&self, error: Option<sys::CUresult>) {
+            let mut state = self.snapshot();
+            state.attribute_error = error;
+            STATE.set(Some(state));
         }
 
         pub(crate) fn set_tracking_symbols(&self, available: bool) {
@@ -560,6 +585,7 @@ pub(crate) mod context_test_seams {
         fn drop(&mut self) {
             PRIMARY_PROBE_HOOK.with(|slot| *slot.borrow_mut() = None);
             CONTEXT_ENTRY_HOOK.with(|slot| *slot.borrow_mut() = None);
+            ALLOCATOR_QUERY_HOOK.with(|slot| *slot.borrow_mut() = None);
             STATE.set(None);
         }
     }
@@ -597,6 +623,34 @@ pub(crate) mod context_test_seams {
         state.device_queries += 1;
         STATE.set(Some(state));
         Some(0)
+    }
+
+    pub(crate) fn get_device_attribute(
+        device: sys::CUdevice,
+        attribute: sys::CUdevice_attribute,
+    ) -> Option<Result<i32, DriverError>> {
+        let mut state = STATE.get()?;
+        assert_eq!(device, 0);
+        assert_eq!(attribute, sys::CUdevice_attribute_enum::CU_DEVICE_ATTRIBUTE_MEMORY_POOLS_SUPPORTED);
+        state.attribute_queries += 1;
+        STATE.set(Some(state));
+        ALLOCATOR_QUERY_HOOK.with(|slot| {
+            if let Some(hook) = slot.borrow_mut().as_mut() {
+                hook();
+            }
+        });
+        Some(match state.attribute_error {
+            Some(error) => Err(DriverError(error)),
+            None => Ok(0),
+        })
+    }
+
+    pub(crate) fn get_default_pool(device: sys::CUdevice) -> Option<sys::CUmemoryPool> {
+        let mut state = STATE.get()?;
+        assert_eq!(device, 0);
+        state.default_pool_queries += 1;
+        STATE.set(Some(state));
+        Some(0xD000 as sys::CUmemoryPool)
     }
 
     pub(crate) fn has_tracking_symbols() -> Option<bool> {

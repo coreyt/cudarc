@@ -10,6 +10,8 @@ pub(crate) mod primary_context;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod primary_context_bind_tests;
 #[cfg(all(test, feature = "std"))]
+pub(crate) mod primary_context_constructor_tests;
+#[cfg(all(test, feature = "std"))]
 pub(crate) mod primary_context_probe_publication_tests;
 pub(crate) mod profile;
 pub(crate) mod unified_memory;

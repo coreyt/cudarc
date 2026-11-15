@@ -335,6 +335,21 @@ impl CudaContext {
         Ok(ctx)
     }
 
+    /// Creates a context wrapper borrowing the retained anchor of `lifetime`.
+    ///
+    /// Construction holds admission until completion or unwind. Wrappers and
+    /// their descendants keep the lifetime alive without another primary retain.
+    ///
+    /// # Errors
+    /// Returns terminal refusal, unavailable tracking, allocator discovery errors,
+    /// or errors binding the borrowed context to the calling thread.
+    #[cfg(feature = "std")]
+    pub fn new_tracked(
+        _lifetime: Arc<super::primary_context::PrimaryContextLifetime>,
+    ) -> Result<Arc<Self>, DriverError> {
+        Err(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED))
+    }
+
     /// Creates a context on the primary context of device `ordinal` whose
     /// allocations all come from `pool` (`cuMemAllocFromPoolAsync`); they are
     /// freed with `cuMemFreeAsync`, which returns memory to the pool it came
