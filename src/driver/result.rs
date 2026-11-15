@@ -1209,8 +1209,10 @@ pub mod stream {
     /// destroyed. This follows default stream semantics, see relevant cuda docs.
     pub unsafe fn synchronize(stream: sys::CUstream) -> Result<(), DriverError> {
         #[cfg(all(test, feature = "std"))]
-        if crate::driver::safe::lifetime_slice_cleanup_tests::seams::stream_synchronize(stream) {
-            return Ok(());
+        if let Some(result) =
+            crate::driver::safe::lifetime_slice_cleanup_tests::seams::stream_synchronize(stream)
+        {
+            return result;
         }
         #[cfg(all(test, feature = "std"))]
         if let Some(result) =

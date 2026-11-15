@@ -23,6 +23,7 @@ pub(crate) mod seams {
         counts: Counts,
         live: Option<(sys::CUdeviceptr, usize, bool)>,
         allocate_error: Option<sys::CUresult>,
+        synchronize_error: Option<sys::CUresult>,
     }
 
     std::thread_local! {
@@ -47,6 +48,12 @@ pub(crate) mod seams {
         pub(crate) fn set_allocate_error(&self, error: Option<sys::CUresult>) {
             let mut state = STATE.get().unwrap();
             state.allocate_error = error;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_synchronize_error(&self, error: Option<sys::CUresult>) {
+            let mut state = STATE.get().unwrap();
+            state.synchronize_error = error;
             STATE.set(Some(state));
         }
 
@@ -119,14 +126,15 @@ pub(crate) mod seams {
         true
     }
 
-    pub(crate) fn stream_synchronize(stream: sys::CUstream) -> bool {
-        let Some(mut state) = STATE.get() else {
-            return false;
-        };
+    pub(crate) fn stream_synchronize(stream: sys::CUstream) -> Option<Result<(), DriverError>> {
+        let mut state = STATE.get()?;
         assert!(stream.is_null());
         state.counts.stream_synchronizes += 1;
         STATE.set(Some(state));
-        true
+        Some(match state.synchronize_error {
+            Some(error) => Err(DriverError(error)),
+            None => Ok(()),
+        })
     }
 }
 
