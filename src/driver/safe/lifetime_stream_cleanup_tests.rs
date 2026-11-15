@@ -458,7 +458,7 @@ fn idle_owned_stream_drop_refuses_failed_primary_or_identity_queries() {
     feature = "cuda-11080"
 )))]
 #[test]
-fn healthy_stream_destroy_error_is_recorded_without_panicking_or_latching_loss() {
+fn native_stream_destroy_oom_records_sticky_loss_without_panicking() {
     let driver = context_test_seams::Guard::new();
     let streams = seams::Guard::new();
     let lifetime = PrimaryContextLifetime::new(0)
@@ -484,8 +484,55 @@ fn healthy_stream_destroy_error_is_recorded_without_panicking_or_latching_loss()
         context.check_err().map_err(|error| error.0 as u32),
         Err(error as u32)
     );
-    assert_eq!(context.check_err().map_err(|error| error.0 as u32), Ok(()));
-    assert!(lifetime.state.lock().unwrap().loss.is_none());
+    assert_eq!(
+        context.check_err().map_err(|error| error.0 as u32),
+        Err(error as u32)
+    );
+    assert_eq!(
+        lifetime
+            .loss()
+            .map(|loss| (loss.recorded_id, loss.observed_id, loss.cause)),
+        Some((
+            17,
+            None,
+            crate::driver::PrimaryContextLossCause::DriverStatus(error)
+        ))
+    );
+    let before = driver.snapshot();
+    let native = streams.snapshot();
+    assert_eq!(
+        context.bind_to_thread().map_err(|error| error.0 as u32),
+        Err(error as u32)
+    );
+    assert_eq!(
+        context
+            .new_stream()
+            .map(drop)
+            .map_err(|error| error.0 as u32),
+        Err(error as u32)
+    );
+    let after = driver.snapshot();
+    assert_eq!(
+        (
+            after.primary_queries,
+            after.id_queries,
+            after.queries,
+            after.binds
+        ),
+        (
+            before.primary_queries,
+            before.id_queries,
+            before.queries,
+            before.binds
+        )
+    );
+    assert_eq!(
+        (
+            streams.snapshot().create_attempts,
+            streams.snapshot().destroyed
+        ),
+        (native.create_attempts, native.destroyed)
+    );
     assert_eq!(lifetime.state.lock().unwrap().active_leases, 0);
     drop(context);
     drop(lifetime);
