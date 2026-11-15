@@ -1336,7 +1336,7 @@ pub unsafe fn malloc_async(
     if let Some(result) =
         crate::driver::safe::lifetime_slice_cleanup_tests::seams::allocate(num_bytes, true)
     {
-        assert!(stream.is_null());
+        crate::driver::safe::lifetime_slice_cleanup_tests::seams::assert_stream(stream);
         return result;
     }
     let mut dev_ptr = MaybeUninit::uninit();
@@ -1454,7 +1454,7 @@ pub unsafe fn mem_prefetch_async(
 pub unsafe fn free_async(dptr: sys::CUdeviceptr, stream: sys::CUstream) -> Result<(), DriverError> {
     #[cfg(all(test, feature = "std"))]
     if crate::driver::safe::lifetime_slice_cleanup_tests::seams::free(dptr, true) {
-        assert!(stream.is_null());
+        crate::driver::safe::lifetime_slice_cleanup_tests::seams::assert_stream(stream);
         return Ok(());
     }
     sys::cuMemFreeAsync(dptr, stream).result()

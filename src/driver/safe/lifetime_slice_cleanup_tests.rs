@@ -24,6 +24,7 @@ pub(crate) mod seams {
         live: Option<(sys::CUdeviceptr, usize, bool)>,
         allocate_error: Option<sys::CUresult>,
         synchronize_error: Option<sys::CUresult>,
+        expected_stream: Option<sys::CUstream>,
     }
 
     std::thread_local! {
@@ -48,6 +49,12 @@ pub(crate) mod seams {
         pub(crate) fn set_allocate_error(&self, error: Option<sys::CUresult>) {
             let mut state = STATE.get().unwrap();
             state.allocate_error = error;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_expected_stream(&self, stream: sys::CUstream) {
+            let mut state = STATE.get().unwrap();
+            state.expected_stream = Some(stream);
             STATE.set(Some(state));
         }
 
@@ -126,9 +133,14 @@ pub(crate) mod seams {
         true
     }
 
+    pub(crate) fn assert_stream(stream: sys::CUstream) {
+        let state = STATE.get().unwrap();
+        assert_eq!(stream, state.expected_stream.unwrap_or(std::ptr::null_mut()));
+    }
+
     pub(crate) fn stream_synchronize(stream: sys::CUstream) -> Option<Result<(), DriverError>> {
         let mut state = STATE.get()?;
-        assert!(stream.is_null());
+        assert_stream(stream);
         state.counts.stream_synchronizes += 1;
         STATE.set(Some(state));
         Some(match state.synchronize_error {

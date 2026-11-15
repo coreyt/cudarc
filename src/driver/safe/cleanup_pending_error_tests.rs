@@ -51,13 +51,19 @@ fn pending_ordinary_oom_does_not_abandon_completed_stream() {
     assert_eq!((driver.snapshot().retains, driver.snapshot().releases), (1, 1));
 }
 
-fn check_slice(asynchronous: bool) {
+fn check_slice(asynchronous: bool, multistream: bool) {
     let driver = context_test_seams::Guard::new();
     let events = event_seams::Guard::new();
     let memory = slice_seams::Guard::new();
+    let streams = stream_seams::Guard::new();
     let lifetime = PrimaryContextLifetime::new(0).map_err(|error| error.0 as u32).unwrap();
     let context = tracked_context(&lifetime, asynchronous);
-    let stream = context.default_stream();
+    let stream = if multistream {
+        context.new_stream().map_err(|error| error.0 as u32).unwrap()
+    } else {
+        context.default_stream()
+    };
+    memory.set_expected_stream(stream.cu_stream);
     let allocation = unsafe { stream.alloc::<u8>(16) }.map_err(|error| error.0 as u32).unwrap();
     context.record_err::<()>(Err(DriverError(sys::CUresult::CUDA_ERROR_OUT_OF_MEMORY)));
 
@@ -66,6 +72,7 @@ fn check_slice(asynchronous: bool) {
     let counts = memory.snapshot();
     assert_eq!(counts.async_frees + counts.sync_frees, 1, "pending ordinary OOM must not abandon a healthy completed allocation");
     assert_eq!(counts.stream_synchronizes, usize::from(!asynchronous));
+    assert_eq!(streams.snapshot().waits, if multistream { 2 } else { 0 });
     assert_eq!((events.snapshot().created, events.snapshot().destroyed), (2, 2));
     assert_pending_oom_is_preserved(&context, &lifetime);
     drop(stream);
@@ -75,6 +82,9 @@ fn check_slice(asynchronous: bool) {
 }
 
 #[test]
-fn pending_ordinary_oom_does_not_abandon_completed_async_slice() { check_slice(true); }
+fn pending_ordinary_oom_does_not_abandon_completed_async_slice() { check_slice(true, false); }
 #[test]
-fn pending_ordinary_oom_does_not_abandon_completed_sync_slice() { check_slice(false); }
+fn pending_ordinary_oom_does_not_abandon_completed_sync_slice() { check_slice(false, false); }
+
+#[test]
+fn pending_ordinary_oom_does_not_abandon_multistream_slice_or_its_waits() { check_slice(true, true); }
