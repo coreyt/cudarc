@@ -631,7 +631,10 @@ pub(crate) mod context_test_seams {
     ) -> Option<Result<i32, DriverError>> {
         let mut state = STATE.get()?;
         assert_eq!(device, 0);
-        assert_eq!(attribute, sys::CUdevice_attribute_enum::CU_DEVICE_ATTRIBUTE_MEMORY_POOLS_SUPPORTED);
+        assert_eq!(
+            attribute,
+            sys::CUdevice_attribute_enum::CU_DEVICE_ATTRIBUTE_MEMORY_POOLS_SUPPORTED
+        );
         state.attribute_queries += 1;
         STATE.set(Some(state));
         ALLOCATOR_QUERY_HOOK.with(|slot| {

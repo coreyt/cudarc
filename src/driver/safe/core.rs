@@ -173,6 +173,27 @@ impl AllocModeByDevice {
         Ok(async_alloc)
     }
 
+    fn get_or_decide_unlocked(
+        &self,
+        cu_device: sys::CUdevice,
+        decide: impl FnOnce() -> Result<bool, DriverError>,
+    ) -> Result<bool, DriverError> {
+        {
+            let decided = self.0.lock().unwrap_or_else(|poison| poison.into_inner());
+            if let Some(&(_, async_alloc)) = decided.iter().find(|(device, _)| *device == cu_device)
+            {
+                return Ok(async_alloc);
+            }
+        }
+        let candidate = decide()?;
+        let mut decided = self.0.lock().unwrap_or_else(|poison| poison.into_inner());
+        if let Some(&(_, async_alloc)) = decided.iter().find(|(device, _)| *device == cu_device) {
+            return Ok(async_alloc);
+        }
+        decided.push((cu_device, candidate));
+        Ok(candidate)
+    }
+
     /// The recorded decision for `cu_device`, if any.
     #[cfg(test)]
     fn decided(&self, cu_device: sys::CUdevice) -> Option<bool> {
@@ -238,6 +259,32 @@ unsafe fn select_async_alloc(
     async_alloc_decision(SYNC_FALLBACK, memory_pools_supported, || {
         unreachable!("upstream's rule never queries the default pool")
     })
+}
+
+// A tracked constructor already owns its anchor and admission; native discovery
+// must not run under the process allocator cache lock. The first published
+// decision wins when constructors discover the same device concurrently.
+#[cfg(feature = "std")]
+unsafe fn select_async_alloc_tracked(
+    cu_device: sys::CUdevice,
+    cu_ctx: sys::CUcontext,
+) -> Result<bool, DriverError> {
+    let decide = || {
+        let memory_pools_supported = result::device::get_attribute(
+            cu_device,
+            sys::CUdevice_attribute_enum::CU_DEVICE_ATTRIBUTE_MEMORY_POOLS_SUPPORTED,
+        )?;
+        if SYNC_FALLBACK && memory_pools_supported > 0 {
+            result::ctx::set_current(cu_ctx)?;
+        }
+        async_alloc_decision(SYNC_FALLBACK, memory_pools_supported, || {
+            result::device::get_default_mem_pool(cu_device)
+        })
+    };
+    #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
+    return PROCESS_ALLOC_MODE.get_or_decide_unlocked(cu_device, decide);
+    #[cfg(not(all(target_os = "linux", target_arch = "aarch64")))]
+    decide()
 }
 
 /// Whether a synchronous request of `num_bytes` returns a null pointer without
@@ -345,9 +392,30 @@ impl CudaContext {
     /// or errors binding the borrowed context to the calling thread.
     #[cfg(feature = "std")]
     pub fn new_tracked(
-        _lifetime: Arc<super::primary_context::PrimaryContextLifetime>,
+        lifetime: Arc<super::primary_context::PrimaryContextLifetime>,
     ) -> Result<Arc<Self>, DriverError> {
-        Err(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED))
+        let _lease = lifetime.admit()?;
+        let anchor = lifetime
+            .anchor
+            .as_ref()
+            .ok_or(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED))?;
+        let mut ctx = CudaContext {
+            cu_device: anchor.device,
+            cu_ctx: anchor.context,
+            ordinal: anchor.ordinal,
+            has_async_alloc: false,
+            mem_pool: None,
+            is_primary: true,
+            num_streams: AtomicUsize::new(0),
+            event_tracking: AtomicBool::new(true),
+            error_state: AtomicU32::new(0),
+            primary_lifetime: Some(Arc::clone(&lifetime)),
+        };
+        ctx.has_async_alloc = unsafe { select_async_alloc_tracked(ctx.cu_device, ctx.cu_ctx) }
+            .inspect_err(|error| ctx.record_err::<()>(Err(*error)))?;
+        ctx.bind_to_thread()
+            .inspect_err(|error| ctx.record_err::<()>(Err(*error)))?;
+        Ok(Arc::new(ctx))
     }
 
     /// Creates a context on the primary context of device `ordinal` whose
