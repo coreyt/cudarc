@@ -44,6 +44,8 @@ pub struct CudaContext {
     pub(crate) num_streams: AtomicUsize,
     pub(crate) event_tracking: AtomicBool,
     pub(crate) error_state: AtomicU32,
+    #[cfg(feature = "std")]
+    pub(crate) primary_lifetime: Option<Arc<super::primary_context::PrimaryContextLifetime>>,
 }
 
 // FATHOMDB PATCH BEGIN: private memory pool (see FATHOMDB.md, item 5).
@@ -317,6 +319,8 @@ impl CudaContext {
             num_streams: AtomicUsize::new(0),
             event_tracking: AtomicBool::new(true),
             error_state: AtomicU32::new(0),
+            #[cfg(feature = "std")]
+            primary_lifetime: None,
         });
         ctx.bind_to_thread()?;
         Ok(ctx)
@@ -372,6 +376,8 @@ impl CudaContext {
             num_streams: AtomicUsize::new(0),
             event_tracking: AtomicBool::new(true),
             error_state: AtomicU32::new(0),
+            #[cfg(feature = "std")]
+            primary_lifetime: None,
         });
         ctx.bind_to_thread()?;
         Ok(ctx)
@@ -444,6 +450,8 @@ impl CudaContext {
             num_streams: AtomicUsize::new(0),
             event_tracking: AtomicBool::new(true),
             error_state: AtomicU32::new(0),
+            #[cfg(feature = "std")]
+            primary_lifetime: None,
         });
         ctx.bind_to_thread()?;
         Ok(ctx)
@@ -495,6 +503,8 @@ impl CudaContext {
             num_streams: AtomicUsize::new(0),
             event_tracking: AtomicBool::new(true),
             error_state: AtomicU32::new(0),
+            #[cfg(feature = "std")]
+            primary_lifetime: None,
         });
         ctx.bind_to_thread()?;
         Ok(ctx)
@@ -534,6 +544,8 @@ impl CudaContext {
             num_streams: AtomicUsize::new(0),
             event_tracking: AtomicBool::new(true),
             error_state: AtomicU32::new(0),
+            #[cfg(feature = "std")]
+            primary_lifetime: None,
         });
         ctx.bind_to_thread()?;
         Ok(ctx)

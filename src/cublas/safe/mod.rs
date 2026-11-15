@@ -145,6 +145,8 @@ mod fathomdb_context_lifetime {
             num_streams: AtomicUsize::new(0),
             event_tracking: AtomicBool::new(true),
             error_state: AtomicU32::new(0),
+            #[cfg(feature = "std")]
+            primary_lifetime: None,
         });
 
         let error = CudaBlas::new(context.default_stream()).unwrap_err();
@@ -175,6 +177,8 @@ mod fathomdb_context_lifetime {
             num_streams: AtomicUsize::new(0),
             event_tracking: AtomicBool::new(true),
             error_state: AtomicU32::new(0),
+            #[cfg(feature = "std")]
+            primary_lifetime: None,
         })
     }
 

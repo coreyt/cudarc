@@ -506,6 +506,8 @@ pub(crate) mod context_test_seams {
             num_streams: AtomicUsize::new(0),
             event_tracking: AtomicBool::new(true),
             error_state: AtomicU32::new(0),
+            #[cfg(feature = "std")]
+            primary_lifetime: None,
         })
     }
 

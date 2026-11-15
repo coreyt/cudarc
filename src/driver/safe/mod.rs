@@ -5,6 +5,8 @@ pub(crate) mod external_memory;
 pub(crate) mod graph;
 pub(crate) mod launch;
 pub(crate) mod mem_pool;
+#[cfg(feature = "std")]
+pub(crate) mod primary_context;
 pub(crate) mod profile;
 pub(crate) mod unified_memory;
 
@@ -17,6 +19,8 @@ pub use self::external_memory::{ExternalMemory, MappedBuffer};
 pub use self::graph::CudaGraph;
 pub use self::launch::{LaunchArgs, LaunchConfig, PushKernelArg};
 pub use self::mem_pool::{CudaMemPool, MemPoolProps};
+#[cfg(feature = "std")]
+pub use self::primary_context::{PrimaryContextLifetime, PrimaryContextLoss};
 pub use self::profile::{profiler_start, profiler_stop, Profiler};
 pub use self::unified_memory::{UnifiedSlice, UnifiedView, UnifiedViewMut};
 pub use crate::driver::result::DriverError;
