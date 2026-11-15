@@ -13,6 +13,8 @@ pub(crate) mod event_record_identity_tests;
 pub(crate) mod event_use_tests;
 pub(crate) mod external_memory;
 pub(crate) mod graph;
+#[cfg(all(test, feature = "std"))]
+pub(crate) mod lifetime_module_cleanup_tests;
 pub(crate) mod launch;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod lifetime_event_cleanup_tests;
@@ -21,6 +23,8 @@ pub(crate) mod lifetime_slice_cleanup_tests;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod lifetime_stream_cleanup_tests;
 pub(crate) mod mem_pool;
+#[cfg(all(test, feature = "std"))]
+pub(crate) mod module_entry_tests;
 #[cfg(feature = "std")]
 pub(crate) mod primary_context;
 #[cfg(all(test, feature = "std"))]
