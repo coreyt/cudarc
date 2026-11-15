@@ -191,3 +191,39 @@ fn preexisting_ordinary_oom_is_consumed_once_before_memory_use_and_can_retry() {
     drop(lifetime);
     assert_eq!((driver.snapshot().retains, driver.snapshot().releases), (1, 1));
 }
+
+#[test]
+fn memory_pointer_guards_drop_while_outer_admission_remains_held() {
+    let driver = context_test_seams::Guard::new();
+    let events = event_seams::Guard::new();
+    let memory = allocation_seams::Guard::new();
+    let streams = super::lifetime_stream_cleanup_tests::seams::Guard::new();
+    let use_calls = seams::Guard::new();
+    let lifetime = PrimaryContextLifetime::new(0).map_err(|error| error.0 as u32).unwrap();
+    let context = tracked_context(&lifetime, false);
+    let stream = context.default_stream();
+    let background = context.new_stream().map_err(|error| error.0 as u32).unwrap();
+    let mut allocation = unsafe { stream.alloc::<u8>(16) }.map_err(|error| error.0 as u32).unwrap();
+    let weak = Arc::downgrade(&lifetime);
+    events.set_record_hook(move || assert_admitted(&weak.upgrade().unwrap(), 2));
+
+    for operation in [Operation::Memset, Operation::Htod, Operation::Dtoh, Operation::Dtod] {
+        assert_eq!(operation.run(&stream, &mut allocation).map_err(|error| error.0 as u32), Ok(()));
+        assert_eq!(lifetime.state.lock().unwrap().active_leases, 0);
+    }
+
+    assert_eq!(use_calls.calls(), [1; 4]);
+    assert_eq!(events.snapshot().recorded, 5);
+    assert_eq!(streams.snapshot().waits, 8);
+    assert!(lifetime.loss().is_none());
+    events.set_record_hook(|| {});
+    drop(allocation);
+    assert_eq!(memory.snapshot().sync_frees, 1);
+    assert_eq!(events.snapshot().destroyed, 2);
+    drop(background);
+    assert_eq!(streams.snapshot().destroyed, 1);
+    drop(stream);
+    drop(context);
+    drop(lifetime);
+    assert_eq!((driver.snapshot().retains, driver.snapshot().releases), (1, 1));
+}
