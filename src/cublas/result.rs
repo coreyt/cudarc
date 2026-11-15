@@ -113,6 +113,10 @@ pub unsafe fn sgemv(
     y: *mut f32,
     incy: c_int,
 ) -> Result<(), CublasError> {
+    #[cfg(test)]
+    if let Some(result) = partial_init_test_seams::operation() {
+        return result;
+    }
     sys::cublasSgemv_v2(handle, trans, m, n, alpha, a, lda, x, incx, beta, y, incy).result()
 }
 
@@ -221,6 +225,10 @@ pub unsafe fn sgemm(
     c: *mut f32,
     ldc: c_int,
 ) -> Result<(), CublasError> {
+    #[cfg(test)]
+    if let Some(result) = partial_init_test_seams::operation() {
+        return result;
+    }
     sys::cublasSgemm_v2(
         handle, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc,
     )
@@ -353,6 +361,10 @@ pub unsafe fn sgemm_strided_batched(
     stride_c: c_longlong,
     batch_size: c_int,
 ) -> Result<(), CublasError> {
+    #[cfg(test)]
+    if let Some(result) = partial_init_test_seams::operation() {
+        return result;
+    }
     sys::cublasSgemmStridedBatched(
         handle, transa, transb, m, n, k, alpha, a, lda, stride_a, b, ldb, stride_b, beta, c, ldc,
         stride_c, batch_size,
@@ -531,6 +543,10 @@ pub unsafe fn sasum(
     incx: c_int,
     result: *mut f32,
 ) -> Result<(), CublasError> {
+    #[cfg(test)]
+    if let Some(result) = partial_init_test_seams::operation() {
+        return result;
+    }
     sys::cublasSasum_v2(handle, n, x, incx, result).result()
 }
 
@@ -565,6 +581,7 @@ pub(crate) mod partial_init_test_seams {
         pub(crate) stream_sets: usize,
         pub(crate) destroys: usize,
         pub(crate) operations: usize,
+        pointer_mode: sys::cublasPointerMode_t,
         create_error: Option<CublasError>,
         stream_error: Option<CublasError>,
         destroy_error: Option<CublasError>,
@@ -585,6 +602,7 @@ pub(crate) mod partial_init_test_seams {
                 stream_sets: 0,
                 destroys: 0,
                 operations: 0,
+                pointer_mode: sys::cublasPointerMode_t::CUBLAS_POINTER_MODE_HOST,
                 create_error: None,
                 stream_error: Some(CublasError::Native(
                     sys::cublasStatus_t::CUBLAS_STATUS_INVALID_VALUE,
@@ -648,6 +666,19 @@ pub(crate) mod partial_init_test_seams {
         fn drop(&mut self) {
             STATE.set(None);
         }
+    }
+
+    pub(crate) fn set_pointer_mode(mode: sys::cublasPointerMode_t) -> Option<Result<(), CublasError>> {
+        let result = operation()?;
+        Some(result.map(|()| {
+            let mut state = STATE.get().unwrap();
+            state.pointer_mode = mode;
+            STATE.set(Some(state));
+        }))
+    }
+
+    pub(crate) fn get_pointer_mode() -> Option<Result<sys::cublasPointerMode_t, CublasError>> {
+        Some(operation()?.map(|()| STATE.get().unwrap().pointer_mode))
     }
 
     pub(crate) fn operation() -> Option<Result<(), CublasError>> {

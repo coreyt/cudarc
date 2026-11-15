@@ -184,6 +184,10 @@ impl CudaBlas {
         &self,
         pointer_mode: sys::cublasPointerMode_t,
     ) -> Result<(), CublasError> {
+        #[cfg(test)]
+        if let Some(result) = result::partial_init_test_seams::set_pointer_mode(pointer_mode) {
+            return result;
+        }
         unsafe {
             sys::cublasSetPointerMode_v2(self.handle, pointer_mode).result()?;
         }
@@ -193,6 +197,10 @@ impl CudaBlas {
     /// Get the handle's current pointer mode.
     /// ref: <https://docs.nvidia.com/cuda/cublas/#cublasgetpointermode>
     pub fn get_pointer_mode(&self) -> Result<sys::cublasPointerMode_t, CublasError> {
+        #[cfg(test)]
+        if let Some(result) = result::partial_init_test_seams::get_pointer_mode() {
+            return result;
+        }
         unsafe {
             let mut mode = ::core::mem::MaybeUninit::uninit();
             sys::cublasGetPointerMode_v2(self.handle, mode.as_mut_ptr()).result()?;
@@ -413,3 +421,6 @@ mod fathomdb_library_destroy_failure;
 
 #[cfg(all(test, feature = "std"))]
 mod fathomdb_raw_boundary;
+
+#[cfg(all(test, feature = "std"))]
+mod fathomdb_library_use;

@@ -597,3 +597,7 @@ mod fathomdb_library_drop;
 #[cfg(all(test, feature = "std"))]
 #[path = "fathomdb_library_destroy_failure.rs"]
 mod fathomdb_library_destroy_failure;
+
+#[cfg(all(test, feature = "std"))]
+#[path = "fathomdb_library_use.rs"]
+mod fathomdb_library_use;
