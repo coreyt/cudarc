@@ -7,13 +7,34 @@ Independent design review precedes production edits. Actual resets remain held.
 
 ## Source fit and public contract
 
-Selected Candle K9 F32 GEMM obtains pointer guards then invokes unsafe raw
-`cublas::result::gemm_strided_batched_ex` with `CudaBlas::handle()`. Existing110
-outer product admission must span model construction, forward and unwind,
-including that helper and guards. No new Candle API is needed. Raw handles and
-result functions cannot establish ownership and remain unsafe caller
-responsibility. Standalone safe BLAS/RNG methods need their own admission.
-Candle creates BLAS then RNG even without random model operations.
+Selected Candle K9 `182ceab0547348993b6dbec4b1aed610dcc8b23f` F32 GEMM
+in `candle-core/src/cuda_backend/mod.rs:2534-2563` clones the destination stream,
+obtains input/output pointer guards, then immediately invokes unsafe raw
+`gemm_strided_batched_ex(*cublas.handle(), ...)`. Driver C53
+`core.rs:1863-1869,1937-1947` pointer preparation records fallible stream waits
+but still returns pointers; a native terminal wait publishes shared loss and
+stores its delayed error. There is no K9 check between that preparation and
+raw cuBLAS. An outer110 lease coordinates quiescent reset but cannot by itself
+stop dispatch after an error discovered inside that admitted operation.
+
+A necessary Candle boundary repair is therefore proposed: expose
+`CudaBlas::admit() -> Result<CudaBlasLease<'_>, CublasError>`. The borrowed guard
+holds BLAS/context admission and binding across one caller operation. Its
+`handle() -> Result<sys::cublasHandle_t, CublasError>` rechecks the tracked
+context's cached loss/delayed error without native dispatch. K9 declares this
+guard before preparing device pointers, then calls `guard.handle()?` immediately
+as the first argument of its existing raw GEMM call. The guard drops after all
+pointer guards on return or unwind. Preserve every existing GEMM dimension,
+stride, datatype, scalar, compute-type choice and algorithm argument exactly;
+no numerical policy/API expansion. The existing raw handle escape remains
+unsafe caller responsibility.110 outer admission still spans the full model
+construction/forward/unwind. No production Candle edit before independent
+review of this amendment.
+
+RNG construction is required even without random model operations: Candle
+creates BLAS then RNG. Ordinary safe BLAS/RNG methods need admission before
+pointer preparation plus a cached/delayed-error recheck immediately before
+library dispatch, retaining admission through pointer-guard destruction.
 
 Keep existing safe method/result type names. Change `CublasError` and
 `CurandError` from tuple wrappers to enums with `Native(status)`,
@@ -87,3 +108,15 @@ assertions migrate mechanically from tuple construction to Native only.
 Root authorizes bounded native/build/test leases. Focused new selectors use
 `fathomdb_library_admission` modules. Final independent implementation review
 covers this coherent library family and raw outputs before integration.
+
+## Checked raw boundary test intent (proposed amendment)
+
+Use actual stream-wait seams to force native709 during pointer preparation
+after healthy admission. Require preserved Driver status/first loss, zero raw
+GEMM calls, and normal Rust guard unwind under the lease. Pair with ordinary
+wait-OOM refusal followed by successful retry, healthy raw-GEMM call counters,
+and a preserved native library-error control. Also exercise cached Lost before
+checked admission and loss first published between admission and handle check.
+This boundary receives its own semantic RED before minimal GREEN; compiler
+absence of a new API is preparation, never a substitute for behavior RED.
+Candle qualification must retain its exact F32 compute/algo argument behavior.
