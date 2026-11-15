@@ -2282,12 +2282,22 @@ impl CudaStream {
     }
 
     /// Allocates a [CudaSlice] with `len` elements of type `T`.
+    /// Tracked construction holds admission through native allocation, event
+    /// setup and completed ownership or error unwind.
     /// # Safety
     /// This is unsafe because the memory is unset.
     pub unsafe fn alloc<T: DeviceRepr>(
         self: &Arc<Self>,
         len: usize,
     ) -> Result<CudaSlice<T>, DriverError> {
+        #[cfg(feature = "std")]
+        let _lease = match &self.ctx.primary_lifetime {
+            Some(lifetime) => {
+                self.ctx.check_err()?;
+                Some(lifetime.admit()?)
+            }
+            None => None,
+        };
         self.ctx.bind_to_thread()?;
         // FATHOMDB PATCH: a private-pool context allocates only from its own pool.
         let cu_device_ptr = if let Some(pool) = &self.ctx.mem_pool {

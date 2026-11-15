@@ -67,7 +67,10 @@ pub(crate) mod seams {
         }
     }
 
-    pub(crate) fn allocate(bytes: usize, asynchronous: bool) -> Option<Result<sys::CUdeviceptr, DriverError>> {
+    pub(crate) fn allocate(
+        bytes: usize,
+        asynchronous: bool,
+    ) -> Option<Result<sys::CUdeviceptr, DriverError>> {
         let mut state = STATE.get()?;
         assert!(state.live.is_none());
         assert_eq!(bytes, 16);

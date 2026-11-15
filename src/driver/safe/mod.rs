@@ -33,9 +33,9 @@ pub(crate) mod primary_context_observation_tests;
 pub(crate) mod primary_context_probe_publication_tests;
 pub(crate) mod profile;
 #[cfg(all(test, feature = "std"))]
-pub(crate) mod slice_construction_tests;
-#[cfg(all(test, feature = "std"))]
 pub(crate) mod slice_allocation_admission_tests;
+#[cfg(all(test, feature = "std"))]
+pub(crate) mod slice_construction_tests;
 #[cfg(all(test, feature = "std"))]
 pub(crate) mod stream_construction_tests;
 #[cfg(all(test, feature = "std"))]
