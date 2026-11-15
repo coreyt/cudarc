@@ -107,3 +107,6 @@ pub use self::primary_context::{
 pub use self::profile::{profiler_start, profiler_stop, Profiler};
 pub use self::unified_memory::{UnifiedSlice, UnifiedView, UnifiedViewMut};
 pub use crate::driver::result::DriverError;
+
+#[cfg(all(test, feature = "std"))]
+pub(crate) mod native_boundary_origin_tests;
