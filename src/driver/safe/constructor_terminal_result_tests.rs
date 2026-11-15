@@ -69,12 +69,13 @@ fn terminal_constructor_result_is_cached_before_later_native_dispatch() {
         let failed_dispatch = driver.snapshot();
         let stream_calls = streams.snapshot();
         let event_calls = events.snapshot();
-        let first_record = lifetime
-            .state
-            .lock()
-            .unwrap()
-            .loss
-            .map(|loss| (loss.recorded_id, loss.observed_id, loss.refusal().driver_status() as u32));
+        let first_record = lifetime.state.lock().unwrap().loss.map(|loss| {
+            (
+                loss.recorded_id,
+                loss.observed_id,
+                loss.refusal().driver_status() as u32,
+            )
+        });
         set_native_error(phase, &events, &streams, None);
         let first_read = context.check_err().map_err(|error| error.0 as u32);
         let second_read = context.check_err().map_err(|error| error.0 as u32);

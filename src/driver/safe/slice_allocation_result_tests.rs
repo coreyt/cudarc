@@ -37,9 +37,13 @@ fn terminal_malloc_result_is_shared_before_any_later_allocation_or_probe() {
             .map_err(|error| error.0 as u32);
 
         let stopped = driver.snapshot();
-        let first_record = lifetime
-            .loss()
-            .map(|loss| (loss.recorded_id, loss.observed_id, loss.refusal().driver_status() as u32));
+        let first_record = lifetime.loss().map(|loss| {
+            (
+                loss.recorded_id,
+                loss.observed_id,
+                loss.refusal().driver_status() as u32,
+            )
+        });
         memory.set_allocate_error(None);
         let first_read = context.check_err().map_err(|error| error.0 as u32);
         let sibling_read = sibling.check_err().map_err(|error| error.0 as u32);

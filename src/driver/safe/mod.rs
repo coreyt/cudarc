@@ -66,7 +66,10 @@ pub use self::graph::CudaGraph;
 pub use self::launch::{LaunchArgs, LaunchConfig, PushKernelArg};
 pub use self::mem_pool::{CudaMemPool, MemPoolProps};
 #[cfg(feature = "std")]
-pub use self::primary_context::{NativeLibrary, PrimaryContextLease, PrimaryContextLifetime, PrimaryContextLoss, PrimaryContextLossCause, PrimaryContextRefusal};
+pub use self::primary_context::{
+    NativeLibrary, PrimaryContextLease, PrimaryContextLifetime, PrimaryContextLoss,
+    PrimaryContextLossCause, PrimaryContextRefusal,
+};
 pub use self::profile::{profiler_start, profiler_stop, Profiler};
 pub use self::unified_memory::{UnifiedSlice, UnifiedView, UnifiedViewMut};
 pub use crate::driver::result::DriverError;

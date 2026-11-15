@@ -89,7 +89,10 @@ fn check_cleanup_failure(wait: bool) {
             sibling.check_err().map_err(|error| error.0 as u32),
             Err(error as u32)
         );
-        assert_eq!(lifetime.loss().unwrap().refusal().driver_status() as u32, error as u32);
+        assert_eq!(
+            lifetime.loss().unwrap().refusal().driver_status() as u32,
+            error as u32
+        );
         let after = driver.snapshot();
         assert_eq!(
             (

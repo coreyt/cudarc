@@ -366,7 +366,10 @@ fn native_slice_cleanup_bind_failure_quarantines_before_free() {
         assert_eq!(freed.stream_synchronizes, 0);
         assert_eq!(events.snapshot().destroyed, 0);
         assert_eq!(driver.snapshot().queries, before.queries + 1);
-        assert_eq!(lifetime.loss().unwrap().refusal().driver_status() as u32, error as u32);
+        assert_eq!(
+            lifetime.loss().unwrap().refusal().driver_status() as u32,
+            error as u32
+        );
         driver.set_current_query_error(None);
         let stopped = driver.snapshot();
         assert_eq!(
