@@ -810,6 +810,14 @@ impl CudaContext {
     /// If there are any errors stored, this method will return the Err value, and
     /// then clear the stored error state.
     pub fn check_err(&self) -> Result<(), DriverError> {
+        #[cfg(feature = "std")]
+        if let Some(error) = self
+            .primary_lifetime
+            .as_ref()
+            .and_then(|lifetime| lifetime.error())
+        {
+            return Err(error);
+        }
         let error_state = self.error_state.swap(0, Ordering::Relaxed);
         if error_state == 0 {
             Ok(())
@@ -823,6 +831,10 @@ impl CudaContext {
     /// Records a result for later inspection when a Result can be returned.
     pub fn record_err<T>(&self, result: Result<T, DriverError>) {
         if let Err(err) = result {
+            #[cfg(feature = "std")]
+            if let Some(lifetime) = &self.primary_lifetime {
+                lifetime.record_error(err);
+            }
             self.error_state.store(err.0 as u32, Ordering::Relaxed)
         }
     }
