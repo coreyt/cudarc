@@ -19,6 +19,20 @@ impl PrimaryContextLifetime {
             .map(|loss| DriverError(loss.error))
     }
 
+    pub(crate) fn check_primary_active(&self, device: sys::CUdevice) -> Result<(), DriverError> {
+        if let Some(error) = self.error() {
+            return Err(error);
+        }
+        let (_, active) = unsafe { crate::driver::result::primary_ctx::get_state(device) }?;
+        if !active {
+            self.record_error(DriverError(sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED));
+        }
+        match self.error() {
+            Some(error) => Err(error),
+            None => Ok(()),
+        }
+    }
+
     pub(crate) fn record_error(&self, error: DriverError) {
         if error.0 == sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED {
             let mut loss = self
@@ -151,13 +165,63 @@ mod fathomdb_primary_lifetime {
         drop(context);
 
         let lost = sys::CUresult::CUDA_ERROR_CONTEXT_IS_DESTROYED;
-        assert_eq!(first, Err(lost as u32), "inactive primary must refuse before binding stale context");
+        assert_eq!(
+            first,
+            Err(lost as u32),
+            "inactive primary must refuse before binding stale context"
+        );
         assert_eq!(second, Err(lost as u32));
-        assert_eq!(dispatch.primary_queries, 1, "cached loss must prevent another primary probe");
+        assert_eq!(
+            dispatch.primary_queries, 1,
+            "cached loss must prevent another primary probe"
+        );
         assert_eq!((dispatch.queries, dispatch.binds), (0, 0));
         assert_eq!(
             *lifetime.loss.lock().unwrap(),
-            Some(PrimaryContextLoss { recorded_id: 29, observed_id: None, error: lost })
+            Some(PrimaryContextLoss {
+                recorded_id: 29,
+                observed_id: None,
+                error: lost
+            })
+        );
+    }
+
+    #[test]
+    fn active_primary_allows_healthy_binding() {
+        let driver = context_test_seams::Guard::new();
+        let lifetime = Arc::new(PrimaryContextLifetime {
+            recorded_id: 31,
+            loss: Mutex::new(None),
+        });
+        let mut context = context_test_seams::context();
+        Arc::get_mut(&mut context).unwrap().primary_lifetime = Some(lifetime.clone());
+
+        let result = context.bind_to_thread().map_err(|error| error.0 as u32);
+        let dispatch = driver.snapshot();
+        drop(context);
+
+        assert_eq!(result, Ok(()));
+        assert_eq!(
+            (dispatch.primary_queries, dispatch.queries, dispatch.binds),
+            (1, 1, 1)
+        );
+        assert!(lifetime.loss.lock().unwrap().is_none());
+    }
+
+    #[test]
+    fn untracked_bind_does_not_probe_primary_state() {
+        let driver = context_test_seams::Guard::new();
+        driver.set_primary_active(false);
+        let context = context_test_seams::context();
+
+        let result = context.bind_to_thread().map_err(|error| error.0 as u32);
+        let dispatch = driver.snapshot();
+        drop(context);
+
+        assert_eq!(result, Ok(()));
+        assert_eq!(
+            (dispatch.primary_queries, dispatch.queries, dispatch.binds),
+            (0, 1, 1)
         );
     }
 }
