@@ -3046,6 +3046,8 @@ pub(super) fn to_range(range: impl RangeBounds<usize>, len: usize) -> Option<(us
 ///
 /// Tracked cleanup holds admission through fresh binding and unload. Terminal
 /// refusal disarms the native handle while releasing ordinary Rust owners.
+/// An actual native unload failure records its driver cause before further
+/// generation use, because reclamation is uncertain.
 #[derive(Debug)]
 pub struct CudaModule {
     pub(crate) cu_module: sys::CUmodule,
@@ -3076,8 +3078,10 @@ impl Drop for CudaModule {
                 return;
             }
         }
-        self.ctx
-            .record_err(unsafe { result::module::unload(module) });
+        self.ctx.record_err(
+            self.ctx
+                .record_cleanup_prerequisite_result(unsafe { result::module::unload(module) }),
+        );
     }
 }
 
@@ -3087,6 +3091,8 @@ impl CudaContext {
     /// - `ptx` contains the compiled ptx
     ///
     /// Tracked construction retains admission until the module owner is complete.
+    /// Actual native CONTEXT_IS_DESTROYED or INVALID_CONTEXT errors publish
+    /// shared terminal loss before returning; ordinary OOM remains retryable.
     #[cfg(feature = "nvrtc")]
     pub fn load_module(
         self: &Arc<Self>,
@@ -3102,7 +3108,7 @@ impl CudaContext {
         };
         self.bind_to_thread()?;
 
-        let cu_module = match ptx.0 {
+        let cu_module = self.record_memory_result(match ptx.0 {
             crate::nvrtc::PtxKind::Image(image) => unsafe {
                 result::module::load_data(image.as_ptr() as *const _)
             },
@@ -3117,7 +3123,7 @@ impl CudaContext {
             crate::nvrtc::PtxKind::Binary(data) => unsafe {
                 result::module::load_data(data.as_ptr() as *const _)
             },
-        }?;
+        })?;
         Ok(Arc::new(CudaModule {
             cu_module,
             ctx: self.clone(),
@@ -3141,6 +3147,8 @@ impl CudaModule {
     ///
     /// Tracked lookup holds admission and binds before native dispatch. The
     /// returned function retains its module and shared generation owner.
+    /// Actual native CONTEXT_IS_DESTROYED or INVALID_CONTEXT errors publish
+    /// shared terminal loss before returning; ordinary OOM remains retryable.
     pub fn load_function(self: &Arc<Self>, fn_name: &str) -> Result<CudaFunction, DriverError> {
         #[cfg(feature = "std")]
         let _lease = match &self.ctx.primary_lifetime {
@@ -3153,7 +3161,9 @@ impl CudaModule {
             None => None,
         };
         let fn_name_c = CString::new(fn_name).unwrap();
-        let cu_function = unsafe { result::module::get_function(self.cu_module, fn_name_c) }?;
+        let cu_function = self.ctx.record_memory_result(unsafe {
+            result::module::get_function(self.cu_module, fn_name_c)
+        })?;
         Ok(CudaFunction {
             cu_function,
             module: self.clone(),
