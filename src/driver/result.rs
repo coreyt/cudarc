@@ -83,6 +83,10 @@ impl std::error::Error for DriverError {}
 ///
 /// See [cuInit() docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__INITIALIZE.html#group__CUDA__INITIALIZE_1g0a2f1517e1bd8502c7194c3a8c134bc3)
 pub fn init() -> Result<(), DriverError> {
+    #[cfg(test)]
+    if context_test_seams::init() {
+        return Ok(());
+    }
     unsafe { sys::cuInit(0).result() }
 }
 
@@ -104,6 +108,10 @@ pub mod device {
     /// Get a device for a specific ordinal.
     /// See [cuDeviceGet() docs](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__DEVICE.html#group__CUDA__DEVICE_1g8bdd1cc7201304b01357b8034f6587cb).
     pub fn get(ordinal: c_int) -> Result<sys::CUdevice, DriverError> {
+        #[cfg(test)]
+        if let Some(device) = super::context_test_seams::get_device(ordinal) {
+            return Ok(device);
+        }
         let mut dev = MaybeUninit::uninit();
         unsafe {
             sys::cuDeviceGet(dev.as_mut_ptr(), ordinal).result()?;
@@ -460,6 +468,10 @@ pub(crate) mod context_test_seams {
         pub(crate) binds: usize,
         pub(crate) releases: usize,
         pub(crate) retains: usize,
+        pub(crate) initializations: usize,
+        pub(crate) device_queries: usize,
+        pub(crate) symbol_checks: usize,
+        tracking_symbols: bool,
         pub(crate) primary_queries: usize,
         primary_active: bool,
         primary_error: Option<sys::CUresult>,
@@ -484,6 +496,10 @@ pub(crate) mod context_test_seams {
                 binds: 0,
                 releases: 0,
                 retains: 0,
+                initializations: 0,
+                device_queries: 0,
+                symbol_checks: 0,
+                tracking_symbols: true,
                 primary_queries: 0,
                 primary_active: true,
                 primary_error: None,
@@ -497,6 +513,12 @@ pub(crate) mod context_test_seams {
 
         pub(crate) fn snapshot(&self) -> State {
             STATE.get().unwrap()
+        }
+
+        pub(crate) fn set_tracking_symbols(&self, available: bool) {
+            let mut state = self.snapshot();
+            state.tracking_symbols = available;
+            STATE.set(Some(state));
         }
 
         pub(crate) fn set_primary_active(&self, active: bool) {
@@ -546,6 +568,30 @@ pub(crate) mod context_test_seams {
             #[cfg(feature = "std")]
             primary_lifetime: None,
         })
+    }
+
+    pub(crate) fn init() -> bool {
+        let Some(mut state) = STATE.get() else {
+            return false;
+        };
+        state.initializations += 1;
+        STATE.set(Some(state));
+        true
+    }
+
+    pub(crate) fn get_device(ordinal: core::ffi::c_int) -> Option<sys::CUdevice> {
+        let mut state = STATE.get()?;
+        assert_eq!(ordinal, 0);
+        state.device_queries += 1;
+        STATE.set(Some(state));
+        Some(0)
+    }
+
+    pub(crate) fn has_tracking_symbols() -> Option<bool> {
+        let mut state = STATE.get()?;
+        state.symbol_checks += 1;
+        STATE.set(Some(state));
+        Some(state.tracking_symbols)
     }
 
     pub(crate) fn get_current() -> Option<Option<sys::CUcontext>> {
@@ -765,6 +811,51 @@ pub mod ctx {
             return Ok(());
         }
         sys::cuCtxSetCurrent(ctx).result()
+    }
+
+    pub(crate) fn has_tracking_symbols() -> bool {
+        #[cfg(any(
+            feature = "cuda-11040",
+            feature = "cuda-11050",
+            feature = "cuda-11060",
+            feature = "cuda-11070",
+            feature = "cuda-11080"
+        ))]
+        {
+            false
+        }
+        #[cfg(not(any(
+            feature = "cuda-11040",
+            feature = "cuda-11050",
+            feature = "cuda-11060",
+            feature = "cuda-11070",
+            feature = "cuda-11080"
+        )))]
+        {
+            #[cfg(test)]
+            if let Some(available) = super::context_test_seams::has_tracking_symbols() {
+                return available;
+            }
+            #[cfg(feature = "dynamic-loading")]
+            unsafe {
+                type GetId = unsafe extern "C" fn(
+                    sys::CUcontext,
+                    *mut core::ffi::c_ulonglong,
+                ) -> sys::CUresult;
+                type GetState = unsafe extern "C" fn(
+                    sys::CUdevice,
+                    *mut core::ffi::c_uint,
+                    *mut core::ffi::c_int,
+                ) -> sys::CUresult;
+                sys::is_culib_present()
+                    && sys::culib().get::<GetId>(b"cuCtxGetId").is_ok()
+                    && sys::culib().get::<GetState>(b"cuDevicePrimaryCtxGetState").is_ok()
+            }
+            #[cfg(not(feature = "dynamic-loading"))]
+            {
+                true
+            }
+        }
     }
 
     /// Returns the unique identity of a context without making it current.

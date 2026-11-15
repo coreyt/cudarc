@@ -18,6 +18,7 @@ pub struct PrimaryContextLifetime {
 pub(crate) struct PrimaryContextAnchor {
     pub(crate) device: sys::CUdevice,
     pub(crate) context: sys::CUcontext,
+    pub(crate) ordinal: usize,
 }
 
 // Primary contexts support cross-thread use; the lifetime owns their retain.
@@ -34,6 +35,21 @@ impl Drop for PrimaryContextAnchor {
 }
 
 impl PrimaryContextLifetime {
+    /// Retains the primary context on `ordinal` and records its identity.
+    ///
+    /// Keep one shared lifetime for a device, including across context wrappers.
+    /// After terminal loss, do not create a replacement lifetime in this process.
+    ///
+    /// # Errors
+    /// Returns NOT_SUPPORTED when tracking is unavailable for the build or
+    /// driver, or the driver error from initialization, device lookup, primary
+    /// retain or identity lookup. Every successful retain has an owner before
+    /// subsequent fallible initialization and is released on failure.
+    pub fn new(ordinal: usize) -> Result<std::sync::Arc<Self>, DriverError> {
+        let _ = ordinal;
+        Err(DriverError(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED))
+    }
+
     pub(crate) fn error(&self) -> Option<DriverError> {
         self.loss
             .lock()
@@ -380,6 +396,7 @@ mod fathomdb_primary_lifetime {
                 anchor: Some(PrimaryContextAnchor {
                     device: 0,
                     context: retained,
+                    ordinal: 0,
                 }),
             });
             let mut first = context_test_seams::context();
@@ -486,5 +503,82 @@ mod fathomdb_primary_lifetime {
                 error
             })
         );
+    }
+
+    #[test]
+    #[cfg(not(any(
+        feature = "cuda-11040",
+        feature = "cuda-11050",
+        feature = "cuda-11060",
+        feature = "cuda-11070",
+        feature = "cuda-11080"
+    )))]
+    fn failed_lifetime_identity_initialization_releases_its_retained_anchor() {
+        let driver = context_test_seams::Guard::new();
+        let error = sys::CUresult::CUDA_ERROR_INVALID_CONTEXT;
+        driver.set_context_id_error(Some(error));
+
+        let outcome = PrimaryContextLifetime::new(0)
+            .map(|_| ())
+            .map_err(|error| error.0 as u32);
+        let dispatch = driver.snapshot();
+
+        assert_eq!(dispatch.retains, 1, "supported lifetime construction must reach one counted primary retain");
+        assert_eq!(outcome, Err(error as u32));
+        assert_eq!((dispatch.symbol_checks, dispatch.initializations, dispatch.device_queries), (1, 1, 1));
+        assert_eq!((dispatch.retains, dispatch.releases, dispatch.id_queries), (1, 1, 1));
+        assert_eq!(dispatch.primary_queries, 0);
+        assert_eq!((dispatch.queries, dispatch.binds), (0, 0));
+    }
+
+    #[test]
+    #[cfg(not(any(
+        feature = "cuda-11040",
+        feature = "cuda-11050",
+        feature = "cuda-11060",
+        feature = "cuda-11070",
+        feature = "cuda-11080"
+    )))]
+    fn lifetime_construction_owns_one_anchor_until_final_drop() {
+        let driver = context_test_seams::Guard::new();
+        let outcome = PrimaryContextLifetime::new(0).map_err(|error| error.0 as u32);
+        assert!(outcome.is_ok(), "supported tracked lifetime must construct successfully");
+        let lifetime = outcome.unwrap();
+        let initialized = driver.snapshot();
+        assert_eq!((initialized.symbol_checks, initialized.initializations, initialized.device_queries), (1, 1, 1));
+        assert_eq!((initialized.retains, initialized.releases, initialized.id_queries), (1, 0, 1));
+        assert_eq!(lifetime.recorded_id, 17);
+        assert!(lifetime.loss.lock().unwrap().is_none());
+        let anchor = lifetime.anchor.as_ref().unwrap();
+        assert_eq!((anchor.ordinal, anchor.device, anchor.context as usize), (0, 0, 0xC7));
+
+        drop(lifetime);
+
+        let released = driver.snapshot();
+        assert_eq!((released.retains, released.releases), (1, 1));
+        assert_eq!((released.primary_queries, released.queries, released.binds), (0, 0, 0));
+    }
+
+    #[test]
+    #[cfg(not(any(
+        feature = "cuda-11040",
+        feature = "cuda-11050",
+        feature = "cuda-11060",
+        feature = "cuda-11070",
+        feature = "cuda-11080"
+    )))]
+    fn missing_tracking_symbols_refuse_before_driver_or_retain() {
+        let driver = context_test_seams::Guard::new();
+        driver.set_tracking_symbols(false);
+        let outcome = PrimaryContextLifetime::new(0)
+            .map(|_| ())
+            .map_err(|error| error.0 as u32);
+        let dispatch = driver.snapshot();
+
+        assert_eq!(outcome, Err(sys::CUresult::CUDA_ERROR_NOT_SUPPORTED as u32));
+        assert_eq!(dispatch.symbol_checks, 1);
+        assert_eq!((dispatch.initializations, dispatch.device_queries), (0, 0));
+        assert_eq!((dispatch.retains, dispatch.releases, dispatch.id_queries), (0, 0, 0));
+        assert_eq!((dispatch.primary_queries, dispatch.queries, dispatch.binds), (0, 0, 0));
     }
 }
