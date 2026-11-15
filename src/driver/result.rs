@@ -1199,6 +1199,10 @@ pub mod stream {
     /// This should only be called with stream created by [create] and not already
     /// destroyed. This follows default stream semantics, see relevant cuda docs.
     pub unsafe fn synchronize(stream: sys::CUstream) -> Result<(), DriverError> {
+        #[cfg(all(test, feature = "std"))]
+        if let Some(result) = crate::driver::safe::lifetime_stream_cleanup_tests::seams::stream_synchronize(stream) {
+            return result;
+        }
         sys::cuStreamSynchronize(stream).result()
     }
 
@@ -1231,6 +1235,10 @@ pub mod stream {
         event: sys::CUevent,
         flags: sys::CUevent_wait_flags,
     ) -> Result<(), DriverError> {
+        #[cfg(all(test, feature = "std"))]
+        if let Some(result) = crate::driver::safe::lifetime_stream_cleanup_tests::seams::wait(stream, event, flags) {
+            return result;
+        }
         sys::cuStreamWaitEvent(stream, event, flags as u32).result()
     }
 

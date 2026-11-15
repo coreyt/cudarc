@@ -14,6 +14,8 @@ pub(crate) mod seams {
         pub(crate) created: usize,
         pub(crate) destroyed: usize,
         pub(crate) context_synchronizes: usize,
+        pub(crate) stream_synchronizes: usize,
+        pub(crate) waits: usize,
     }
 
     #[derive(Clone, Copy, Default)]
@@ -22,6 +24,8 @@ pub(crate) mod seams {
         destroy_error: Option<sys::CUresult>,
         create_error: Option<sys::CUresult>,
         context_synchronize_error: Option<sys::CUresult>,
+        stream_synchronize_error: Option<sys::CUresult>,
+        wait_error: Option<sys::CUresult>,
     }
 
     std::thread_local! {
@@ -29,6 +33,8 @@ pub(crate) mod seams {
         static DESTROY_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
         static CREATE_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
         static SYNCHRONIZE_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
+        static STREAM_SYNCHRONIZE_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
+        static WAIT_HOOK: std::cell::RefCell<Option<std::boxed::Box<dyn FnMut()>>> = const { std::cell::RefCell::new(None) };
     }
 
     pub(crate) struct Guard;
@@ -68,6 +74,26 @@ pub(crate) mod seams {
             SYNCHRONIZE_HOOK.with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
         }
 
+        pub(crate) fn set_stream_synchronize_error(&self, error: Option<sys::CUresult>) {
+            let mut state = STATE.get().unwrap();
+            state.stream_synchronize_error = error;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_stream_synchronize_hook(&self, hook: impl FnMut() + 'static) {
+            STREAM_SYNCHRONIZE_HOOK.with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
+        }
+
+        pub(crate) fn set_wait_error(&self, error: Option<sys::CUresult>) {
+            let mut state = STATE.get().unwrap();
+            state.wait_error = error;
+            STATE.set(Some(state));
+        }
+
+        pub(crate) fn set_wait_hook(&self, hook: impl FnMut() + 'static) {
+            WAIT_HOOK.with(|slot| *slot.borrow_mut() = Some(std::boxed::Box::new(hook)));
+        }
+
         pub(crate) fn set_destroy_error(&self, error: Option<sys::CUresult>) {
             let mut state = STATE.get().unwrap();
             state.destroy_error = error;
@@ -80,6 +106,8 @@ pub(crate) mod seams {
             DESTROY_HOOK.with(|slot| *slot.borrow_mut() = None);
             CREATE_HOOK.with(|slot| *slot.borrow_mut() = None);
             SYNCHRONIZE_HOOK.with(|slot| *slot.borrow_mut() = None);
+            STREAM_SYNCHRONIZE_HOOK.with(|slot| *slot.borrow_mut() = None);
+            WAIT_HOOK.with(|slot| *slot.borrow_mut() = None);
             STATE.set(None);
         }
     }
@@ -116,6 +144,42 @@ pub(crate) mod seams {
             }
         });
         Some(match state.destroy_error {
+            Some(error) => Err(DriverError(error)),
+            None => Ok(()),
+        })
+    }
+
+    pub(crate) fn stream_synchronize(stream: sys::CUstream) -> Option<Result<(), DriverError>> {
+        let mut state = STATE.get()?;
+        let handle = stream as usize;
+        assert!(handle == 0 || handle == 2 || (handle > 0x5700 && handle <= 0x5700 + state.counts.created));
+        state.counts.stream_synchronizes += 1;
+        STATE.set(Some(state));
+        STREAM_SYNCHRONIZE_HOOK.with(|slot| {
+            if let Some(hook) = slot.borrow_mut().as_mut() {
+                hook();
+            }
+        });
+        Some(match state.stream_synchronize_error {
+            Some(error) => Err(DriverError(error)),
+            None => Ok(()),
+        })
+    }
+
+    pub(crate) fn wait(stream: sys::CUstream, event: sys::CUevent, flags: sys::CUevent_wait_flags) -> Option<Result<(), DriverError>> {
+        let mut state = STATE.get()?;
+        let handle = stream as usize;
+        assert!(handle == 0 || handle == 2 || (handle > 0x5700 && handle <= 0x5700 + state.counts.created));
+        assert!(event as usize > 0xE700);
+        assert_eq!(flags as u32, sys::CUevent_wait_flags::CU_EVENT_WAIT_DEFAULT as u32);
+        state.counts.waits += 1;
+        STATE.set(Some(state));
+        WAIT_HOOK.with(|slot| {
+            if let Some(hook) = slot.borrow_mut().as_mut() {
+                hook();
+            }
+        });
+        Some(match state.wait_error {
             Some(error) => Err(DriverError(error)),
             None => Ok(()),
         })
