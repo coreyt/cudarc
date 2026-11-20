@@ -25,8 +25,8 @@ The package is named `cudarc-fathomdb`, but the library is still named
 cudarc = { package = "cudarc-fathomdb", version = "0.20.0" }
 ```
 
-The feature names are upstream's, plus the legacy no-op marker described in item6.
-The renamed package already provides an independent fork-identity check.
+The feature names are upstream's. The legacy no-op marker in item6 was removed
+independently; the renamed package provides the fork-identity check.
 
 Version 0.20.0 is a breaking pre-1.0 release. `CublasError` and `CurandError`
 are typed enums rather than public tuple structs; callers must handle `Native`,
@@ -49,7 +49,7 @@ Class: `U` upstream-shaped code, proposable upstream; `L` local-only code;
 | 3 | Zero-length synchronous allocation | `L` | local only | with item 1 |
 | 4 | Fallback tests | `L` | local only | with item 1 |
 | 5 | Private memory pool: `CudaMemPool`, `CudaContext::new_with_mem_pool`, `AllocMode::Private`, tests | `U` | not upstream; an upstream proposal (`proposal/mem-pool`) is planned and not posted | drop when an upstream release ships an equivalent; FathomDB switches to the upstream names |
-| 6 | Marker feature `fathomdb-private-pool` | `L` | local only | independently removable when renamed-package identity is checked and selected consumers enable no marker; retain item5 and allocator/accounting behavior |
+| 6 | Removed no-op marker `fathomdb-private-pool` | `L` | removed locally in0.8.30 | renamed-package identity authenticates the fork; selected consumers enabled no marker; item5 and allocator/accounting remain intact |
 | 7 | Fork CI workflow (not in the published crate) | `W` | not applicable | delete with the branch |
 | 8 | Packaging as `cudarc-fathomdb` (`[lib] name = "cudarc"`), `exclude`, README notice, this file | `P` | not applicable | when FathomDB consumes upstream cudarc again |
 | 9 | Built-major library loading: per library, try only the built major's versioned names first, verify unversioned names by the library's version query, and report the loaded file and version | `U` | not upstream; a second upstream proposal (`proposal/lib-major`) is planned and not posted | drop when upstream ships an equivalent |
@@ -197,9 +197,10 @@ does not document these values.
 
 ## Item 6: marker feature
 
-`fathomdb-private-pool` enables nothing. A dependent that enables it fails to
-resolve against an unpatched cudarc, instead of failing later on a missing
-symbol.
+`fathomdb-private-pool` was an empty marker and is now removed independently
+of every pool primitive. The selected consumers use the distinct package name
+and exact source pin, and enabled no marker. Allocator selection, accounting
+and tracked pool/lifetime APIs are unchanged; no compatibility alias is kept.
 
 ## Item 9: built-major library loading
 
