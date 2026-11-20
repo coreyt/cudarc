@@ -1,6 +1,6 @@
 # Slice60 cudarc maintenance and qualification
 
-Status: PROPOSED; input343b04fa73f85ee78754d6ee2baa07b959cc9ccc.
+Status: SOURCE_AND_CPU_ACCEPTED; input343b04fa73f85ee78754d6ee2baa07b959cc9ccc.
 FathomDB release0.8.30 seq409 commissions this owning-fork work. Historical
 plan/requirements/design/test-plan remain authoritative outside this scoped
 amendment. Direct Astra-medium reviews this amendment before changes; direct
@@ -86,3 +86,21 @@ query a destroyed pool. OrdinaryOOM product control preserves same allocator/
 token/recorded generation through status2 -> healthy USEDrelease ->4MiB retry.
 Native reset cases remain HELDseq377 until reviewed concrete product protocol
 and actor/venue/resource authority; no additional blanket approval is invented.
+
+## Actual marker candidate
+
+Code pin7948f520e122cc0ae1d302a5487bfd383486d327 is staged on the owner
+branch fathomdb/0.8.30-slice60-cudarc. Direct Sol6.2-high source PASS confirms
+all remaining manifest fields/features and src/build.rs unchanged. PolicyP
+precedes markerL; the obsolete comment is removed. Direct Terra independently
+compiled this pin with libloading0.9.0, Rust1.95, CUDA12060 and hidden GPUs;
+seven owning filters executed149 tests,0failed/0ignored. This includes paired
+lost/healthy nested slice, final pool, typed first cause and ordinaryOOM retry.
+This is preservation, not semanticRED or real-reset proof. Native pools,
+installed consumers and final graph/native/reset qualification remain OPEN.
+Raw logs/list/features/actual exits and lock/binary identities:
+/mnt/data/tmp2/fathomdb-0830-slice60/terra-cudarc-evidence/.
+Binary e0be4188d359904c39b1911ea450800864824d1dcc84a1bd5173739c7bffb42f;
+lock3704e868ea653b3309009b41c9bb1d1ed3583c2f26004c7bebfed955414060ab.
+Baseline146unique selector matches/149 executions usedlibloading0.9.1 and is
+retained separately; its dependency inputs are not relabeled as the candidate.
