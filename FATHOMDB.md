@@ -5,7 +5,8 @@
 crate. This file lists everything it changes, so that a consumer can see
 what differs from upstream and when each change can go away.
 
-- **Fork release candidate:** `0.20.0`, unpublished. The upstream base below
+- **Fork release candidate:** `0.21.0`, unpublished. Published `0.20.0`
+  remains immutable at `343b04fa`. The upstream base below
   is unchanged. Publication and artifact qualification remain separate steps.
 - **Base:** upstream tag `v0.19.10`, commit `ec1cac71`.
 - **Source:** [coreyt/cudarc](https://github.com/coreyt/cudarc), branch
@@ -22,7 +23,7 @@ The package is named `cudarc-fathomdb`, but the library is still named
 
 ```toml
 [dependencies]
-cudarc = { package = "cudarc-fathomdb", version = "0.20.0" }
+cudarc = { package = "cudarc-fathomdb", version = "=0.21.0" }
 ```
 
 The feature names are upstream's. The legacy no-op marker in item6 was removed
