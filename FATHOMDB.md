@@ -5,14 +5,14 @@
 crate. This file lists everything it changes, so that a consumer can see
 what differs from upstream and when each change can go away.
 
-- **Fork release candidate:** `0.21.0`, unpublished. Published `0.20.0`
-  remains immutable at `343b04fa`. The upstream base below
-  is unchanged. Publication and artifact qualification remain separate steps.
+- **Fork package:** `0.21.0`. Historical `0.20.0` was published from
+  `343b04fa73f85ee78754d6ee2baa07b959cc9ccc`; that registry source is immutable.
+  The upstream base below is unchanged.
 - **Base:** upstream tag `v0.19.10`, commit `ec1cac71`.
-- **Source:** [coreyt/cudarc](https://github.com/coreyt/cudarc), branch
-  `fathomdb/0.19.10`. The fork's plan, requirements, design, test plan and
-  status records are in that branch's `fathomdb/` directory, which is not
-  part of the published crate.
+- **Source:** [coreyt/cudarc](https://github.com/coreyt/cudarc). The package's
+  `.cargo_vcs_info.json` identifies its exact source revision. Plans,
+  requirements, design, test plans and qualification records are in the owner
+  repository's `fathomdb/` directory, which is excluded from crate archives.
 - **Licence and authorship:** unchanged from upstream (MIT OR Apache-2.0).
 
 ## How to depend on it
@@ -29,7 +29,7 @@ cudarc = { package = "cudarc-fathomdb", version = "=0.21.0" }
 The feature names are upstream's. The legacy no-op marker in item6 was removed
 independently; the renamed package provides the fork-identity check.
 
-Version 0.20.0 is a breaking pre-1.0 release. `CublasError` and `CurandError`
+Version 0.20.0 introduced breaking pre-1.0 changes. `CublasError` and `CurandError`
 are typed enums rather than public tuple structs; callers must handle `Native`,
 `Driver`, `Lost` and `ContextMismatch` instead of reading `.0`. Tracked primary
 lifetime, cached loss/identity observation, context and private-pool APIs share
@@ -57,7 +57,7 @@ Class: `U` upstream-shaped code, proposable upstream; `L` local-only code;
 
 ## Tracked primary lifetime and library cleanup
 
-The unpublished0.20.0 candidate additionally carries the qualified .29 repair:
+Since0.20.0 the fork additionally carries the .29 repair:
 PrimaryContextLifetime owns one retained per-device primary anchor, shared
 admission and irreversible first-cause loss. Tracked contexts, pools, streams,
 events, slices, pointer guards, modules, pinned host memory, cuBLAS and cuRAND
