@@ -22,8 +22,8 @@ removal. Then remove only empty Cargo feature and corresponding stale text.
 Feature metadata cleanup changes no owning allocator implementation; existing
 pool/lifetime controls are preservation, not invented semantic RED. Package
 and source graphs must show identical implementation features except marker
-absence, and no active upstream cudarc substitution. No new crate version or
-publication is selected:0.20.0 remains unpublished candidate.
+absence, and no active upstream cudarc substitution. Registry0.20.0 was already published from343b04fa; matching marker metadata
+requires a fresh candidate as selected in the delivery correction below.
 
 ## Design and exact qualification
 
@@ -104,3 +104,52 @@ Binary e0be4188d359904c39b1911ea450800864824d1dcc84a1bd5173739c7bffb42f;
 lock3704e868ea653b3309009b41c9bb1d1ed3583c2f26004c7bebfed955414060ab.
 Baseline146unique selector matches/149 executions usedlibloading0.9.1 and is
 retained separately; its dependency inputs are not relabeled as the candidate.
+
+
+## Registry identity correction
+
+Registry0.20.0 is already published from343b04fa; its source cannot change.
+The selected marker removal requires fresh candidate0.21.0 for matching
+registry metadata. Read-only exact-version (including yanked) and ownership
+preflight precedes this bump. Normalized package staging and an external
+no-root-patch Candle CUDA consumer must resolve one cudarc with identical
+source; public-registry proof remains OPEN until parent publication disposition.
+No registry write is authorized by this amendment.
+
+
+## Append-only commit-class correction
+
+Commit `8e2f2b39777055e936791db52fb4a11d5ded8617` omitted its required
+`Fork-Class: P` trailer. This is historical noncompliance. Actual path audit
+(`git diff-tree --no-commit-id --name-only -r`) shows only `Cargo.toml` and
+packaged `FATHOMDB.md`, both permitted P paths under this fork's own plan;
+no `fathomdb/` owning docs were mixed into it. Parent agent coordination directed this narrow
+append-only correction, preserving original refs and measured bindings.
+It does not claim the missing trailer existed. Future commits retain the
+existing trailer/path rules and normal hooks; no history is rewritten.
+
+
+## Current exact-pin qualification
+
+Code candidate `8e2f2b39777055e936791db52fb4a11d5ded8617` (0.21.0)
+retains byte-identical owning Rust/tests/build.rs versus the old qualified
+343b04fa source; marker/version/packaged notice are the only later changes.
+Required fresh owning CPU qualification nevertheless ran once against actual
+Fathom lock f02a722f51e298525db9670045908cbfb22d26ebd2ad89b7369396ec6cc4072f:
+323 x86 and322 native ARM selected tests, all passed, zero ignored. Exact22
+normal package identities/checksums and10 root features match both product
+graphs; seven non-root feature sets differ and are explicitly recorded, not
+claimed equal. Source/test/build identity, original setup/operator failures,
+corrected remaining-only execution and actual binary hashes are retained at
+`/mnt/data/tmp2/fathomdb-0830-slice60/terra-exact-lock/`. Product's reviewed
+lock-set record preserves the previous native qualification unchanged.
+
+A real owning outstanding-allocation/deferred-destruction child passed on the
+selected3090. Existing native/Candle/model controls exercised this actual0.21
+source separately from the CPU lifetime/known-loss seams. No actual reset is
+claimed. A checksum-bound normalized0.21 archive compiled and ran through an
+independent no-root-patch staged-registry consumer, on the3090 and in a real
+driverless CPU container; exact known F32 output and post-drop exit0 passed.
+This proves the staged package route, not public registry availability.
+Publication, actual Orin reset/private-pool fault successors, final installed
+consumers and full product gate remain separately recorded OPEN until executed.
