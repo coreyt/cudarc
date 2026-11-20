@@ -25,7 +25,8 @@ The package is named `cudarc-fathomdb`, but the library is still named
 cudarc = { package = "cudarc-fathomdb", version = "0.20.0" }
 ```
 
-The feature names are upstream's, plus `fathomdb-private-pool` (item 6).
+The feature names are upstream's, plus the legacy no-op marker described in item6.
+The renamed package already provides an independent fork-identity check.
 
 Version 0.20.0 is a breaking pre-1.0 release. `CublasError` and `CurandError`
 are typed enums rather than public tuple structs; callers must handle `Native`,
@@ -48,10 +49,28 @@ Class: `U` upstream-shaped code, proposable upstream; `L` local-only code;
 | 3 | Zero-length synchronous allocation | `L` | local only | with item 1 |
 | 4 | Fallback tests | `L` | local only | with item 1 |
 | 5 | Private memory pool: `CudaMemPool`, `CudaContext::new_with_mem_pool`, `AllocMode::Private`, tests | `U` | not upstream; an upstream proposal (`proposal/mem-pool`) is planned and not posted | drop when an upstream release ships an equivalent; FathomDB switches to the upstream names |
-| 6 | Marker feature `fathomdb-private-pool` | `L` | local only | with item 5 |
+| 6 | Marker feature `fathomdb-private-pool` | `L` | local only | independently removable when renamed-package identity is checked and selected consumers enable no marker; retain item5 and allocator/accounting behavior |
 | 7 | Fork CI workflow (not in the published crate) | `W` | not applicable | delete with the branch |
 | 8 | Packaging as `cudarc-fathomdb` (`[lib] name = "cudarc"`), `exclude`, README notice, this file | `P` | not applicable | when FathomDB consumes upstream cudarc again |
 | 9 | Built-major library loading: per library, try only the built major's versioned names first, verify unversioned names by the library's version query, and report the loaded file and version | `U` | not upstream; a second upstream proposal (`proposal/lib-major`) is planned and not posted | drop when upstream ships an equivalent |
+
+## Tracked primary lifetime and library cleanup
+
+The unpublished0.20.0 candidate additionally carries the qualified .29 repair:
+PrimaryContextLifetime owns one retained per-device primary anchor, shared
+admission and irreversible first-cause loss. Tracked contexts, pools, streams,
+events, slices, pointer guards, modules, pinned host memory, cuBLAS and cuRAND
+observe it before native dispatch or cleanup. Checked BLAS leases protect the
+raw Candle F32 boundary after pointer preparation. Ordinary OOM remains retryable;
+actual failed native cleanup freezes admission. Causes distinguish native driver,
+native library domain/status and explicitly synthetic projections. After loss
+wrappers disarm and reclaim Rust ownership; unsafe native cleanup is skipped
+apart from the documented balanced final primary release. Native residue may
+remain until restart, bounded by the finite pre-loss live set; opaque native
+host bytes have no established hard cap. These upstream-shaped local repairs
+are not posted. Remove only after an upstream equivalent qualifies the same
+ownership/error/cleanup contract on actual consumers. CPU seam proof does not
+establish real-reset survival or close the original Orin teardown defect.
 
 ## Items 1–4: allocator fallback (aarch64 Linux only)
 
