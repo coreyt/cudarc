@@ -1,6 +1,6 @@
 # Slice60 cudarc maintenance and qualification
 
-Status: SOURCE_AND_CPU_ACCEPTED; input343b04fa73f85ee78754d6ee2baa07b959cc9ccc.
+Status: QUALIFIED_AND_PUBLISHED; input343b04fa73f85ee78754d6ee2baa07b959cc9ccc.
 FathomDB release0.8.30 seq409 commissions this owning-fork work. Historical
 plan/requirements/design/test-plan remain authoritative outside this scoped
 amendment. Direct Astra-medium reviews this amendment before changes; direct
@@ -129,7 +129,7 @@ It does not claim the missing trailer existed. Future commits retain the
 existing trailer/path rules and normal hooks; no history is rewritten.
 
 
-## Current exact-pin qualification
+## Historical pre-final exact-pin qualification
 
 Code candidate `8e2f2b39777055e936791db52fb4a11d5ded8617` (0.21.0)
 retains byte-identical owning Rust/tests/build.rs versus the old qualified
@@ -153,3 +153,28 @@ driverless CPU container; exact known F32 output and post-drop exit0 passed.
 This proves the staged package route, not public registry availability.
 Publication, actual Orin reset/private-pool fault successors, final installed
 consumers and full product gate remain separately recorded OPEN until executed.
+
+## Final Slice60 closure
+
+Final CODE3509cd6bd83b44204be1880e833474ab0f75e060 retains unchanged owning
+Rust/tests/build behavior. Fresh actual final-product-lock qualification passed
+323x86 and322nativeARM selected controls, zero ignored, under
+`/mnt/data/tmp2/fathomdb-0830-slice60/terra-final-exact-lock/`. Both venues
+passed the final owning/model/installed functional controls and seven actual
+process-primary fault children plus seven fresh recovery children each under
+owner411/412. Orin used the real3GiB private pool; typed synthetic709 is not
+a claimed native709 return. Ordinary Orin OOM and the owner-requested one
+full-card3090 Default OOM retry passed actual native2/cleanup/same-generation
+retry. Original8GiB probe and clone-monitor limitations retain their failures.
+All selected children ended and leases freed. Product strict gate on f020b84
+passed241registered/238ran+passed/3explicitlive-controlskips, exit0.
+
+Owner seq413 authorized and normal Cargo published cudarc-fathomdb0.21.0
+from the clean3509 checkout. Actual public archive SHA256 is
+`6eaa637ddf017eee725e50219745293994400c7b214886bcd5a8b10a4dc18413`,
+byte-identical to the staged candidate. Earlier records above retain their
+original source/lock and held-at-that-time meanings; they are not relabelled.
+Final public consumer delivery and full shared cohort outcome are recorded in
+FathomDB Slice60 status and `evidence/public-registry-downloads.json` under
+the task evidence directory. No future50 API or0.8.30 shipping artifact is
+qualified by these development artifacts.
